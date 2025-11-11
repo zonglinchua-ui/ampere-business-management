@@ -925,8 +925,9 @@ export default function TenderDetailsPage() {
 		{/* Tender File Manager - NAS Document Storage */}
       		<TenderFileManager
         	tenderId={tender.id}
+        	tenderNumber={tender.tenderNumber}
         	tenderTitle={tender.title}
-        	customerName={tender.customer.name}
+        	customerName={tender.client.name}
         	nasPath={tender.nasDocumentPath}
 	      />
             </Card>
