@@ -1,0 +1,153 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Flow Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .test-step { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #b8daff; }
+        button { padding: 10px 20px; margin: 10px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .credentials { background: #fff3cd; padding: 10px; margin: 10px 0; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Ampere Engineering - Login Flow Test</h1>
+    
+    <div class="test-step info">
+        <h3>📋 Test Instructions</h3>
+        <p>Follow these steps to test the complete login flow:</p>
+        <ol>
+            <li><strong>Step 1:</strong> Click "Open Login Page" to go to the login form</li>
+            <li><strong>Step 2:</strong> Enter the credentials shown below</li>
+            <li><strong>Step 3:</strong> Click "Sign In" and observe the behavior</li>
+            <li><strong>Step 4:</strong> Check if you're redirected to the dashboard</li>
+        </ol>
+    </div>
+    
+    <div class="credentials">
+        <h3>🔑 Test Credentials</h3>
+        <p><strong>Username:</strong> Endy</p>
+        <p><strong>Password:</strong> admin123</p>
+        <p><strong>Role:</strong> SUPERADMIN (Full Access)</p>
+    </div>
+    
+    <div class="test-step">
+        <h3>🚀 Quick Actions</h3>
+        <button onclick="window.open('/auth/login', '_blank')">Open Login Page</button>
+        <button onclick="window.open('/dashboard', '_blank')">Open Dashboard (should redirect to login)</button>
+        <button onclick="checkSession()">Check Current Session</button>
+        <button onclick="testAPIs()">Test API Endpoints</button>
+    </div>
+    
+    <div class="test-step">
+        <h3>🔍 Test Results</h3>
+        <div id="results"></div>
+    </div>
+    
+    <div class="test-step info">
+        <h3>🎯 Expected Behavior</h3>
+        <ul>
+            <li>✅ Login page loads properly with form fields</li>
+            <li>✅ Entering credentials and clicking "Sign In" shows success message</li>
+            <li>✅ Page redirects to /dashboard after 500ms delay</li>
+            <li>✅ Dashboard shows full application interface</li>
+            <li>✅ Navigation menu is accessible with all options</li>
+            <li>✅ User can access Settings → Integrations for Xero</li>
+        </ul>
+    </div>
+    
+    <div class="test-step">
+        <h3>🔧 Troubleshooting</h3>
+        <p><strong>If login fails:</strong></p>
+        <ul>
+            <li>Open browser console (F12) to check for errors</li>
+            <li>Verify username is exactly "Endy" (case-sensitive)</li>
+            <li>Verify password is exactly "admin123"</li>
+            <li>Check network tab for failed requests</li>
+        </ul>
+        <p><strong>If redirected back to login:</strong></p>
+        <ul>
+            <li>Check middleware configuration</li>
+            <li>Verify session is being created properly</li>
+            <li>Check NextAuth configuration</li>
+        </ul>
+    </div>
+
+    <script>
+        async function checkSession() {
+            try {
+                const response = await fetch('/api/auth/session');
+                const session = await response.json();
+                
+                const results = document.getElementById('results');
+                if (session && session.user) {
+                    results.innerHTML = `
+                        <div class="success">
+                            <h4>✅ Session Active</h4>
+                            <p><strong>User:</strong> ${session.user.name || 'Unknown'}</p>
+                            <p><strong>Email:</strong> ${session.user.email || 'Unknown'}</p>
+                            <p><strong>Role:</strong> ${session.user.role || 'Unknown'}</p>
+                        </div>
+                    `;
+                } else {
+                    results.innerHTML = `
+                        <div class="error">
+                            <h4>❌ No Active Session</h4>
+                            <p>User is not logged in</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('results').innerHTML = `
+                    <div class="error">
+                        <h4>❌ Session Check Failed</h4>
+                        <p>Error: ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+        
+        async function testAPIs() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<p>🔄 Testing APIs...</p>';
+            
+            try {
+                // Test providers endpoint
+                const providersResponse = await fetch('/api/auth/providers');
+                const providers = await providersResponse.json();
+                
+                // Test session endpoint
+                const sessionResponse = await fetch('/api/auth/session');
+                const session = await sessionResponse.json();
+                
+                results.innerHTML = `
+                    <div class="success">
+                        <h4>✅ API Test Results</h4>
+                        <p><strong>Providers endpoint:</strong> ${Object.keys(providers).length} providers found</p>
+                        <p><strong>Session endpoint:</strong> ${session.user ? 'Active session' : 'No session'}</p>
+                        <p><strong>NextAuth status:</strong> Working correctly</p>
+                    </div>
+                `;
+            } catch (error) {
+                results.innerHTML = `
+                    <div class="error">
+                        <h4>❌ API Test Failed</h4>
+                        <p>Error: ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+        
+        // Auto-check session on page load
+        window.onload = function() {
+            setTimeout(checkSession, 1000);
+        };
+    </script>
+</body>
+</html>

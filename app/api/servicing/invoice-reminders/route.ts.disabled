@@ -1,0 +1,98 @@
+
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { prisma } from '@/lib/db';
+
+export async function GET(req: NextRequest) {
+  try {
+    const session = await getServerSession();
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const searchParams = req.nextUrl.searchParams;
+    const jobId = searchParams.get('jobId');
+    const contractId = searchParams.get('contractId');
+
+    // Get all service job invoices that are overdue or due soon
+    const now = new Date();
+    const sevenDaysFromNow = new Date();
+    sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
+
+    let whereClause: any = {
+      status: { in: ['PENDING', 'SENT'] },
+      OR: [
+        // Overdue invoices
+        {
+          dueDate: { lt: now }
+        },
+        // Due within 7 days
+        {
+          dueDate: {
+            gte: now,
+            lte: sevenDaysFromNow
+          }
+        }
+      ]
+    };
+
+    // If jobId is provided, filter by job
+    if (jobId) {
+      whereClause.serviceJobId = jobId;
+    } else if (contractId) {
+      // If contractId is provided, filter by jobs in that contract
+      whereClause.serviceJob = {
+        contractId: contractId
+      };
+    }
+
+    const reminders = await prisma.serviceInvoice.findMany({
+      where: whereClause,
+      include: {
+        ServiceJob: {
+          include: {
+            Customer: true
+          }
+        }
+      },
+      orderBy: {
+        dueDate: 'asc'
+      }
+    });
+
+    // Format reminders with urgency level
+    const formattedReminders = reminders.map((invoice: any) => {
+      const daysUntilDue = Math.ceil(
+        ((invoice.dueDate?.getTime() || 0) - now.getTime()) / (1000 * 60 * 60 * 24)
+      );
+      
+      let urgency: 'overdue' | 'urgent' | 'upcoming' = 'upcoming';
+      if (daysUntilDue < 0) {
+        urgency = 'overdue';
+      } else if (daysUntilDue <= 3) {
+        urgency = 'urgent';
+      }
+
+      return {
+        id: invoice.id,
+        invoiceNumber: invoice.invoiceNumber,
+        amount: invoice.totalAmount,
+        dueDate: invoice.dueDate,
+        daysUntilDue,
+        urgency,
+        jobId: invoice.serviceJobId,
+        jobNumber: invoice.serviceJob?.jobNumber,
+        customerName: invoice.serviceJob?.customer?.name,
+        status: invoice.status
+      };
+    });
+
+    return NextResponse.json({ reminders: formattedReminders });
+  } catch (error) {
+    console.error('Error fetching service invoice reminders:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch invoice reminders' },
+      { status: 500 }
+    );
+  }
+}

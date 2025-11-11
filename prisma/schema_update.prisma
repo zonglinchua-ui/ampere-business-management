@@ -1,0 +1,41 @@
+model ServiceContract {
+  id          String                     @id @default(cuid())
+  contractNo  String                     @unique
+  title       String
+  customerId  String
+  projectId   String?
+  serviceType ServiceType
+  frequency   ServiceFrequency
+  startDate   DateTime
+  endDate     DateTime
+  status      ServiceContractStatus      @default(Active)
+  filePath    String?
+  createdById String
+  createdAt   DateTime                   @default(now())
+  updatedAt   DateTime                   @updatedAt
+  customer    Customer                   @relation(fields: [customerId], references: [id])
+  createdBy   User                       @relation("ServiceContractCreator", fields: [createdById], references: [id])
+  project     Project?                   @relation(fields: [projectId], references: [id])
+  jobs        ServiceJob[]
+  suppliers   ServiceContractSupplier[]
+}
+
+model ServiceContractSupplier {
+  id         String          @id @default(cuid())
+  contractId String
+  supplierId String
+  assignedAt DateTime        @default(now())
+  contract   ServiceContract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  supplier   Supplier        @relation("ServiceContractSuppliers", fields: [supplierId], references: [id], onDelete: Cascade)
+
+  @@unique([contractId, supplierId])
+  @@index([contractId])
+  @@index([supplierId])
+}
+
+enum ServiceContractStatus {
+  Active
+  Expired
+  Cancelled
+  OnHold
+}

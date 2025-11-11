@@ -1,0 +1,272 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { prisma } from '@/lib/db'
+import fs from 'fs'
+import path from 'path'
+
+/**
+ * GET - List all files in a tender's NAS folder
+ * Query params: tenderId
+ */
+export async function GET(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { searchParams } = new URL(request.url)
+    const tenderId = searchParams.get('tenderId')
+
+    if (!tenderId) {
+      return NextResponse.json({ error: 'Tender ID is required' }, { status: 400 })
+    }
+
+    // Get tender with NAS path
+    const tender = await prisma.tender.findUnique({
+      where: { id: tenderId },
+      select: {
+        id: true,
+        tenderNumber: true,
+        title: true,
+        nasDocumentPath: true,
+        Customer: {
+          select: {
+            name: true
+          }
+        }
+      }
+    })
+
+    if (!tender) {
+      return NextResponse.json({ error: 'Tender not found' }, { status: 404 })
+    }
+
+    if (!tender.nasDocumentPath) {
+      return NextResponse.json({ 
+        files: [],
+        message: 'No NAS folder configured for this tender'
+      })
+    }
+
+    // Check if folder exists
+    if (!fs.existsSync(tender.nasDocumentPath)) {
+      return NextResponse.json({ 
+        files: [],
+        message: 'Tender folder does not exist yet'
+      })
+    }
+
+    // Read directory contents
+    const files = await fs.promises.readdir(tender.nasDocumentPath, { withFileTypes: true })
+    
+    // Get file details
+    const fileList = await Promise.all(
+      files.map(async (file) => {
+        const filePath = path.join(tender.nasDocumentPath!, file.name)
+        const stats = await fs.promises.stat(filePath)
+        
+        return {
+          name: file.name,
+          size: stats.size,
+          isDirectory: file.isDirectory(),
+          createdAt: stats.birthtime,
+          modifiedAt: stats.mtime,
+          extension: path.extname(file.name).toLowerCase()
+        }
+      })
+    )
+
+    // Sort: directories first, then by name
+    fileList.sort((a, b) => {
+      if (a.isDirectory && !b.isDirectory) return -1
+      if (!a.isDirectory && b.isDirectory) return 1
+      return a.name.localeCompare(b.name)
+    })
+
+    return NextResponse.json({
+      tender: {
+        id: tender.id,
+        tenderNumber: tender.tenderNumber,
+        title: tender.title,
+        customerName: tender.Customer?.name,
+        nasPath: tender.nasDocumentPath
+      },
+      files: fileList,
+      totalFiles: fileList.filter(f => !f.isDirectory).length,
+      totalFolders: fileList.filter(f => f.isDirectory).length
+    })
+
+  } catch (error) {
+    console.error('Error listing tender files:', error)
+    return NextResponse.json(
+      { error: 'Failed to list files', details: error instanceof Error ? error.message : 'Unknown error' },
+      { status: 500 }
+    )
+  }
+}
+
+/**
+ * POST - Upload file to tender's NAS folder
+ * Body: FormData with 'file' and 'tenderId'
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const formData = await request.formData()
+    const file = formData.get('file') as File
+    const tenderId = formData.get('tenderId') as string
+
+    if (!file) {
+      return NextResponse.json({ error: 'No file provided' }, { status: 400 })
+    }
+
+    if (!tenderId) {
+      return NextResponse.json({ error: 'Tender ID is required' }, { status: 400 })
+    }
+
+    // Get tender with NAS path
+    const tender = await prisma.tender.findUnique({
+      where: { id: tenderId },
+      select: {
+        id: true,
+        tenderNumber: true,
+        nasDocumentPath: true
+      }
+    })
+
+    if (!tender) {
+      return NextResponse.json({ error: 'Tender not found' }, { status: 404 })
+    }
+
+    if (!tender.nasDocumentPath) {
+      return NextResponse.json({ error: 'No NAS folder configured for this tender' }, { status: 400 })
+    }
+
+    // Ensure folder exists
+    await fs.promises.mkdir(tender.nasDocumentPath, { recursive: true })
+
+    // Sanitize filename
+    const sanitizedFilename = file.name
+      .replace(/[<>:"/\\|?*]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+
+    // Create full file path
+    const filePath = path.join(tender.nasDocumentPath, sanitizedFilename)
+
+    // Check if file already exists
+    if (fs.existsSync(filePath)) {
+      // Add timestamp to filename to avoid overwrite
+      const ext = path.extname(sanitizedFilename)
+      const nameWithoutExt = path.basename(sanitizedFilename, ext)
+      const timestamp = Date.now()
+      const newFilename = `${nameWithoutExt}_${timestamp}${ext}`
+      const newFilePath = path.join(tender.nasDocumentPath, newFilename)
+      
+      // Convert file to buffer and write
+      const bytes = await file.arrayBuffer()
+      const buffer = Buffer.from(bytes)
+      await fs.promises.writeFile(newFilePath, buffer)
+
+      return NextResponse.json({
+        success: true,
+        message: 'File uploaded successfully (renamed to avoid conflict)',
+        file: {
+          name: newFilename,
+          originalName: file.name,
+          size: file.size,
+          path: newFilePath
+        }
+      })
+    } else {
+      // Convert file to buffer and write
+      const bytes = await file.arrayBuffer()
+      const buffer = Buffer.from(bytes)
+      await fs.promises.writeFile(filePath, buffer)
+
+      return NextResponse.json({
+        success: true,
+        message: 'File uploaded successfully',
+        file: {
+          name: sanitizedFilename,
+          originalName: file.name,
+          size: file.size,
+          path: filePath
+        }
+      })
+    }
+
+  } catch (error) {
+    console.error('Error uploading file:', error)
+    return NextResponse.json(
+      { error: 'Failed to upload file', details: error instanceof Error ? error.message : 'Unknown error' },
+      { status: 500 }
+    )
+  }
+}
+
+/**
+ * DELETE - Delete file from tender's NAS folder
+ * Body: { tenderId, filename }
+ */
+export async function DELETE(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { tenderId, filename } = await request.json()
+
+    if (!tenderId || !filename) {
+      return NextResponse.json({ error: 'Tender ID and filename are required' }, { status: 400 })
+    }
+
+    // Get tender with NAS path
+    const tender = await prisma.tender.findUnique({
+      where: { id: tenderId },
+      select: {
+        id: true,
+        nasDocumentPath: true
+      }
+    })
+
+    if (!tender) {
+      return NextResponse.json({ error: 'Tender not found' }, { status: 404 })
+    }
+
+    if (!tender.nasDocumentPath) {
+      return NextResponse.json({ error: 'No NAS folder configured for this tender' }, { status: 400 })
+    }
+
+    const filePath = path.join(tender.nasDocumentPath, filename)
+
+    // Check if file exists
+    if (!fs.existsSync(filePath)) {
+      return NextResponse.json({ error: 'File not found' }, { status: 404 })
+    }
+
+    // Delete the file
+    await fs.promises.unlink(filePath)
+
+    return NextResponse.json({
+      success: true,
+      message: 'File deleted successfully',
+      filename: filename
+    })
+
+  } catch (error) {
+    console.error('Error deleting file:', error)
+    return NextResponse.json(
+      { error: 'Failed to delete file', details: error instanceof Error ? error.message : 'Unknown error' },
+      { status: 500 }
+    )
+  }
+}
+

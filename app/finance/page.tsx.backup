@@ -1,0 +1,1415 @@
+'use client'
+
+import { useState, useEffect, Suspense } from "react"
+import { useSession } from "next-auth/react"
+import { useSearchParams, useRouter as useNextRouter } from "next/navigation"
+import { MainLayout } from "@/components/layout/main-layout"
+import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { toast } from "sonner"
+import { RefreshCw, Plus, Download, AlertTriangle, FileText, Link2, Database, ChevronDown, ShoppingCart, Building2, Eye, CheckCircle, Clock, Truck, XCircle } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { formatCurrency } from "@/lib/utils"
+import { startOfYear, endOfYear, format } from "date-fns"
+import { Badge } from "@/components/ui/badge"
+import { 
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+
+// Import new components
+import { SyncProgressBar } from "@/components/finance/sync-progress-bar"
+import { FinanceSummaryCards } from "@/components/finance/finance-summary-cards"
+import { XeroInvoicesTable } from "@/components/finance/xero-invoices-table"
+import { PaymentsTable } from "@/components/finance/payments-table"
+import { SupplierInvoicesGrid } from "@/components/finance/supplier-invoices-grid"
+import { FinanceDrawer } from "@/components/finance/finance-drawer"
+import { UploadSupplierInvoiceDialog } from "@/components/finance/upload-supplier-invoice-dialog"
+import { MonthlyRevenueExpensesChart } from "@/components/finance/monthly-revenue-expenses-chart"
+import { YearlyRevenueExpensesChart } from "@/components/finance/yearly-revenue-expenses-chart"
+
+// Xero OAuth callback handler
+function XeroOAuthCallbackHandler({ 
+  setActiveTab, 
+  onConnectionSuccess 
+}: { 
+  setActiveTab: (tab: string) => void
+  onConnectionSuccess?: () => void
+}) {
+  const searchParams = useSearchParams()
+  const nextRouter = useNextRouter()
+
+  useEffect(() => {
+    const xeroStatus = searchParams.get('xero')
+    const message = searchParams.get('message')
+
+    if (xeroStatus === 'success') {
+      setActiveTab('customer-invoices')
+      toast.success('Xero Connected!', {
+        description: decodeURIComponent(message || 'Successfully connected to Xero'),
+        duration: 5000,
+      })
+      
+      // Trigger connection status refresh
+      if (onConnectionSuccess) {
+        onConnectionSuccess()
+      }
+      
+      nextRouter.replace('/finance')
+    } else if (xeroStatus === 'error') {
+      setActiveTab('customer-invoices')
+      toast.error('Connection Failed', {
+        description: decodeURIComponent(message || 'Failed to connect to Xero. Please try again.'),
+        duration: 7000,
+      })
+      nextRouter.replace('/finance')
+    }
+  }, [searchParams, nextRouter, setActiveTab, onConnectionSuccess])
+
+  return null
+}
+
+export default function FinancePage() {
+  const router = useRouter()
+  const { data: session, status } = useSession() || {}
+  const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState("customer-invoices")
+  const [selectedPeriod, setSelectedPeriod] = useState("all") // Default to All Time
+  
+  // Sync state
+  const [isSyncing, setIsSyncing] = useState(false)
+  const [syncProgress, setSyncProgress] = useState(0)
+  const [syncStatus, setSyncStatus] = useState<'syncing' | 'complete' | 'error'>('syncing')
+  const [syncMessage, setSyncMessage] = useState('')
+  const [recordsProcessed, setRecordsProcessed] = useState(0)
+  const [totalRecords, setTotalRecords] = useState(0)
+
+  // Data state
+  const [customerInvoices, setCustomerInvoices] = useState<any[]>([])
+  const [supplierInvoices, setSupplierInvoices] = useState<any[]>([])
+  const [manualSupplierInvoices, setManualSupplierInvoices] = useState<any[]>([])
+  const [payments, setPayments] = useState<any[]>([])
+  const [purchaseOrders, setPurchaseOrders] = useState<any[]>([])
+  const [projects, setProjects] = useState<any[]>([])
+  const [suppliers, setSuppliers] = useState<any[]>([])
+  const [budgetCategories, setBudgetCategories] = useState<any[]>([])
+  
+  // Summary cards data
+  const [summaryCards, setSummaryCards] = useState<any[]>([])
+
+  // Monthly chart data
+  const [monthlyChartData, setMonthlyChartData] = useState<any[]>([])
+  const [monthlySummary, setMonthlySummary] = useState<any>(null)
+
+  // Chart view toggle (monthly vs yearly)
+  const [chartView, setChartView] = useState<'monthly' | 'yearly'>('monthly')
+
+  // Drawer state
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const [drawerType, setDrawerType] = useState<'invoice' | 'payment' | 'supplier-invoice'>('invoice')
+  const [drawerData, setDrawerData] = useState<any>(null)
+  const [drawerEditMode, setDrawerEditMode] = useState(false)
+
+  // Upload dialog state
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false)
+
+  // Xero connection status
+  const [isXeroConnected, setIsXeroConnected] = useState(false)
+  const [checkingXeroStatus, setCheckingXeroStatus] = useState(true)
+
+  // Pagination for all tabs
+  // Using a large page size (10000) to fetch all records at once
+  const [customerInvoicesPagination, setCustomerInvoicesPagination] = useState({
+    page: 1,
+    pageSize: 10000,
+    totalCount: 0,
+    totalPages: 0
+  })
+
+  const [supplierInvoicesPagination, setSupplierInvoicesPagination] = useState({
+    page: 1,
+    pageSize: 10000,
+    totalCount: 0,
+    totalPages: 0
+  })
+
+  const [paymentsPagination, setPaymentsPagination] = useState({
+    page: 1,
+    pageSize: 10000,
+    totalCount: 0,
+    totalPages: 0
+  })
+
+  const [purchaseOrdersPagination, setPurchaseOrdersPagination] = useState({
+    page: 1,
+    pageSize: 10000,
+    totalCount: 0,
+    totalPages: 0
+  })
+
+  const userRole = session?.user?.role
+  const canAccessFinance = ["SUPERADMIN", "FINANCE", "PROJECT_MANAGER"].includes(userRole || "")
+
+  // Fetch financial data on mount and period change
+  useEffect(() => {
+    if (canAccessFinance) {
+      fetchFinancialData()
+    } else {
+      setLoading(false)
+    }
+  }, [selectedPeriod, canAccessFinance, customerInvoicesPagination.page, supplierInvoicesPagination.page, paymentsPagination.page])
+
+  // Fetch projects, suppliers, and budget categories for dropdowns
+  useEffect(() => {
+    if (canAccessFinance) {
+      fetchProjects()
+      fetchSuppliers()
+      fetchBudgetCategories()
+      fetchMonthlySummary()
+    }
+  }, [canAccessFinance])
+
+  // Function to check Xero connection status
+  const checkXeroConnection = async () => {
+    try {
+      setCheckingXeroStatus(true)
+      console.log('[Finance] Checking Xero connection status...')
+      
+      // Add timestamp to prevent caching
+      const timestamp = Date.now()
+      const response = await fetch(`/api/xero/connection-status?t=${timestamp}`, {
+        cache: 'no-cache',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        }
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        const isConnected = data.connected === true
+        setIsXeroConnected(isConnected)
+        console.log('[Finance] Xero connection status:', {
+          connected: isConnected,
+          message: data.message,
+          cached: data.cached,
+          response: data
+        })
+      } else {
+        console.warn('[Finance] Xero status check failed:', response.status)
+        setIsXeroConnected(false)
+      }
+    } catch (error) {
+      console.error('[Finance] Error checking Xero status:', error)
+      setIsXeroConnected(false)
+    } finally {
+      setCheckingXeroStatus(false)
+    }
+  }
+
+  // Check Xero connection status on mount
+  useEffect(() => {
+    if (canAccessFinance) {
+      checkXeroConnection()
+    }
+  }, [canAccessFinance])
+
+  // Debug: Log connection status changes
+  useEffect(() => {
+    console.log('[Finance Debug] Connection status changed:', {
+      checkingXeroStatus,
+      isXeroConnected,
+      shouldShowConnectButton: !checkingXeroStatus && !isXeroConnected,
+      shouldShowSyncButton: !checkingXeroStatus && isXeroConnected
+    })
+  }, [checkingXeroStatus, isXeroConnected])
+
+  const fetchFinancialData = async () => {
+    try {
+      setLoading(true)
+      console.log('[Finance] Fetching financial data for period:', selectedPeriod)
+
+      // Calculate date range based on selected period
+      const now = new Date()
+      let startDate: Date | null = null
+      let endDate: Date | null = null
+      let applyDateFilter = true
+
+      switch (selectedPeriod) {
+        case 'all':
+          applyDateFilter = false
+          break
+        case 'ytd':
+          startDate = startOfYear(now)
+          endDate = now
+          break
+        case 'current_month':
+          startDate = new Date(now.getFullYear(), now.getMonth(), 1)
+          endDate = now
+          break
+        case 'last_month':
+          startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+          endDate = new Date(now.getFullYear(), now.getMonth(), 0)
+          break
+        case 'current_quarter':
+          const currentQuarter = Math.floor(now.getMonth() / 3)
+          startDate = new Date(now.getFullYear(), currentQuarter * 3, 1)
+          endDate = now
+          break
+        case 'last_quarter':
+          const lastQuarter = Math.floor(now.getMonth() / 3) - 1
+          startDate = new Date(now.getFullYear(), lastQuarter * 3, 1)
+          endDate = new Date(now.getFullYear(), (lastQuarter + 1) * 3, 0)
+          break
+        default:
+          applyDateFilter = false
+      }
+
+      // Fetch all data in parallel with proper error handling and pagination
+      const [customerInvoicesRes, supplierInvoicesRes, paymentsRes, purchaseOrdersRes] = await Promise.all([
+        fetch(`/api/finance/customer-invoices?page=${customerInvoicesPagination.page}&pageSize=${customerInvoicesPagination.pageSize}`).catch(err => {
+          console.error('[Finance] Error fetching customer invoices:', err)
+          return { ok: false, json: async () => ({ invoices: [], pagination: {} }) }
+        }),
+        fetch(`/api/finance/supplier-invoices?page=${supplierInvoicesPagination.page}&pageSize=${supplierInvoicesPagination.pageSize}`).catch(err => {
+          console.error('[Finance] Error fetching supplier invoices:', err)
+          return { ok: false, json: async () => ({ invoices: [], pagination: {} }) }
+        }),
+        fetch(`/api/finance/payments?page=${paymentsPagination.page}&pageSize=${paymentsPagination.pageSize}`).catch(err => {
+          console.error('[Finance] Error fetching payments:', err)
+          return { ok: false, json: async () => ({ payments: [], pagination: {} }) }
+        }),
+        fetch(`/api/finance/purchase-orders`).catch(err => {
+          console.error('[Finance] Error fetching purchase orders:', err)
+          return { ok: false, json: async () => ([]) }
+        })
+      ])
+
+      // Parse responses with defensive array checks
+      let customerInvoicesData = []
+      let supplierInvoicesData = []
+      let paymentsData = { payments: [], pagination: {} }
+      let purchaseOrdersData = []
+
+      try {
+        const rawCustomerInvoices = customerInvoicesRes.ok ? await customerInvoicesRes.json() : { invoices: [], pagination: {} }
+        // Customer invoices API returns { success: true, invoices: [...], pagination: {...} }
+        if (rawCustomerInvoices && typeof rawCustomerInvoices === 'object' && rawCustomerInvoices.invoices) {
+          customerInvoicesData = Array.isArray(rawCustomerInvoices.invoices) ? rawCustomerInvoices.invoices : []
+          
+          // Update pagination state
+          if (rawCustomerInvoices.pagination && typeof rawCustomerInvoices.pagination === 'object') {
+            setCustomerInvoicesPagination({
+              page: rawCustomerInvoices.pagination.page || 1,
+              pageSize: rawCustomerInvoices.pagination.pageSize || 100,
+              totalCount: rawCustomerInvoices.pagination.totalCount || 0,
+              totalPages: rawCustomerInvoices.pagination.totalPages || 0
+            })
+          }
+        } else {
+          customerInvoicesData = []
+        }
+        console.log('[Finance] Customer invoices parsed:', customerInvoicesData.length, 'invoices')
+      } catch (err) {
+        console.error('[Finance] Error parsing customer invoices:', err)
+        customerInvoicesData = []
+      }
+
+      try {
+        const rawSupplierInvoices = supplierInvoicesRes.ok ? await supplierInvoicesRes.json() : { invoices: [], pagination: {} }
+        // Supplier invoices API returns { success: true, invoices: [...], pagination: {...} }
+        if (rawSupplierInvoices && typeof rawSupplierInvoices === 'object' && rawSupplierInvoices.invoices) {
+          supplierInvoicesData = Array.isArray(rawSupplierInvoices.invoices) ? rawSupplierInvoices.invoices : []
+          
+          // Update pagination state
+          if (rawSupplierInvoices.pagination && typeof rawSupplierInvoices.pagination === 'object') {
+            setSupplierInvoicesPagination({
+              page: rawSupplierInvoices.pagination.page || 1,
+              pageSize: rawSupplierInvoices.pagination.pageSize || 100,
+              totalCount: rawSupplierInvoices.pagination.totalCount || 0,
+              totalPages: rawSupplierInvoices.pagination.totalPages || 0
+            })
+          }
+        } else {
+          supplierInvoicesData = []
+        }
+        console.log('[Finance] Supplier invoices parsed:', supplierInvoicesData.length, 'invoices')
+      } catch (err) {
+        console.error('[Finance] Error parsing supplier invoices:', err)
+        supplierInvoicesData = []
+      }
+
+
+
+      try {
+        const rawPayments = paymentsRes.ok ? await paymentsRes.json() : { payments: [], pagination: {} }
+        if (rawPayments && typeof rawPayments === 'object') {
+          paymentsData = {
+            payments: Array.isArray(rawPayments.payments) ? rawPayments.payments : [],
+            pagination: rawPayments.pagination || {}
+          }
+        }
+        console.log('[Finance] Payments parsed:', paymentsData.payments.length, 'payments')
+      } catch (err) {
+        console.error('[Finance] Error parsing payments:', err)
+        paymentsData = { payments: [], pagination: {} }
+      }
+
+      try {
+        const rawPurchaseOrders = purchaseOrdersRes.ok ? await purchaseOrdersRes.json() : []
+        purchaseOrdersData = Array.isArray(rawPurchaseOrders) ? rawPurchaseOrders : []
+        console.log('[Finance] Purchase orders parsed:', purchaseOrdersData.length, 'purchase orders')
+      } catch (err) {
+        console.error('[Finance] Error parsing purchase orders:', err)
+        purchaseOrdersData = []
+      }
+
+      // Filter by date range with defensive checks
+      const filterByDate = (items: any[], dateField: string) => {
+        // Ensure items is an array
+        const safeItems = Array.isArray(items) ? items : []
+        
+        // If no date filter should be applied, return all items
+        if (!applyDateFilter) {
+          return safeItems
+        }
+        
+        // Apply date filter
+        return safeItems.filter(item => {
+          if (!item || !item[dateField]) return false
+          try {
+            const itemDate = new Date(item[dateField])
+            return !isNaN(itemDate.getTime()) && 
+                   startDate && endDate && 
+                   itemDate >= startDate && itemDate <= endDate
+          } catch {
+            return false
+          }
+        })
+      }
+
+      // Ensure all data is in array format before filtering
+      const safeCustomerInvoicesData = Array.isArray(customerInvoicesData) ? customerInvoicesData : []
+      const safeSupplierInvoicesData = Array.isArray(supplierInvoicesData) ? supplierInvoicesData : []
+      const safePaymentsData = Array.isArray(paymentsData.payments) ? paymentsData.payments : []
+      const safePurchaseOrdersData = Array.isArray(purchaseOrdersData) ? purchaseOrdersData : []
+
+      const filteredCustomerInvoices = filterByDate(safeCustomerInvoicesData, 'issueDate')
+      const filteredSupplierInvoices = filterByDate(safeSupplierInvoicesData, 'issueDate')
+      const filteredPayments = filterByDate(safePaymentsData, 'paymentDate')
+      const filteredPurchaseOrders = filterByDate(safePurchaseOrdersData, 'issueDate')
+
+      setCustomerInvoices(filteredCustomerInvoices || [])
+      setSupplierInvoices(filteredSupplierInvoices || [])
+      setManualSupplierInvoices([]) // Clear vendor invoices since we're not using them anymore
+      setPayments(filteredPayments || [])
+      setPurchaseOrders(filteredPurchaseOrders || [])
+
+      if (paymentsData.pagination && typeof paymentsData.pagination === 'object') {
+        const paginationData = paymentsData.pagination as any
+        setPaymentsPagination({
+          page: paginationData.page || 1,
+          pageSize: paginationData.pageSize || 100,
+          totalCount: paginationData.totalCount || 0,
+          totalPages: paginationData.totalPages || 0
+        })
+      }
+
+      // Calculate summary cards
+      calculateSummaryCards(filteredCustomerInvoices, filteredSupplierInvoices, [], filteredPayments)
+
+      console.log('[Finance] Data loaded:', {
+        customerInvoices: filteredCustomerInvoices.length,
+        supplierInvoices: filteredSupplierInvoices.length,
+        payments: filteredPayments.length,
+        purchaseOrders: filteredPurchaseOrders.length
+      })
+
+    } catch (error) {
+      console.error('Error fetching financial data:', error)
+      toast.error('Failed to load financial data')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchProjects = async () => {
+    try {
+      const res = await fetch('/api/projects')
+      if (res.ok) {
+        const data = await res.json()
+        setProjects(data)
+      }
+    } catch (error) {
+      console.error('Error fetching projects:', error)
+    }
+  }
+
+  const fetchBudgetCategories = async () => {
+    try {
+      const res = await fetch('/api/budget-categories')
+      if (res.ok) {
+        const data = await res.json()
+        setBudgetCategories(data)
+      }
+    } catch (error) {
+      console.error('Error fetching budget categories:', error)
+    }
+  }
+
+  const fetchSuppliers = async () => {
+    try {
+      const res = await fetch('/api/suppliers')
+      if (res.ok) {
+        const data = await res.json()
+        setSuppliers(data)
+      }
+    } catch (error) {
+      console.error('Error fetching suppliers:', error)
+    }
+  }
+
+  const fetchMonthlySummary = async () => {
+    try {
+      const currentYear = new Date().getFullYear()
+      const res = await fetch(`/api/finance/monthly-summary?year=${currentYear}`)
+      if (res.ok) {
+        const data = await res.json()
+        if (data.success) {
+          setMonthlyChartData(data.chartData || [])
+          setMonthlySummary(data.summary || null)
+          console.log('[Finance] Loaded monthly summary:', data.chartData?.length || 0, 'months')
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching monthly summary:', error)
+    }
+  }
+
+  const calculateSummaryCards = (customerInvoices: any[], supplierInvoices: any[], manualSupplierInvoices: any[], payments: any[]) => {
+    // Defensive array checks
+    const safeCustomerInvoices = Array.isArray(customerInvoices) ? customerInvoices : []
+    const safeSupplierInvoices = Array.isArray(supplierInvoices) ? supplierInvoices : []
+    const safeManualSupplierInvoices = Array.isArray(manualSupplierInvoices) ? manualSupplierInvoices : []
+    const safePayments = Array.isArray(payments) ? payments : []
+
+    // Separate payments in and payments out
+    const paymentsIn = safePayments.filter(p => 
+      p?.customerInvoiceId || p?.clientInvoice || p?.CustomerInvoice
+    )
+    const paymentsOut = safePayments.filter(p => 
+      p?.supplierInvoiceId || p?.supplierInvoice || p?.SupplierInvoice
+    )
+
+    // Calculate totals
+    // Customer invoices API returns 'totalAmount' field
+    const totalCustomerInvoices = safeCustomerInvoices.reduce((sum, inv) => {
+      const amount = Number(inv?.totalAmount || inv?.amount) || 0
+      return sum + amount
+    }, 0)
+
+    // Supplier invoices API returns 'amount' field (which is mapped from totalAmount)
+    const totalSupplierInvoices = safeSupplierInvoices.reduce((sum, inv) => {
+      const amount = Number(inv?.amount || inv?.totalAmount) || 0
+      return sum + amount
+    }, 0)
+    
+    // Calculate payments in (received)
+    const totalPaymentsIn = paymentsIn.reduce((sum, p) => {
+      const amount = Number(p?.amount) || 0
+      return sum + amount
+    }, 0)
+
+    // Calculate payments out (sent)
+    const totalPaymentsOut = paymentsOut.reduce((sum, p) => {
+      const amount = Number(p?.amount) || 0
+      return sum + amount
+    }, 0)
+    
+    // Calculate manual supplier invoices total
+    const totalManualSupplierInvoices = safeManualSupplierInvoices.reduce((sum, inv) => {
+      const amount = Number(inv?.amount) || 0
+      return sum + amount
+    }, 0)
+
+    // Get period label for card titles
+    const periodLabels: { [key: string]: string } = {
+      'all': '',
+      'ytd': ' (YTD)',
+      'current_month': ' (This Month)',
+      'last_month': ' (Last Month)',
+      'current_quarter': ' (This Quarter)',
+      'last_quarter': ' (Last Quarter)'
+    }
+    const periodLabel = periodLabels[selectedPeriod] || ''
+
+    setSummaryCards([
+      {
+        title: `Customer Invoices${periodLabel}`,
+        value: totalCustomerInvoices,
+        description: `${safeCustomerInvoices.length} receivables`,
+        icon: 'invoice' as const
+      },
+      {
+        title: `Supplier Invoices${periodLabel}`,
+        value: totalSupplierInvoices,
+        description: `${safeSupplierInvoices.length} payables`,
+        icon: 'vendor' as const
+      },
+      {
+        title: `Payments In${periodLabel}`,
+        value: totalPaymentsIn,
+        description: `${paymentsIn.length} payments received`,
+        icon: 'payment' as const
+      },
+      {
+        title: `Payments Out${periodLabel}`,
+        value: totalPaymentsOut,
+        description: `${paymentsOut.length} payments sent`,
+        icon: 'payment' as const
+      },
+      {
+        title: "Manual Supplier Invoices",
+        value: totalManualSupplierInvoices,
+        description: `${safeManualSupplierInvoices.length} manual uploads`,
+        icon: 'vendor' as const
+      }
+    ])
+  }
+
+  const handleSyncFromXero = async () => {
+    setIsSyncing(true)
+    setSyncProgress(0)
+    setSyncStatus('syncing')
+    setSyncMessage('')
+
+    try {
+      console.log('[Finance] Starting Xero sync...')
+      
+      // Simulate progress updates
+      const progressInterval = setInterval(() => {
+        setSyncProgress(prev => Math.min(prev + 10, 90))
+      }, 500)
+
+      // Sync entities one by one: contacts, invoices, payments
+      let totalRecords = 0
+      const entitiesToSync = ['contacts', 'invoices', 'payments']
+      
+      for (const entityType of entitiesToSync) {
+        console.log(`[Finance] Syncing ${entityType}...`)
+        
+        const res = await fetch('/api/xero/enhanced-sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            syncType: 'PULL',
+            entity: entityType
+          })
+        })
+
+        if (!res.ok) {
+          const errorData = await res.json()
+          console.error(`[Finance] Failed to sync ${entityType}:`, errorData)
+          throw new Error(errorData.message || `Failed to sync ${entityType}`)
+        }
+
+        const data = await res.json()
+        totalRecords += (data.syncedCount || 0)
+        console.log(`[Finance] Synced ${data.syncedCount || 0} ${entityType}`)
+      }
+
+      clearInterval(progressInterval)
+      
+      setSyncProgress(100)
+      setSyncStatus('complete')
+      setRecordsProcessed(totalRecords)
+      setTotalRecords(totalRecords)
+      
+      toast.success('Sync Complete!', {
+        description: `Successfully synced ${totalRecords} records from Xero`,
+        duration: 5000
+      })
+
+      // Refresh data
+      await fetchFinancialData()
+      
+      // Hide progress bar after 3 seconds
+      setTimeout(() => {
+        setIsSyncing(false)
+      }, 3000)
+    } catch (error: any) {
+      console.error('Sync error:', error)
+      setSyncProgress(0)
+      setSyncStatus('error')
+      setSyncMessage(error.message || 'Sync failed - please check Xero connection')
+      toast.error('Sync Failed', {
+        description: error.message || 'Please check your Xero connection and try again'
+      })
+      
+      // Refresh connection status on error (might be disconnected)
+      await checkXeroConnection()
+      
+      setTimeout(() => {
+        setIsSyncing(false)
+      }, 3000)
+    }
+  }
+
+  const handleFullHistorySync = async () => {
+    setIsSyncing(true)
+    setSyncProgress(0)
+    setSyncStatus('syncing')
+    setSyncMessage('')
+
+    try {
+      console.log('[Finance] Starting FULL HISTORICAL sync from Xero...')
+      
+      toast.info('Full Historical Sync Started', {
+        description: 'This will sync ALL data from Xero since inception. This may take several minutes.',
+        duration: 10000
+      })
+
+      // Simulate progress updates
+      const progressInterval = setInterval(() => {
+        setSyncProgress(prev => Math.min(prev + 5, 90))
+      }, 1000)
+
+      // Trigger full historical sync
+      const res = await fetch('/api/xero/sync/full-history', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          syncContacts: true,
+          syncInvoices: true,
+          syncPayments: true,
+          forceRefresh: false
+        })
+      })
+
+      clearInterval(progressInterval)
+
+      if (!res.ok) {
+        const errorData = await res.json()
+        console.error('[Finance] Full historical sync failed:', errorData)
+        throw new Error(errorData.message || 'Full historical sync failed')
+      }
+
+      const result = await res.json()
+      
+      const totalSynced = result.contacts.synced + result.invoices.synced + result.payments.synced
+      const totalErrors = result.contacts.errors + result.invoices.errors + result.payments.errors
+      
+      setSyncProgress(100)
+      setSyncStatus(totalErrors === 0 ? 'complete' : 'error')
+      setRecordsProcessed(totalSynced)
+      setTotalRecords(totalSynced + totalErrors)
+      
+      if (result.success) {
+        toast.success('Full Historical Sync Complete!', {
+          description: `Successfully synced ${totalSynced} records from Xero since inception (Contacts: ${result.contacts.synced}, Invoices: ${result.invoices.synced}, Payments: ${result.payments.synced})`,
+          duration: 10000
+        })
+      } else {
+        toast.warning('Full Historical Sync Completed with Errors', {
+          description: `Synced ${totalSynced} records with ${totalErrors} errors. Check logs for details.`,
+          duration: 10000
+        })
+      }
+
+      // Refresh data
+      await fetchFinancialData()
+      
+      // Hide progress bar after 5 seconds
+      setTimeout(() => {
+        setIsSyncing(false)
+      }, 5000)
+    } catch (error: any) {
+      console.error('Full historical sync error:', error)
+      setSyncProgress(0)
+      setSyncStatus('error')
+      setSyncMessage(error.message || 'Full historical sync failed')
+      toast.error('Full Historical Sync Failed', {
+        description: error.message || 'Please check your Xero connection and try again'
+      })
+      
+      // Refresh connection status on error
+      await checkXeroConnection()
+      
+      setTimeout(() => {
+        setIsSyncing(false)
+      }, 3000)
+    }
+  }
+
+  const handleConnectToXero = async () => {
+    try {
+      // Show loading toast
+      toast.info('Connecting to Xero...', {
+        description: 'Please wait while we prepare the authorization'
+      })
+
+      // Fetch the authorization URL from the backend
+      const response = await fetch('/api/xero/authorize')
+      
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to connect to Xero')
+      }
+
+      const data = await response.json()
+      
+      if (data.success && data.authUrl) {
+        // Redirect to Xero authorization page
+        window.location.href = data.authUrl
+      } else {
+        throw new Error('Invalid response from server')
+      }
+    } catch (error: any) {
+      console.error('[Finance] Error connecting to Xero:', error)
+      toast.error('Connection Failed', {
+        description: error.message || 'Failed to initiate Xero connection. Please try again.'
+      })
+    }
+  }
+
+  const handleRequestInvoice = async () => {
+    toast.info('Invoice Request', {
+      description: 'Redirecting to invoice request form...'
+    })
+    router.push('/finance/client-invoices/new?xeroRequest=true')
+  }
+
+  const handleInvoiceClick = (invoice: any) => {
+    setDrawerType('invoice')
+    setDrawerData(invoice)
+    setDrawerEditMode(false) // View mode
+    setDrawerOpen(true)
+  }
+
+  const handlePaymentClick = (payment: any) => {
+    setDrawerType('payment')
+    setDrawerData(payment)
+    setDrawerEditMode(false) // View mode
+    setDrawerOpen(true)
+  }
+
+  const handleSupplierInvoiceClick = (invoice: any) => {
+    setDrawerType('supplier-invoice')
+    setDrawerData(invoice)
+    setDrawerEditMode(false) // View mode
+    setDrawerOpen(true)
+  }
+
+  const handleEditMetadata = async (invoiceId: string) => {
+    // Check both customer and supplier invoices
+    const customerInvoice = customerInvoices.find(inv => inv.id === invoiceId)
+    const supplierInvoice = supplierInvoices.find(inv => inv.id === invoiceId)
+    const invoice = customerInvoice || supplierInvoice
+    
+    if (invoice) {
+      setDrawerType('invoice')
+      setDrawerData(invoice)
+      setDrawerEditMode(true) // Start in editing mode
+      setDrawerOpen(true)
+    }
+  }
+
+  const handleSaveMetadata = async (metadata: any) => {
+    try {
+      const res = await fetch('/api/finance/invoice-metadata', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          xeroInvoiceId: drawerData.id,
+          ...metadata
+        })
+      })
+
+      if (!res.ok) throw new Error('Failed to save metadata')
+
+      // Refresh data
+      await fetchFinancialData()
+    } catch (error) {
+      console.error('Error saving metadata:', error)
+      throw error
+    }
+  }
+
+  const handleUploadSupplierInvoice = async (formData: FormData) => {
+    try {
+      const res = await fetch('/api/finance/supplier-invoices', {
+        method: 'POST',
+        body: formData
+      })
+
+      if (!res.ok) throw new Error('Upload failed')
+
+      // Refresh data
+      await fetchFinancialData()
+    } catch (error) {
+      console.error('Error uploading supplier invoice:', error)
+      throw error
+    }
+  }
+
+  const handleCustomerInvoicesPageChange = (page: number) => {
+    setCustomerInvoicesPagination(prev => ({ ...prev, page }))
+  }
+
+  const handleSupplierInvoicesPageChange = (page: number) => {
+    setSupplierInvoicesPagination(prev => ({ ...prev, page }))
+  }
+
+  const handlePaymentsPageChange = (page: number) => {
+    setPaymentsPagination(prev => ({ ...prev, page }))
+  }
+
+  if (loading && status !== 'loading') {
+    return (
+      <MainLayout>
+        <div className="p-6">
+          <div className="animate-pulse space-y-4">
+            <div className="h-8 bg-gray-200 rounded w-1/3"></div>
+            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className="h-32 bg-gray-200 rounded-lg"></div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </MainLayout>
+    )
+  }
+
+  if (!canAccessFinance) {
+    return (
+      <MainLayout>
+        <div className="p-6">
+          <Card className="p-12">
+            <div className="text-center">
+              <AlertTriangle className="mx-auto h-12 w-12 text-yellow-600 mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Access Denied</h3>
+              <p className="text-gray-600 dark:text-gray-400">
+                You don't have permission to access the Finance module.
+              </p>
+            </div>
+          </Card>
+        </div>
+      </MainLayout>
+    )
+  }
+
+  return (
+    <MainLayout>
+      <Suspense fallback={null}>
+        <XeroOAuthCallbackHandler 
+          setActiveTab={setActiveTab} 
+          onConnectionSuccess={checkXeroConnection}
+        />
+      </Suspense>
+
+      {/* Sync Progress Bar */}
+      <SyncProgressBar
+        isVisible={isSyncing}
+        progress={syncProgress}
+        status={syncStatus}
+        recordsProcessed={recordsProcessed}
+        totalRecords={totalRecords}
+        entity="records"
+        errorMessage={syncMessage}
+      />
+
+      <div className="p-6">
+        {/* Header */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Finance Dashboard</h1>
+              <p className="text-gray-600 dark:text-gray-300 mt-2">
+                Integrated view of Xero and internal financial records
+              </p>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+                <SelectTrigger className="w-48">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Time</SelectItem>
+                  <SelectItem value="ytd">Year-to-Date (YTD)</SelectItem>
+                  <SelectItem value="current_month">This Month</SelectItem>
+                  <SelectItem value="last_month">Last Month</SelectItem>
+                  <SelectItem value="current_quarter">This Quarter</SelectItem>
+                  <SelectItem value="last_quarter">Last Quarter</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              {/* Show Connect to Xero button if not connected */}
+              {!checkingXeroStatus && !isXeroConnected && (
+                <Button 
+                  onClick={handleConnectToXero}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  <Link2 className="mr-2 h-4 w-4" />
+                  Connect to Xero
+                </Button>
+              )}
+              
+              {/* Show Sync button only when connected */}
+              {!checkingXeroStatus && isXeroConnected && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button disabled={isSyncing}>
+                      <RefreshCw className={`mr-2 h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
+                      Sync Options
+                      <ChevronDown className="ml-2 h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-[280px]">
+                    <DropdownMenuLabel>Sync Data from Xero</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleSyncFromXero} disabled={isSyncing}>
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                      <div className="flex flex-col">
+                        <span className="font-medium">Quick Sync</span>
+                        <span className="text-xs text-muted-foreground">Sync recent changes</span>
+                      </div>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleFullHistorySync} disabled={isSyncing}>
+                      <Database className="mr-2 h-4 w-4" />
+                      <div className="flex flex-col">
+                        <span className="font-medium">Full Historical Sync</span>
+                        <span className="text-xs text-muted-foreground">Sync ALL data since inception</span>
+                      </div>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+              
+              {!checkingXeroStatus && isXeroConnected && (
+                <Button onClick={handleRequestInvoice} variant="outline">
+                  <FileText className="mr-2 h-4 w-4" />
+                  Request Invoice in Xero
+                </Button>
+              )}
+              
+              {/* Show loading state */}
+              {checkingXeroStatus && (
+                <Button disabled variant="outline">
+                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                  Checking connection...
+                </Button>
+              )}
+              
+              <Button onClick={() => setUploadDialogOpen(true)} variant="outline">
+                <Plus className="mr-2 h-4 w-4" />
+                Upload Supplier Invoice
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Xero Connection Alert */}
+        {!checkingXeroStatus && !isXeroConnected && (
+          <Card className="mb-6 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
+            <div className="p-4 flex items-center space-x-3">
+              <div className="flex-shrink-0">
+                <AlertTriangle className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div>
+                <h3 className="text-sm font-medium text-blue-800 dark:text-blue-300">
+                  Xero Not Connected
+                </h3>
+                <p className="text-sm text-blue-700 dark:text-blue-400 mt-1">
+                  Connect to Xero to sync invoices, payments, and financial data. Click the "Connect to Xero" button in the top-right corner to get started.
+                </p>
+              </div>
+            </div>
+          </Card>
+        )}
+
+        {/* Summary Cards */}
+        <FinanceSummaryCards cards={summaryCards} />
+
+        {/* Chart View Toggle */}
+        <Card className="mb-6">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Financial Analysis</CardTitle>
+                <CardDescription>View revenue and expenses trends</CardDescription>
+              </div>
+              <Tabs value={chartView} onValueChange={(value) => setChartView(value as 'monthly' | 'yearly')}>
+                <TabsList>
+                  <TabsTrigger value="monthly">Monthly View</TabsTrigger>
+                  <TabsTrigger value="yearly">Year-over-Year</TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
+          </CardHeader>
+        </Card>
+
+        {/* Monthly Revenue & Expenses Charts */}
+        {chartView === 'monthly' && monthlyChartData.length > 0 && (
+          <div className="mb-8">
+            <MonthlyRevenueExpensesChart 
+              data={monthlyChartData}
+              summary={monthlySummary}
+              year={new Date().getFullYear()}
+            />
+          </div>
+        )}
+
+        {/* Yearly Revenue & Expenses Charts */}
+        {chartView === 'yearly' && (
+          <div className="mb-8">
+            <YearlyRevenueExpensesChart />
+          </div>
+        )}
+
+        {/* Main Content Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="customer-invoices">Customer Invoices (Payment IN)</TabsTrigger>
+            <TabsTrigger value="supplier-invoices">Supplier Invoices (Payment OUT)</TabsTrigger>
+            <TabsTrigger value="payments-in">Payments Received</TabsTrigger>
+            <TabsTrigger value="payments-out">Payments Made</TabsTrigger>
+            <TabsTrigger value="purchase-orders">Purchase Orders</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="customer-invoices" className="space-y-4">
+            <Card className="p-6">
+              <div className="mb-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Invoices to Customers</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Sales invoices and receivables</p>
+              </div>
+              <XeroInvoicesTable
+                invoices={(Array.isArray(customerInvoices) ? customerInvoices : [])
+                  .map(inv => ({
+                    id: inv?.id || '',
+                    invoiceNumber: inv?.invoiceNumber || '',
+                    customerName: inv?.customer?.name || inv?.Customer?.name || inv?.customerName || 'Unknown Customer',
+                    amount: Number(inv?.totalAmount || inv?.amount) || 0,
+                    status: inv?.status || 'DRAFT',
+                    dueDate: inv?.dueDate || new Date().toISOString(),
+                    issueDate: inv?.issueDate || new Date().toISOString(),
+                    projectName: inv?.project?.name || inv?.Project?.name || inv?.projectName,
+                    poNumber: inv?.poNumber,
+                    xeroUrl: inv?.xeroUrl,
+                    lastUpdated: inv?.updatedAt || new Date().toISOString(),
+                    type: 'CUSTOMER' as const
+                  }))}
+                onInvoiceClick={handleInvoiceClick}
+                onEditMetadata={handleEditMetadata}
+                entityLabel="Customer"
+                pagination={customerInvoicesPagination}
+                onPageChange={handleCustomerInvoicesPageChange}
+              />
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="supplier-invoices" className="space-y-4">
+            <Card className="p-6">
+              <div className="mb-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Invoices from Suppliers</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Bills and payables</p>
+              </div>
+              <XeroInvoicesTable
+                invoices={(Array.isArray(supplierInvoices) ? supplierInvoices : [])
+                  .map(inv => ({
+                    id: inv?.id || '',
+                    invoiceNumber: inv?.invoiceNumber || '',
+                    customerName: inv?.supplier?.name || inv?.Supplier?.name || inv?.supplierName || 'Unknown Supplier',
+                    amount: Number(inv?.amount) || 0,
+                    status: inv?.status || 'DRAFT',
+                    dueDate: inv?.dueDate || new Date().toISOString(),
+                    issueDate: inv?.issueDate || new Date().toISOString(),
+                    projectName: inv?.project?.name || inv?.Project?.name || inv?.projectName,
+                    poNumber: inv?.poNumber,
+                    xeroUrl: inv?.xeroUrl,
+                    lastUpdated: inv?.updatedAt || new Date().toISOString(),
+                    type: 'SUPPLIER' as const
+                  }))}
+                onInvoiceClick={handleInvoiceClick}
+                onEditMetadata={handleEditMetadata}
+                entityLabel="Supplier"
+                pagination={supplierInvoicesPagination}
+                onPageChange={handleSupplierInvoicesPageChange}
+              />
+            </Card>
+          </TabsContent>
+
+
+
+          <TabsContent value="payments-in" className="space-y-4">
+            <Card className="p-6">
+              <div className="mb-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Payments Received from Customers</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Money received from customers via Xero</p>
+              </div>
+              <PaymentsTable
+                payments={(Array.isArray(payments) ? payments : [])
+                  .filter(p => {
+                    // Filter for payments received (money coming in)
+                    // Check for customer invoice link OR payment type indicating money received
+                    const hasCustomerInvoice = p?.customerInvoiceId || p?.clientInvoice || p?.CustomerInvoice
+                    const isReceivedPayment = p?.xeroPaymentType?.includes('ACCREC') || p?.xeroPaymentType?.includes('ARCREDIT')
+                    return hasCustomerInvoice || isReceivedPayment
+                  })
+                  .map(p => ({
+                    id: p?.id || '',
+                    paymentNumber: p?.paymentNumber || '',
+                    invoiceNumber: p?.CustomerInvoice?.invoiceNumber || p?.clientInvoice?.invoiceNumber || p?.xeroInvoiceId || '',
+                    clientName: p?.CustomerInvoice?.Customer?.name || p?.clientInvoice?.customer?.name || p?.Customer?.name || 'Unknown Customer',
+                    amount: Number(p?.amount) || 0,
+                    currency: p?.currency || 'SGD',
+                    date: p?.paymentDate || p?.date || new Date().toISOString(),
+                    method: p?.paymentMethod || p?.method || 'Bank Transfer',
+                    reference: p?.reference || '',
+                    status: p?.status || 'PENDING',
+                    projectName: p?.projectName,
+                    type: 'received' as const
+                  }))}
+                onPaymentClick={handlePaymentClick}
+                pagination={paymentsPagination}
+                onPageChange={handlePaymentsPageChange}
+                hideTypeColumn={true}
+              />
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="payments-out" className="space-y-4">
+            <Card className="p-6">
+              <div className="mb-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Payments Made to Suppliers</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Money paid to suppliers via Xero</p>
+              </div>
+              <PaymentsTable
+                payments={(Array.isArray(payments) ? payments : [])
+                  .filter(p => {
+                    // Filter for payments sent (money going out)
+                    // Check for supplier invoice link OR payment type indicating money sent
+                    const hasSupplierInvoice = p?.supplierInvoiceId || p?.supplierInvoice || p?.SupplierInvoice
+                    const isSentPayment = p?.xeroPaymentType?.includes('ACCPAY') || p?.xeroPaymentType?.includes('APCREDIT')
+                    return hasSupplierInvoice || isSentPayment
+                  })
+                  .map(p => ({
+                    id: p?.id || '',
+                    paymentNumber: p?.paymentNumber || '',
+                    invoiceNumber: p?.SupplierInvoice?.invoiceNumber || p?.supplierInvoice?.invoiceNumber || p?.xeroInvoiceId || '',
+                    clientName: p?.SupplierInvoice?.Supplier?.name || p?.supplierInvoice?.supplier?.name || p?.Supplier?.name || 'Unknown Supplier',
+                    amount: Number(p?.amount) || 0,
+                    currency: p?.currency || 'SGD',
+                    date: p?.paymentDate || p?.date || new Date().toISOString(),
+                    method: p?.paymentMethod || p?.method || 'Unknown',
+                    reference: p?.reference,
+                    status: p?.status || 'PENDING',
+                    projectName: p?.projectName,
+                    type: 'sent' as const
+                  }))}
+                onPaymentClick={handlePaymentClick}
+                pagination={paymentsPagination}
+                onPageChange={handlePaymentsPageChange}
+                hideTypeColumn={true}
+              />
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="purchase-orders" className="space-y-4">
+            <Card className="p-6">
+              <div className="mb-4 flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Purchase Orders</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Manage incoming and outgoing purchase orders</p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  {canAccessFinance && (
+                    <Button onClick={() => router.push('/finance/purchase-orders/create')}>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Create PO
+                    </Button>
+                  )}
+                  <Button variant="outline" onClick={() => router.push('/finance/purchase-orders')}>
+                    View All POs
+                  </Button>
+                </div>
+              </div>
+              {purchaseOrders && purchaseOrders.length > 0 ? (
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>PO Number</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Party</TableHead>
+                        <TableHead>Project</TableHead>
+                        <TableHead>Total Amount</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Issue Date</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {purchaseOrders.slice(0, 10).map((po: any) => (
+                        <TableRow 
+                          key={po.id} 
+                          className="hover:bg-muted/50 cursor-pointer"
+                          onClick={() => router.push(`/finance/purchase-orders/${po.id}`)}
+                        >
+                          <TableCell>
+                            <div className="flex items-center space-x-2">
+                              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                <ShoppingCart className="h-4 w-4 text-blue-600" />
+                              </div>
+                              <div className="font-mono font-medium">{po.poNumber}</div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={po.type === 'OUTGOING' ? 'bg-orange-100 text-orange-700 border-0' : 'bg-green-100 text-green-700 border-0'}>
+                              {po.type === 'OUTGOING' ? 'Outgoing' : 'Incoming'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center space-x-2">
+                              <Building2 className="h-4 w-4 text-muted-foreground" />
+                              <div>
+                                {po.type === 'OUTGOING' ? (
+                                  <div className="font-medium">{po.supplier?.companyName || po.vendor?.companyName || 'N/A'}</div>
+                                ) : (
+                                  <div className="font-medium">{po.customer?.name || 'N/A'}</div>
+                                )}
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {po.project ? (
+                              <div className="font-medium">{po.project.name}</div>
+                            ) : (
+                              <span className="text-muted-foreground">No project</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <div className="font-medium">${Number(po.totalAmount || 0).toLocaleString()}</div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={
+                              po.status === 'APPROVED' ? 'bg-green-100 text-green-700 border-0' :
+                              po.status === 'SUBMITTED' ? 'bg-blue-100 text-blue-700 border-0' :
+                              po.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-700 border-0' :
+                              po.status === 'CANCELLED' ? 'bg-red-100 text-red-700 border-0' :
+                              'bg-gray-100 text-gray-700 border-0'
+                            }>
+                              {po.status === 'APPROVED' && <CheckCircle className="mr-1 h-3 w-3" />}
+                              {po.status === 'SUBMITTED' && <Clock className="mr-1 h-3 w-3" />}
+                              {po.status === 'COMPLETED' && <CheckCircle className="mr-1 h-3 w-3" />}
+                              {po.status === 'CANCELLED' && <XCircle className="mr-1 h-3 w-3" />}
+                              {po.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {po.issueDate ? format(new Date(po.issueDate), "MMM dd, yyyy") : 'Not issued'}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                router.push(`/finance/purchase-orders/${po.id}`)
+                              }}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                  {purchaseOrders.length > 10 && (
+                    <div className="p-4 text-center text-sm text-muted-foreground border-t">
+                      Showing 10 of {purchaseOrders.length} purchase orders. 
+                      <Button 
+                        variant="link" 
+                        onClick={() => router.push('/finance/purchase-orders')}
+                        className="ml-1"
+                      >
+                        View all
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <div className="flex flex-col items-center space-y-4">
+                    <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
+                      <ShoppingCart className="h-8 w-8 text-blue-600" />
+                    </div>
+                    <div>
+                      <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                        No Purchase Orders Yet
+                      </h4>
+                      <p className="text-gray-600 dark:text-gray-400 mb-4">
+                        Create your first purchase order to get started
+                      </p>
+                      {canAccessFinance && (
+                        <Button onClick={() => router.push('/finance/purchase-orders/create')}>
+                          <Plus className="mr-2 h-4 w-4" />
+                          Create Purchase Order
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
+
+      {/* Finance Drawer */}
+      <FinanceDrawer
+        isOpen={drawerOpen}
+        onClose={() => {
+          setDrawerOpen(false)
+          setDrawerEditMode(false) // Reset edit mode when closing
+        }}
+        type={drawerType}
+        data={drawerData}
+        projects={projects}
+        budgetCategories={budgetCategories}
+        onSaveMetadata={drawerType === 'invoice' || drawerType === 'supplier-invoice' ? handleSaveMetadata : undefined}
+        initialEditingMode={drawerEditMode}
+      />
+
+      {/* Upload Dialog */}
+      <UploadSupplierInvoiceDialog
+        isOpen={uploadDialogOpen}
+        onClose={() => setUploadDialogOpen(false)}
+        onUpload={handleUploadSupplierInvoice}
+        suppliers={suppliers}
+        projects={projects}
+      />
+    </MainLayout>
+  )
+}

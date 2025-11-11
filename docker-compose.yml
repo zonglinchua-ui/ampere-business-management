@@ -1,0 +1,43 @@
+
+version: '3.8'
+
+services:
+  ampere-business-management:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ampere-business-app
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=${DATABASE_URL}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - NEXTAUTH_URL=${NEXTAUTH_URL}
+      - AWS_PROFILE=${AWS_PROFILE}
+      - AWS_REGION=${AWS_REGION}
+      - AWS_BUCKET_NAME=${AWS_BUCKET_NAME}
+      - AWS_FOLDER_PREFIX=${AWS_FOLDER_PREFIX}
+      - ABACUSAI_API_KEY=${ABACUSAI_API_KEY}
+      - XERO_CLIENT_ID=${XERO_CLIENT_ID}
+      - XERO_CLIENT_SECRET=${XERO_CLIENT_SECRET}
+      - XERO_REDIRECT_URI=${XERO_REDIRECT_URI}
+      - XERO_SCOPES=${XERO_SCOPES}
+    volumes:
+      # Mount for persistent data if needed
+      - app_data:/app/data
+    restart: unless-stopped
+    networks:
+      - ampere-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  app_data:
+
+networks:
+  ampere-network:
+    driver: bridge

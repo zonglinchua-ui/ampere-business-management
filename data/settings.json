@@ -1,0 +1,31 @@
+{
+  "companyName": "Ampere Engineering Pte Ltd",
+  "companyEmail": "projects@ampere.com.sg",
+  "currency": "SGD",
+  "timezone": "Asia/Singapore",
+  "dateFormat": "DD/MM/YYYY",
+  "language": "English",
+  "theme": "system",
+  "notifications": {
+    "email": true,
+    "browser": true,
+    "mobile": false
+  },
+  "security": {
+    "twoFactorAuth": false,
+    "sessionTimeout": 30,
+    "passwordPolicy": "medium"
+  },
+  "storage": {
+    "nasEnabled": true,
+    "nasPath": "A:\\AMPERE WEB SERVER",
+    "nasUsername": "zack",
+    "nasPassword": "Czl914816",
+    "autoDownload": true,
+    "organizeFolders": true,
+    "namingConvention": "{quotationNumber}.{clientName}.{projectName}.{title}"
+  },
+  "lastUpdated": "2025-11-09T05:22:44.396Z",
+  "lastUpdatedBy": "cde6e5be-a27e-4cb9-9894-642c1231c57f",
+  "lastUpdatedByEmail": "zonglin.chua@ampere.com.sg"
+}

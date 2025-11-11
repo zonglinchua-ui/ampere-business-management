@@ -1,0 +1,743 @@
+
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
+import { MainLayout } from '@/components/layout/main-layout'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Badge } from '@/components/ui/badge'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import {
+  AlertCircle,
+  AlertTriangle,
+  Activity,
+  CheckCircle,
+  Download,
+  Trash2,
+  Search,
+  Filter,
+  RefreshCw,
+  Eye,
+  ChevronLeft,
+  ChevronRight,
+  Calendar,
+  Database,
+  BarChart3,
+  TrendingUp,
+  TrendingDown,
+  Clock,
+} from 'lucide-react'
+import { useSystemLogs } from '@/hooks/use-system-logs'
+import { formatDistanceToNow } from 'date-fns'
+import { cn } from '@/lib/utils'
+
+export default function SystemLogsPage() {
+  const { data: session } = useSession()
+  const [selectedLog, setSelectedLog] = useState<any>(null)
+  const [detailDialogOpen, setDetailDialogOpen] = useState(false)
+  const [clearDialogOpen, setClearDialogOpen] = useState(false)
+  const [stats, setStats] = useState<any>(null)
+
+  const {
+    logs,
+    loading,
+    error,
+    pagination,
+    unviewedCritical,
+    filters,
+    setFilters,
+    fetchLogs,
+    markAsViewed,
+    clearLogs,
+    exportLogs,
+  } = useSystemLogs()
+
+  // Fetch stats
+  useEffect(() => {
+    fetchStats()
+  }, [])
+
+  const fetchStats = async () => {
+    try {
+      const response = await fetch('/api/logs/stats')
+      if (response.ok) {
+        const data = await response.json()
+        setStats(data)
+      }
+    } catch (err) {
+      console.error('Failed to fetch stats:', err)
+    }
+  }
+
+  const handleViewDetails = (log: any) => {
+    setSelectedLog(log)
+    setDetailDialogOpen(true)
+    if (!log.viewed) {
+      markAsViewed(log.id)
+    }
+  }
+
+  const handleClearLogs = async () => {
+    try {
+      await clearLogs()
+      setClearDialogOpen(false)
+      fetchStats()
+    } catch (err: any) {
+      alert(`Failed to clear logs: ${err.message}`)
+    }
+  }
+
+  const handleExportLogs = async () => {
+    try {
+      await exportLogs()
+    } catch (err: any) {
+      alert(`Failed to export logs: ${err.message}`)
+    }
+  }
+
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case 'ERROR':
+        return <AlertCircle className="h-4 w-4" />
+      case 'ACTIVITY':
+        return <Activity className="h-4 w-4" />
+      case 'NOTIFICATION':
+        return <CheckCircle className="h-4 w-4" />
+      default:
+        return <Activity className="h-4 w-4" />
+    }
+  }
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'SUCCESS':
+        return <CheckCircle className="h-4 w-4 text-green-600" />
+      case 'FAILED':
+        return <AlertCircle className="h-4 w-4 text-red-600" />
+      case 'WARNING':
+        return <AlertTriangle className="h-4 w-4 text-yellow-600" />
+      case 'CRITICAL':
+        return <AlertCircle className="h-4 w-4 text-red-700" />
+      default:
+        return <Activity className="h-4 w-4 text-gray-600" />
+    }
+  }
+
+  const getTypeColor = (type: string) => {
+    switch (type) {
+      case 'ERROR':
+        return 'bg-red-100 text-red-800 border-red-200'
+      case 'ACTIVITY':
+        return 'bg-blue-100 text-blue-800 border-blue-200'
+      case 'NOTIFICATION':
+        return 'bg-green-100 text-green-800 border-green-200'
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-200'
+    }
+  }
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'SUCCESS':
+        return 'bg-green-100 text-green-800'
+      case 'FAILED':
+        return 'bg-red-100 text-red-800'
+      case 'WARNING':
+        return 'bg-yellow-100 text-yellow-800'
+      case 'CRITICAL':
+        return 'bg-red-200 text-red-900 font-bold'
+      default:
+        return 'bg-gray-100 text-gray-800'
+    }
+  }
+
+  if (!session || session.user?.role !== 'SUPERADMIN') {
+    return (
+      <MainLayout>
+        <div className="p-6">
+          <Card>
+            <CardContent className="flex items-center justify-center h-64">
+              <div className="text-center">
+                <AlertTriangle className="mx-auto h-12 w-12 text-yellow-600 mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Access Denied</h3>
+                <p className="text-gray-600 dark:text-gray-400">
+                  Only Super Admins can access System Logs.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </MainLayout>
+    )
+  }
+
+  return (
+    <MainLayout>
+      <div className="p-6 space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">System Logs</h1>
+            <p className="text-gray-600 dark:text-gray-300 mt-2">
+              Monitor errors, activities, and system events
+            </p>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Button variant="outline" onClick={fetchLogs}>
+              <RefreshCw className={cn("mr-2 h-4 w-4", loading && "animate-spin")} />
+              Refresh
+            </Button>
+            <Button variant="outline" onClick={handleExportLogs}>
+              <Download className="mr-2 h-4 w-4" />
+              Export CSV
+            </Button>
+            <Button variant="destructive" onClick={() => setClearDialogOpen(true)}>
+              <Trash2 className="mr-2 h-4 w-4" />
+              Clear Logs
+            </Button>
+          </div>
+        </div>
+
+        {/* Stats Cards */}
+        {stats && (
+          <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Logs</CardTitle>
+                <Database className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.overview.total.toLocaleString()}</div>
+                <p className="text-xs text-muted-foreground">All time</p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Errors</CardTitle>
+                <AlertCircle className="h-4 w-4 text-red-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-red-600">{stats.overview.errors.toLocaleString()}</div>
+                <p className="text-xs text-muted-foreground">Error logs</p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Critical</CardTitle>
+                <AlertCircle className="h-4 w-4 text-red-700" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-red-700">{stats.overview.critical.toLocaleString()}</div>
+                <p className="text-xs text-muted-foreground">Critical issues</p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Activities</CardTitle>
+                <Activity className="h-4 w-4 text-blue-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-blue-600">{stats.overview.activities.toLocaleString()}</div>
+                <p className="text-xs text-muted-foreground">Activity logs</p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Last 24h</CardTitle>
+                <Clock className="h-4 w-4 text-orange-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-orange-600">{stats.overview.last24h.toLocaleString()}</div>
+                <p className="text-xs text-muted-foreground">Recent logs</p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Unviewed</CardTitle>
+                <Eye className="h-4 w-4 text-purple-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-purple-600">{unviewedCritical}</div>
+                <p className="text-xs text-muted-foreground">Needs attention</p>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Filters */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Filter className="mr-2 h-5 w-5" />
+              Filters
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+              <div className="space-y-2">
+                <Label>Type</Label>
+                <Select
+                  value={filters.type || 'all'}
+                  onValueChange={(value) =>
+                    setFilters({ ...filters, type: value === 'all' ? undefined : value, page: 1 })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Types</SelectItem>
+                    <SelectItem value="ERROR">Error</SelectItem>
+                    <SelectItem value="ACTIVITY">Activity</SelectItem>
+                    <SelectItem value="NOTIFICATION">Notification</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <Select
+                  value={filters.status || 'all'}
+                  onValueChange={(value) =>
+                    setFilters({ ...filters, status: value === 'all' ? undefined : value, page: 1 })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    <SelectItem value="SUCCESS">Success</SelectItem>
+                    <SelectItem value="FAILED">Failed</SelectItem>
+                    <SelectItem value="WARNING">Warning</SelectItem>
+                    <SelectItem value="CRITICAL">Critical</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Module</Label>
+                <Select
+                  value={filters.module || 'all'}
+                  onValueChange={(value) =>
+                    setFilters({ ...filters, module: value === 'all' ? undefined : value, page: 1 })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Modules</SelectItem>
+                    <SelectItem value="Quotation">Quotation</SelectItem>
+                    <SelectItem value="Projects">Projects</SelectItem>
+                    <SelectItem value="Xero Integration">Xero Integration</SelectItem>
+                    <SelectItem value="Suppliers">Suppliers</SelectItem>
+                    <SelectItem value="Tenders">Tenders</SelectItem>
+                    <SelectItem value="Finance">Finance</SelectItem>
+                    <SelectItem value="System">System</SelectItem>
+                    <SelectItem value="Authentication">Authentication</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Start Date</Label>
+                <Input
+                  type="date"
+                  value={filters.startDate || ''}
+                  onChange={(e) =>
+                    setFilters({ ...filters, startDate: e.target.value, page: 1 })
+                  }
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>End Date</Label>
+                <Input
+                  type="date"
+                  value={filters.endDate || ''}
+                  onChange={(e) =>
+                    setFilters({ ...filters, endDate: e.target.value, page: 1 })
+                  }
+                />
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <Label>Search</Label>
+              <div className="relative mt-2">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <Input
+                  placeholder="Search by message, action, error code, or username..."
+                  value={filters.keyword || ''}
+                  onChange={(e) =>
+                    setFilters({ ...filters, keyword: e.target.value, page: 1 })
+                  }
+                  className="pl-10"
+                />
+              </div>
+            </div>
+
+            {(filters.type || filters.status || filters.module || filters.keyword || filters.startDate || filters.endDate) && (
+              <div className="mt-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setFilters({ page: 1, limit: 50 })}
+                >
+                  Clear Filters
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Logs Table */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Log Entries</CardTitle>
+              <div className="text-sm text-muted-foreground">
+                Showing {logs.length} of {pagination.total} logs
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <RefreshCw className="h-8 w-8 animate-spin text-gray-400" />
+              </div>
+            ) : error ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <AlertCircle className="h-12 w-12 text-red-600 mb-3" />
+                <p className="text-sm text-gray-700">{error}</p>
+                <Button variant="outline" size="sm" className="mt-4" onClick={fetchLogs}>
+                  Retry
+                </Button>
+              </div>
+            ) : logs.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <Database className="h-12 w-12 text-gray-400 mb-3" />
+                <p className="text-sm text-gray-500">No logs found</p>
+                <p className="text-xs text-gray-400 mt-1">Try adjusting your filters</p>
+              </div>
+            ) : (
+              <>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[50px]"></TableHead>
+                        <TableHead>Timestamp</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Module</TableHead>
+                        <TableHead>Action</TableHead>
+                        <TableHead>Message</TableHead>
+                        <TableHead>User</TableHead>
+                        <TableHead className="w-[100px]">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {logs.map((log) => (
+                        <TableRow 
+                          key={log.id}
+                          className={cn(
+                            "cursor-pointer hover:bg-gray-50",
+                            !log.viewed && "bg-blue-50"
+                          )}
+                          onClick={() => handleViewDetails(log)}
+                        >
+                          <TableCell>
+                            {getStatusIcon(log.status)}
+                          </TableCell>
+                          <TableCell className="text-xs text-gray-500">
+                            <div>{new Date(log.createdAt).toLocaleString()}</div>
+                            <div className="text-[10px] text-gray-400">
+                              {formatDistanceToNow(new Date(log.createdAt), { addSuffix: true })}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className={getTypeColor(log.type)}>
+                              {log.type}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={getStatusColor(log.status)}>
+                              {log.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <span className="text-sm font-medium">{log.module}</span>
+                          </TableCell>
+                          <TableCell className="text-sm">{log.action}</TableCell>
+                          <TableCell className="max-w-xs">
+                            <div className="truncate text-sm">{log.message}</div>
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {log.username ? (
+                              <div>
+                                <div className="font-medium">{log.username}</div>
+                                {log.role && (
+                                  <div className="text-xs text-gray-500">{log.role}</div>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-gray-400">System</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleViewDetails(log)
+                              }}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* Pagination */}
+                {pagination.pages > 1 && (
+                  <div className="flex items-center justify-between mt-4">
+                    <div className="text-sm text-gray-500">
+                      Page {pagination.page} of {pagination.pages}
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={pagination.page === 1}
+                        onClick={() => setFilters({ ...filters, page: pagination.page - 1 })}
+                      >
+                        <ChevronLeft className="h-4 w-4 mr-1" />
+                        Previous
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={pagination.page === pagination.pages}
+                        onClick={() => setFilters({ ...filters, page: pagination.page + 1 })}
+                      >
+                        Next
+                        <ChevronRight className="h-4 w-4 ml-1" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Top Modules */}
+        {stats?.byModule && stats.byModule.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <BarChart3 className="mr-2 h-5 w-5" />
+                  Top Modules by Log Count
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {stats.byModule.slice(0, 5).map((item: any, index: number) => (
+                    <div key={item.module} className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm font-medium text-gray-500">#{index + 1}</span>
+                        <span className="text-sm font-medium">{item.module}</span>
+                      </div>
+                      <Badge variant="secondary">{item.count.toLocaleString()}</Badge>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <TrendingUp className="mr-2 h-5 w-5" />
+                  Status Distribution
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {stats.byStatus.map((item: any) => (
+                    <div key={item.status} className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        {getStatusIcon(item.status)}
+                        <span className="text-sm font-medium">{item.status}</span>
+                      </div>
+                      <Badge className={getStatusColor(item.status)}>
+                        {item.count.toLocaleString()}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Log Detail Dialog */}
+        <Dialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center space-x-2">
+                {selectedLog && getStatusIcon(selectedLog.status)}
+                <span>Log Details</span>
+              </DialogTitle>
+            </DialogHeader>
+            
+            {selectedLog && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-xs text-gray-500">Type</Label>
+                    <Badge variant="outline" className={`mt-1 ${getTypeColor(selectedLog.type)}`}>
+                      {selectedLog.type}
+                    </Badge>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-gray-500">Status</Label>
+                    <Badge className={`mt-1 ${getStatusColor(selectedLog.status)}`}>
+                      {selectedLog.status}
+                    </Badge>
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-xs text-gray-500">Timestamp</Label>
+                  <p className="text-sm font-medium mt-1">
+                    {new Date(selectedLog.createdAt).toLocaleString()}
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    {formatDistanceToNow(new Date(selectedLog.createdAt), { addSuffix: true })}
+                  </p>
+                </div>
+
+                <div>
+                  <Label className="text-xs text-gray-500">Module</Label>
+                  <p className="text-sm font-medium mt-1">{selectedLog.module}</p>
+                </div>
+
+                <div>
+                  <Label className="text-xs text-gray-500">Action</Label>
+                  <p className="text-sm font-medium mt-1">{selectedLog.action}</p>
+                </div>
+
+                <div>
+                  <Label className="text-xs text-gray-500">Message</Label>
+                  <div className="mt-1 p-3 bg-gray-50 rounded-md">
+                    <p className="text-sm whitespace-pre-wrap">{selectedLog.message}</p>
+                  </div>
+                </div>
+
+                {selectedLog.errorCode && (
+                  <div>
+                    <Label className="text-xs text-gray-500">Error Code</Label>
+                    <p className="text-sm font-mono font-medium mt-1">{selectedLog.errorCode}</p>
+                  </div>
+                )}
+
+                {selectedLog.endpoint && (
+                  <div>
+                    <Label className="text-xs text-gray-500">Endpoint</Label>
+                    <p className="text-sm font-mono mt-1">{selectedLog.endpoint}</p>
+                  </div>
+                )}
+
+                {selectedLog.username && (
+                  <div>
+                    <Label className="text-xs text-gray-500">User</Label>
+                    <p className="text-sm font-medium mt-1">
+                      {selectedLog.username}
+                      {selectedLog.role && (
+                        <Badge variant="outline" className="ml-2">{selectedLog.role}</Badge>
+                      )}
+                    </p>
+                  </div>
+                )}
+
+                {selectedLog.ipAddress && (
+                  <div>
+                    <Label className="text-xs text-gray-500">IP Address</Label>
+                    <p className="text-sm font-mono mt-1">{selectedLog.ipAddress}</p>
+                  </div>
+                )}
+
+                <div>
+                  <Label className="text-xs text-gray-500">Log ID</Label>
+                  <p className="text-xs font-mono text-gray-500 mt-1">{selectedLog.id}</p>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Clear Logs Confirmation Dialog */}
+        <Dialog open={clearDialogOpen} onOpenChange={setClearDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center text-red-600">
+                <AlertTriangle className="mr-2 h-5 w-5" />
+                Clear System Logs
+              </DialogTitle>
+              <DialogDescription>
+                This action will permanently delete all system logs. This cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setClearDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button variant="destructive" onClick={handleClearLogs}>
+                Clear All Logs
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </MainLayout>
+  )
+}
+

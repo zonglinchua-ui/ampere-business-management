@@ -1,0 +1,560 @@
+
+/**
+ * Xero API Service - Data Sync Operations
+ * Handles all Xero API interactions for syncing data
+ */
+
+import { XeroClient } from 'xero-node'
+import { prisma } from './db'
+import { XeroOAuthService, XeroTokens } from './xero-oauth-service'
+
+export interface SyncResult {
+  success: boolean
+  message: string
+  syncedCount?: number
+  totalCount?: number
+  errors?: string[]
+}
+
+/**
+ * Xero API Service for data synchronization
+ */
+export class XeroApiService {
+  private xeroClient: XeroClient
+  private tokens: XeroTokens | null = null
+
+  constructor() {
+    this.xeroClient = new XeroClient({
+      clientId: process.env.XERO_CLIENT_ID!,
+      clientSecret: process.env.XERO_CLIENT_SECRET!,
+      redirectUris: [process.env.XERO_REDIRECT_URI!],
+      scopes: process.env.XERO_SCOPES!.split(' '),
+    })
+  }
+
+  /**
+   * Initialize service with stored tokens
+   */
+  async initialize(): Promise<boolean> {
+    try {
+      // Get stored tokens
+      this.tokens = await XeroOAuthService.getStoredTokens()
+
+      if (!this.tokens) {
+        console.log('⚠️ No Xero tokens found')
+        return false
+      }
+
+      // Check if token needs refresh
+      const fiveMinutesFromNow = new Date(Date.now() + 5 * 60 * 1000)
+      if (this.tokens.expiresAt <= fiveMinutesFromNow) {
+        console.log('🔄 Token expires soon, refreshing...')
+        const oauthService = new XeroOAuthService()
+        const newTokens = await oauthService.refreshAccessToken(
+          this.tokens.refreshToken,
+          this.tokens.tenantId
+        )
+
+        if (!newTokens) {
+          console.error('❌ Failed to refresh token')
+          return false
+        }
+
+        this.tokens = newTokens
+      }
+
+      // Set tokens in Xero client
+      this.xeroClient.setTokenSet({
+        access_token: this.tokens.accessToken,
+        refresh_token: this.tokens.refreshToken,
+        expires_at: this.tokens.expiresAt.getTime()
+      })
+
+      console.log('✅ Xero API service initialized')
+      return true
+
+    } catch (error: any) {
+      console.error('❌ Failed to initialize Xero API service:', error.message)
+      return false
+    }
+  }
+
+  /**
+   * Test Xero connection
+   */
+  async testConnection(): Promise<{ success: boolean; organization?: any; error?: string }> {
+    if (!this.tokens) {
+      return { success: false, error: 'Not connected to Xero' }
+    }
+
+    try {
+      const response = await this.xeroClient.accountingApi.getOrganisations(
+        this.tokens.tenantId
+      )
+      
+      const organization = response.body.organisations?.[0]
+
+      if (organization) {
+        return { success: true, organization }
+      }
+
+      return { success: false, error: 'No organization found' }
+
+    } catch (error: any) {
+      console.error('❌ Connection test failed:', error.message)
+      return {
+        success: false,
+        error: error.message || 'Connection test failed'
+      }
+    }
+  }
+
+  /**
+   * Sync contacts from Xero
+   * Maps Xero contacts to Clients and Vendors based on IsCustomer/IsSupplier flags
+   */
+  async syncContacts(): Promise<SyncResult> {
+    if (!this.tokens) {
+      return {
+        success: false,
+        message: 'Not connected to Xero. Please connect first.'
+      }
+    }
+
+    try {
+      console.log('📥 Fetching contacts from Xero...')
+
+      const response = await this.xeroClient.accountingApi.getContacts(
+        this.tokens.tenantId
+      )
+
+      const contacts = response.body.contacts || []
+      console.log(`✅ Total fetched from Xero: ${contacts.length} contacts`)
+
+      let newClientsCreated = 0
+      let existingClientsUpdated = 0
+      let newVendorsCreated = 0
+      let existingVendorsUpdated = 0
+      let skippedCount = 0
+      const errors: string[] = []
+
+      // Get system user for created by field
+      const systemUser = await this.getSystemUser()
+
+      for (const contact of contacts) {
+        try {
+          // Classify contact based on Xero flags
+          // IsCustomer OR AccountsReceivableTaxType indicates a Client
+          const isClient = contact.isCustomer || !!contact.accountsReceivableTaxType
+          const isVendor = contact.isSupplier
+
+          // Skip contacts that are neither customers nor suppliers
+          if (!isClient && !isVendor) {
+            skippedCount++
+            continue
+          }
+
+          // === SYNC AS CLIENT ===
+          if (isClient) {
+            // Check if client already exists by xeroContactId, email, or name
+            let existingClient = null
+            
+            // First try by xeroContactId
+            if (contact.contactID) {
+              existingClient = await prisma.client.findUnique({
+                where: { xeroContactId: contact.contactID }
+              })
+            }
+
+            // If not found, try by email to avoid duplicating manually created clients
+            if (!existingClient && contact.emailAddress) {
+              existingClient = await prisma.client.findFirst({
+                where: { 
+                  email: {
+                    equals: contact.emailAddress,
+                    mode: 'insensitive'
+                  }
+                }
+              })
+            }
+
+            // If still not found, try by exact name match
+            if (!existingClient && contact.name) {
+              existingClient = await prisma.client.findFirst({
+                where: { 
+                  name: contact.name
+                }
+              })
+            }
+
+            const clientData = {
+              name: contact.name || '',
+              email: contact.emailAddress || null,
+              phone: this.extractPhone(contact),
+              address: this.formatAddress(contact.addresses?.[0]),
+              city: contact.addresses?.[0]?.city || null,
+              state: contact.addresses?.[0]?.region || null,
+              country: contact.addresses?.[0]?.country || 'Singapore',
+              postalCode: contact.addresses?.[0]?.postalCode || null,
+              contactPerson: (contact.contactPersons && contact.contactPersons.length > 0) 
+                ? `${contact.contactPersons[0].firstName || ''} ${contact.contactPersons[0].lastName || ''}`.trim() 
+                : null,
+              website: contact.website || null,
+              isXeroSynced: true,
+              xeroContactId: contact.contactID || null,
+              lastXeroSync: new Date(),
+              updatedAt: new Date(),
+              // Comprehensive Xero fields
+              xeroAccountNumber: contact.accountNumber || null,
+              xeroPhones: contact.phones ? JSON.parse(JSON.stringify(contact.phones)) : null,
+              xeroAddresses: contact.addresses ? JSON.parse(JSON.stringify(contact.addresses)) : null,
+              xeroContactPersons: contact.contactPersons ? JSON.parse(JSON.stringify(contact.contactPersons)) : null,
+              xeroDefaultCurrency: contact.defaultCurrency ? String(contact.defaultCurrency) : null,
+              xeroTaxNumber: contact.taxNumber || null,
+              xeroAccountsReceivableTaxType: contact.accountsReceivableTaxType || null,
+              xeroAccountsPayableTaxType: contact.accountsPayableTaxType || null,
+              xeroUpdatedDateUTC: contact.updatedDateUTC ? new Date(contact.updatedDateUTC) : null,
+              xeroContactStatus: contact.contactStatus ? String(contact.contactStatus) : 'ACTIVE',
+              xeroBankAccountDetails: contact.bankAccountDetails || null,
+              xeroSkypeUserName: (contact as any).skypeUserName || null,
+              xeroBatchPayments: contact.batchPayments ? JSON.parse(JSON.stringify(contact.batchPayments)) : null
+            }
+
+            if (existingClient) {
+              // Update existing client (preserve clientNumber)
+              console.log(`   ↻ Updating existing client: ${contact.name}`)
+              await prisma.client.update({
+                where: { id: existingClient.id },
+                data: clientData
+              })
+              existingClientsUpdated++
+            } else {
+              // Create new client with auto-generated client number
+              const nextClientNumber = await this.getNextClientNumber()
+              console.log(`   ✚ Creating new client: ${contact.name} (${nextClientNumber})`)
+              
+              await prisma.client.create({
+                data: {
+                  id: `xero-client-${contact.contactID}`,
+                  ...clientData,
+                  clientNumber: nextClientNumber,
+                  clientType: 'ENTERPRISE',
+                  createdById: systemUser.id
+                }
+              })
+              newClientsCreated++
+            }
+          }
+
+          // === SYNC AS VENDOR ===
+          if (isVendor) {
+            // Check if vendor already exists by xeroContactId, email, or name
+            let existingVendor = null
+            
+            // First try by xeroContactId
+            if (contact.contactID) {
+              existingVendor = await prisma.vendor.findUnique({
+                where: { xeroContactId: contact.contactID }
+              })
+            }
+
+            // If not found, try by email to avoid duplicating manually created vendors
+            if (!existingVendor && contact.emailAddress) {
+              existingVendor = await prisma.vendor.findFirst({
+                where: { 
+                  email: {
+                    equals: contact.emailAddress,
+                    mode: 'insensitive'
+                  }
+                }
+              })
+            }
+
+            // If still not found, try by exact name match
+            if (!existingVendor && contact.name) {
+              existingVendor = await prisma.vendor.findFirst({
+                where: { 
+                  name: contact.name
+                }
+              })
+            }
+
+            const vendorData = {
+              name: contact.name || '',
+              email: contact.emailAddress || null,
+              phone: this.extractPhone(contact),
+              address: this.formatAddress(contact.addresses?.[0]),
+              city: contact.addresses?.[0]?.city || null,
+              state: contact.addresses?.[0]?.region || null,
+              country: contact.addresses?.[0]?.country || 'Singapore',
+              postalCode: contact.addresses?.[0]?.postalCode || null,
+              contactPerson: (contact.contactPersons && contact.contactPersons.length > 0) 
+                ? `${contact.contactPersons[0].firstName || ''} ${contact.contactPersons[0].lastName || ''}`.trim() 
+                : null,
+              website: contact.website || null,
+              isXeroSynced: true,
+              xeroContactId: contact.contactID || null,
+              lastXeroSync: new Date(),
+              updatedAt: new Date(),
+              // Comprehensive Xero fields
+              xeroAccountNumber: contact.accountNumber || null,
+              xeroPhones: contact.phones ? JSON.parse(JSON.stringify(contact.phones)) : null,
+              xeroAddresses: contact.addresses ? JSON.parse(JSON.stringify(contact.addresses)) : null,
+              xeroContactPersons: contact.contactPersons ? JSON.parse(JSON.stringify(contact.contactPersons)) : null,
+              xeroDefaultCurrency: contact.defaultCurrency ? String(contact.defaultCurrency) : null,
+              xeroTaxNumber: contact.taxNumber || null,
+              xeroAccountsReceivableTaxType: contact.accountsReceivableTaxType || null,
+              xeroAccountsPayableTaxType: contact.accountsPayableTaxType || null,
+              xeroUpdatedDateUTC: contact.updatedDateUTC ? new Date(contact.updatedDateUTC) : null,
+              xeroContactStatus: contact.contactStatus ? String(contact.contactStatus) : 'ACTIVE',
+              xeroBankAccountDetails: contact.bankAccountDetails || null,
+              xeroSkypeUserName: (contact as any).skypeUserName || null,
+              xeroBatchPayments: contact.batchPayments ? JSON.parse(JSON.stringify(contact.batchPayments)) : null
+            }
+
+            if (existingVendor) {
+              // Update existing vendor (preserve vendorNumber)
+              console.log(`   ↻ Updating existing vendor: ${contact.name}`)
+              await prisma.vendor.update({
+                where: { id: existingVendor.id },
+                data: vendorData
+              })
+              existingVendorsUpdated++
+            } else {
+              // Create new vendor with auto-generated vendor number
+              const nextVendorNumber = await this.getNextVendorNumber()
+              console.log(`   ✚ Creating new vendor: ${contact.name} (${nextVendorNumber})`)
+              
+              await prisma.vendor.create({
+                data: {
+                  id: `xero-vendor-${contact.contactID}`,
+                  ...vendorData,
+                  vendorNumber: nextVendorNumber,
+                  vendorType: 'SUPPLIER',
+                  isActive: true,
+                  isApproved: true,
+                  createdById: systemUser.id
+                }
+              })
+              newVendorsCreated++
+            }
+          }
+
+        } catch (error: any) {
+          console.error(`❌ Failed to sync contact ${contact.name}:`, error.message)
+          errors.push(`${contact.name}: ${error.message}`)
+        }
+      }
+
+      // Update last sync time
+      await prisma.xeroIntegration.updateMany({
+        where: { tenantId: this.tokens.tenantId, isActive: true },
+        data: { lastSyncAt: new Date() }
+      })
+
+      // Calculate totals
+      const totalClients = newClientsCreated + existingClientsUpdated
+      const totalVendors = newVendorsCreated + existingVendorsUpdated
+      const totalSynced = totalClients + totalVendors
+
+      // Log summary
+      console.log('\n📊 === Xero Contact Sync Summary ===')
+      console.log(`   Total fetched from Xero: ${contacts.length}`)
+      console.log(`   
+   CLIENTS:
+   - New clients created: ${newClientsCreated}
+   - Existing clients updated: ${existingClientsUpdated}
+   - Total clients synced: ${totalClients}
+   
+   VENDORS:
+   - New vendors created: ${newVendorsCreated}
+   - Existing vendors updated: ${existingVendorsUpdated}
+   - Total vendors synced: ${totalVendors}
+   
+   OTHER:
+   - Skipped (neither customer nor supplier): ${skippedCount}
+   - Errors: ${errors.length}`)
+      console.log('=====================================\n')
+
+      const message = `Synced ${totalSynced} contacts: ${totalClients} clients (${newClientsCreated} new, ${existingClientsUpdated} updated), ${totalVendors} vendors (${newVendorsCreated} new, ${existingVendorsUpdated} updated)${skippedCount > 0 ? `, ${skippedCount} skipped` : ''}${errors.length > 0 ? `, ${errors.length} errors` : ''}`
+
+      return {
+        success: true,
+        message,
+        syncedCount: totalSynced,
+        totalCount: contacts.length,
+        errors: errors.length > 0 ? errors : undefined
+      }
+
+    } catch (error: any) {
+      console.error('❌ Contact sync failed:', error.message)
+      return {
+        success: false,
+        message: `Contact sync failed: ${error.message}`
+      }
+    }
+  }
+
+  /**
+   * Helper: Get next available client number
+   * Format: AE-C-### (e.g., AE-C-001, AE-C-002, ...)
+   */
+  private async getNextClientNumber(): Promise<string> {
+    // Get all client numbers to find the highest
+    const allClients = await prisma.client.findMany({
+      where: {
+        clientNumber: {
+          not: null
+        }
+      },
+      select: {
+        clientNumber: true
+      },
+      orderBy: {
+        clientNumber: 'desc'
+      }
+    })
+
+    let highestNumber = 0
+
+    // Parse all client numbers to find the highest sequential number
+    for (const client of allClients) {
+      if (!client.clientNumber) continue
+
+      // Try to extract number from various formats (AE-C-###, C###, etc.)
+      let match = client.clientNumber.match(/AE-C-(\d+)/)
+      if (match) {
+        const num = parseInt(match[1], 10)
+        if (num > highestNumber) highestNumber = num
+        continue
+      }
+
+      // Also check legacy format C#### in case of old records
+      match = client.clientNumber.match(/^C(\d+)$/)
+      if (match) {
+        const num = parseInt(match[1], 10)
+        if (num > highestNumber) highestNumber = num
+      }
+    }
+
+    const nextNumber = highestNumber + 1
+    return `AE-C-${nextNumber.toString().padStart(3, '0')}`
+  }
+
+  /**
+   * Helper: Get next available vendor number
+   * Format: AE-V-### (e.g., AE-V-001, AE-V-002, ...)
+   */
+  private async getNextVendorNumber(): Promise<string> {
+    // Get all vendor numbers to find the highest
+    const allVendors = await prisma.vendor.findMany({
+      where: {
+        vendorNumber: {
+          not: null
+        }
+      },
+      select: {
+        vendorNumber: true
+      },
+      orderBy: {
+        vendorNumber: 'desc'
+      }
+    })
+
+    let highestNumber = 0
+
+    // Parse all vendor numbers to find the highest sequential number
+    for (const vendor of allVendors) {
+      if (!vendor.vendorNumber) continue
+
+      // Try to extract number from various formats (AE-V-###, V###, etc.)
+      let match = vendor.vendorNumber.match(/AE-V-(\d+)/)
+      if (match) {
+        const num = parseInt(match[1], 10)
+        if (num > highestNumber) highestNumber = num
+        continue
+      }
+
+      // Also check legacy format V#### in case of old records
+      match = vendor.vendorNumber.match(/^V(\d+)$/)
+      if (match) {
+        const num = parseInt(match[1], 10)
+        if (num > highestNumber) highestNumber = num
+      }
+    }
+
+    const nextNumber = highestNumber + 1
+    return `AE-V-${nextNumber.toString().padStart(3, '0')}`
+  }
+
+  /**
+   * Helper: Get or create system user
+   */
+  private async getSystemUser() {
+    let systemUser = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { role: 'SUPERADMIN' },
+          { email: 'system@ampere.com' }
+        ]
+      }
+    })
+
+    if (!systemUser) {
+      systemUser = await prisma.user.findFirst({
+        where: { role: 'PROJECT_MANAGER' }
+      })
+    }
+
+    if (!systemUser) {
+      throw new Error('No system user found for Xero sync')
+    }
+
+    return systemUser
+  }
+
+  /**
+   * Helper: Extract phone from contact
+   */
+  private extractPhone(contact: any): string | null {
+    if (!contact.phones || contact.phones.length === 0) {
+      return null
+    }
+
+    const defaultPhone = contact.phones.find(
+      (p: any) => p.phoneType === 'DEFAULT' || p.phoneType === 'MOBILE'
+    )
+
+    return defaultPhone?.phoneNumber || contact.phones[0]?.phoneNumber || null
+  }
+
+  /**
+   * Helper: Format address
+   */
+  private formatAddress(address: any): string | null {
+    if (!address) return null
+
+    const parts = [
+      address.addressLine1,
+      address.addressLine2,
+      address.addressLine3,
+      address.addressLine4
+    ].filter(Boolean)
+
+    return parts.length > 0 ? parts.join(', ') : null
+  }
+}
+
+/**
+ * Factory method to create initialized service
+ */
+export async function createXeroApiService(): Promise<XeroApiService | null> {
+  const service = new XeroApiService()
+  const initialized = await service.initialize()
+
+  if (!initialized) {
+    return null
+  }
+
+  return service
+}

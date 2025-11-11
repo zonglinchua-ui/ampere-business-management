@@ -1,0 +1,139 @@
+
+/**
+ * Example: Tasks API with Enhanced Error Logging
+ * 
+ * This demonstrates how to integrate the error logging system
+ * into an existing API route.
+ */
+
+import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { prisma } from '@/lib/db'
+import { logError, logActivity, getIpAddress } from '@/lib/logger'
+
+export async function POST(req: NextRequest) {
+  const session = await getServerSession(authOptions)
+
+  if (!session?.user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  try {
+    const data = await req.json()
+
+    // Validate required fields
+    if (!data.title || !data.description) {
+      // Log validation error
+      await logError({
+        userId: session.user.id,
+        username: session.user.name || session.user.email || 'Unknown',
+        role: session.user.role,
+        action: 'Create Task - Validation Failed',
+        message: 'Missing required fields: title or description',
+        module: 'Tasks',
+        endpoint: req.url,
+        errorCode: '400',
+        ipAddress: getIpAddress(req),
+        isCritical: false, // Not critical, just validation error
+      })
+
+      return NextResponse.json(
+        { error: 'Missing required fields' },
+        { status: 400 }
+      )
+    }
+
+    // Create task
+    const task = await prisma.task.create({
+      data: {
+        ...data,
+        createdById: session.user.id,
+      },
+    })
+
+    // Log successful activity
+    await logActivity({
+      userId: session.user.id,
+      username: session.user.name || session.user.email || 'Unknown',
+      role: session.user.role,
+      action: 'Create Task',
+      message: `Created task: ${task.title}`,
+      module: 'Tasks',
+      endpoint: req.url,
+      ipAddress: getIpAddress(req),
+    })
+
+    return NextResponse.json(task, { status: 201 })
+  } catch (err: any) {
+    // Log critical error with notification
+    await logError({
+      userId: session.user.id,
+      username: session.user.name || session.user.email || 'Unknown',
+      role: session.user.role,
+      action: 'Create Task',
+      message: err.message || 'Failed to create task',
+      module: 'Tasks',
+      endpoint: req.url,
+      errorCode: '500',
+      ipAddress: getIpAddress(req),
+      isCritical: true, // 🚨 This triggers push notification to Super Admins
+    })
+
+    return NextResponse.json(
+      { error: 'Failed to create task', message: err.message },
+      { status: 500 }
+    )
+  }
+}
+
+export async function GET(req: NextRequest) {
+  const session = await getServerSession(authOptions)
+
+  if (!session?.user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  try {
+    const { searchParams } = new URL(req.url)
+    const status = searchParams.get('status')
+
+    const where: any = {}
+    if (status) where.status = status
+
+    const tasks = await prisma.task.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        createdBy: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+    })
+
+    return NextResponse.json(tasks)
+  } catch (err: any) {
+    // Log error
+    await logError({
+      userId: session.user.id,
+      username: session.user.name || session.user.email || 'Unknown',
+      role: session.user.role,
+      action: 'Fetch Tasks',
+      message: err.message || 'Failed to fetch tasks',
+      module: 'Tasks',
+      endpoint: req.url,
+      errorCode: '500',
+      ipAddress: getIpAddress(req),
+      isCritical: false, // Read operations are less critical
+    })
+
+    return NextResponse.json(
+      { error: 'Failed to fetch tasks' },
+      { status: 500 }
+    )
+  }
+}
