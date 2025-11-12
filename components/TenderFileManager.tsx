@@ -483,7 +483,11 @@ export function TenderFileManager({
                 </TableHeader>
                 <TableBody>
                   {files.map((file) => (
-                    <TableRow key={file.name}>
+                    <TableRow 
+                      key={file.name}
+                      className="cursor-pointer hover:bg-muted/50 transition-colors"
+                      onClick={() => handleDownload(file.name)}
+                    >
                       <TableCell>{getFileIcon(file.name)}</TableCell>
                       <TableCell className="font-medium">{file.name}</TableCell>
                       <TableCell className="text-muted-foreground">
@@ -497,15 +501,23 @@ export function TenderFileManager({
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleDownload(file.name)}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleDownload(file.name)
+                            }}
+                            title="Download"
                           >
                             <Download className="h-4 w-4" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => setFileToDelete(file.name)}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setFileToDelete(file.name)
+                            }}
                             className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            title="Delete"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
