@@ -1,6 +1,6 @@
 // File: app/api/tenders/[id]/files/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { writeFile, readdir, unlink, stat, readFile } from 'fs/promises'
+import { writeFile, readdir, unlink, stat, readFile, rmdir, rm } from 'fs/promises'
 import { join } from 'path'
 import { existsSync, mkdirSync } from 'fs'
 import { prisma } from '@/lib/db'
@@ -173,7 +173,7 @@ export async function POST(
   }
 }
 
-// DELETE - Delete a file
+// DELETE - Delete a file or folder
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -195,21 +195,33 @@ export async function DELETE(
 
     if (!existsSync(filePath)) {
       return NextResponse.json(
-        { error: 'File not found' },
+        { error: 'File or folder not found' },
         { status: 404 }
       )
     }
 
-    await unlink(filePath)
-
-    return NextResponse.json({
-      message: 'File deleted successfully',
-      filename,
-    })
+    // Check if it's a directory or file
+    const stats = await stat(filePath)
+    
+    if (stats.isDirectory()) {
+      // Delete directory recursively
+      await rm(filePath, { recursive: true, force: true })
+      return NextResponse.json({
+        message: 'Folder deleted successfully',
+        filename,
+      })
+    } else {
+      // Delete file
+      await unlink(filePath)
+      return NextResponse.json({
+        message: 'File deleted successfully',
+        filename,
+      })
+    }
   } catch (error) {
     console.error('Error in DELETE /api/tenders/[id]/files:', error)
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to delete file' },
+      { error: error instanceof Error ? error.message : 'Failed to delete file or folder' },
       { status: 500 }
     )
   }
