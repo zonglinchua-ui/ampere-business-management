@@ -613,16 +613,24 @@ export async function generateQuotationPDF(quotationData: any): Promise<Buffer> 
   // Client Info
   doc.setFontSize(10)
   doc.setFont('helvetica', 'bold')
+  doc.setTextColor(0, 0, 0) // Black for "TO:"
   doc.text('TO:', margin, yPosition)
   if (quotationData.client?.name) {
     doc.setFont('helvetica', 'normal')
-    const clientInfo = [quotationData.client.name]
+    doc.setTextColor(0, 0, 0) // Black for customer name
+    doc.text(quotationData.client.name, margin + 15, yPosition)
+    yPosition += 5
+    
+    // Customer address in light grey
     if (quotationData.client.address) {
-      clientInfo.push(quotationData.client.address)
+      doc.setTextColor(128, 128, 128) // Light grey for address
+      doc.setFontSize(9)
+      const addressLines = doc.splitTextToSize(quotationData.client.address, clientSectionMaxWidth - 15)
+      doc.text(addressLines, margin + 15, yPosition)
+      yPosition += addressLines.length * 4
     }
-    const clientInfoLines = doc.splitTextToSize(clientInfo.join('\n'), clientSectionMaxWidth - 15)
-    doc.text(clientInfoLines, margin + 15, yPosition)
-    yPosition += clientInfoLines.length * 5
+    doc.setTextColor(0, 0, 0) // Reset to black
+    doc.setFontSize(10) // Reset font size
   }
 
   // Quotation Info
@@ -699,7 +707,7 @@ export async function generateQuotationPDF(quotationData: any): Promise<Buffer> 
     head: tableHeaders,
     body: tableData,
     startY: yPosition,
-    theme: 'striped',
+    theme: 'plain',
     headStyles: { fillColor: [0, 51, 102], textColor: [255, 255, 255], fontStyle: 'bold', halign: 'center' },
     columnStyles: {
       0: { cellWidth: 15, halign: 'center' },
@@ -816,20 +824,26 @@ export async function generateQuotationPDF(quotationData: any): Promise<Buffer> 
   yPosition = (doc as any).lastAutoTable.finalY + 10
 
   // Terms & Conditions
-  if (quotationData.termsAndConditions) {
-    if (yPosition > pageHeight - 50) {
+  const defaultTerms = `1. Prices quoted are in ${quotationData.currency || 'SGD'} and are valid for 30 days from the date of this quotation.\n2. Payment terms: Net 30 days from invoice date.\n3. Delivery time to be confirmed upon order confirmation.\n4. All prices exclude GST unless otherwise stated.\n5. This quotation is subject to our standard terms and conditions of sale.`
+  
+  const termsToDisplay = quotationData.termsAndConditions || defaultTerms
+  
+  if (termsToDisplay) {
+    if (yPosition > pageHeight - 80) {
       doc.addPage()
       yPosition = margin
     }
 
-    doc.setFontSize(12)
+    doc.setFontSize(11)
     doc.setFont('helvetica', 'bold')
+    doc.setTextColor(0, 51, 102)
     doc.text('Terms & Conditions:', margin, yPosition)
-    yPosition += 8
+    yPosition += 7
 
     doc.setFontSize(9)
     doc.setFont('helvetica', 'normal')
-    const termsLines = doc.splitTextToSize(quotationData.termsAndConditions, pageWidth - 2 * margin)
+    doc.setTextColor(0, 0, 0)
+    const termsLines = doc.splitTextToSize(termsToDisplay, pageWidth - 2 * margin)
     doc.text(termsLines, margin, yPosition)
   }
 
