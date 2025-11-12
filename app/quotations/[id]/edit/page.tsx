@@ -563,16 +563,10 @@ export default function EditQuotationPage({ params }: { params: { id: string } }
         const result = await response.json()
         console.log('Quotation updated successfully:', result) // Debug log
         if (isDraft) {
-          toast({
-            title: "Success",
-            description: "Quotation saved as draft successfully!",
-          })
+          toast.success('Quotation saved as draft successfully!')
           // Don't redirect for draft saves, stay on the page
         } else {
-          toast({
-            title: "Success",
-            description: "Quotation updated successfully!",
-          })
+          toast.success('Quotation updated successfully!')
           router.push(`/quotations/${quotationId}`)
         }
       } else {
