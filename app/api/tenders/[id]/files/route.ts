@@ -115,18 +115,20 @@ export async function GET(
       return NextResponse.json({ files: [] })
     }
 
-    const files = await readdir(folderPath)
+    const items = await readdir(folderPath)
     
     const fileDetails = await Promise.all(
-      files.map(async (filename) => {
-        const filePath = join(folderPath, filename)
-        const stats = await stat(filePath)
+      items.map(async (itemName) => {
+        const itemPath = join(folderPath, itemName)
+        const stats = await stat(itemPath)
+        const relativePath = subPath ? `${subPath}/${itemName}` : itemName
         
         return {
-          name: filename,
+          name: relativePath,
           size: stats.size,
           modifiedAt: stats.mtime.toISOString(),
-          type: filename.split('.').pop() || 'unknown',
+          type: stats.isDirectory() ? 'directory' : (itemName.split('.').pop() || 'unknown'),
+          isDirectory: stats.isDirectory(),
         }
       })
     )
