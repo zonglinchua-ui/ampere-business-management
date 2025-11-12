@@ -33,6 +33,7 @@ import {
   Trash2,
   RefreshCw,
   HardDrive,
+  FolderUp,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatDistanceToNow } from 'date-fns'
@@ -61,8 +62,9 @@ export function TenderFileManager({
   const [loading, setLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [fileToDelete, setFileToDelete] = useState<string | null>(null)
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null)
   const [isDragging, setIsDragging] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState<string>('')
 
   // Load files on mount
   useEffect(() => {
@@ -97,17 +99,17 @@ export function TenderFileManager({
   }
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (file) {
-      setSelectedFile(file)
+    const files = event.target.files
+    if (files && files.length > 0) {
+      setSelectedFiles(files)
     }
   }
 
-  const handleUpload = async (fileToUpload?: File) => {
-    const file = fileToUpload || selectedFile
+  const handleUpload = async (filesToUpload?: FileList) => {
+    const files = filesToUpload || selectedFiles
     
-    if (!file) {
-      toast.error('Please select a file first')
+    if (!files || files.length === 0) {
+      toast.error('Please select files first')
       return
     }
 
@@ -117,32 +119,62 @@ export function TenderFileManager({
     }
 
     setUploading(true)
+    setUploadProgress(`Uploading 0/${files.length} files...`)
+    
     try {
-      const formData = new FormData()
-      formData.append('file', file)
+      let successCount = 0
+      let failCount = 0
 
-      const response = await fetch(`/api/tenders/${tenderId}/files`, {
-        method: 'POST',
-        body: formData,
-      })
+      // Upload files one by one
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i]
+        setUploadProgress(`Uploading ${i + 1}/${files.length}: ${file.name}`)
 
-      if (response.ok) {
-        toast.success('File uploaded successfully')
-        setSelectedFile(null)
-        // Reset file input
-        const fileInput = document.getElementById('file-upload') as HTMLInputElement
-        if (fileInput) fileInput.value = ''
-        // Reload files
-        await loadFiles()
-      } else {
-        const error = await response.json()
-        toast.error(error.error || 'Failed to upload file')
+        const formData = new FormData()
+        formData.append('file', file)
+
+        try {
+          const response = await fetch(`/api/tenders/${tenderId}/files`, {
+            method: 'POST',
+            body: formData,
+          })
+
+          if (response.ok) {
+            successCount++
+          } else {
+            const error = await response.json()
+            console.error(`Failed to upload ${file.name}:`, error.error)
+            failCount++
+          }
+        } catch (error) {
+          console.error(`Error uploading ${file.name}:`, error)
+          failCount++
+        }
       }
+
+      // Show results
+      if (successCount > 0) {
+        toast.success(`Successfully uploaded ${successCount} file${successCount > 1 ? 's' : ''}`)
+      }
+      if (failCount > 0) {
+        toast.error(`Failed to upload ${failCount} file${failCount > 1 ? 's' : ''}`)
+      }
+
+      setSelectedFiles(null)
+      setUploadProgress('')
+      
+      // Reset file input
+      const fileInput = document.getElementById('file-upload') as HTMLInputElement
+      if (fileInput) fileInput.value = ''
+      
+      // Reload files
+      await loadFiles()
     } catch (error) {
-      console.error('Error uploading file:', error)
-      toast.error('Error uploading file')
+      console.error('Error uploading files:', error)
+      toast.error('Error uploading files')
     } finally {
       setUploading(false)
+      setUploadProgress('')
     }
   }
 
@@ -224,12 +256,58 @@ export function TenderFileManager({
     e.stopPropagation()
     setIsDragging(false)
 
-    const droppedFiles = e.dataTransfer.files
-    if (droppedFiles && droppedFiles.length > 0) {
-      const file = droppedFiles[0]
-      setSelectedFile(file)
-      // Automatically upload the dropped file
-      await handleUpload(file)
+    const items = e.dataTransfer.items
+    const files: File[] = []
+
+    if (items) {
+      // Handle DataTransferItemList
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i]
+        if (item.kind === 'file') {
+          const entry = item.webkitGetAsEntry()
+          if (entry) {
+            await traverseFileTree(entry, files)
+          }
+        }
+      }
+    } else {
+      // Fallback to files
+      const droppedFiles = e.dataTransfer.files
+      for (let i = 0; i < droppedFiles.length; i++) {
+        files.push(droppedFiles[i])
+      }
+    }
+
+    if (files.length > 0) {
+      // Create a FileList-like object
+      const dataTransfer = new DataTransfer()
+      files.forEach(file => dataTransfer.items.add(file))
+      setSelectedFiles(dataTransfer.files)
+      
+      // Automatically upload the dropped files
+      await handleUpload(dataTransfer.files)
+    }
+  }
+
+  // Recursively traverse folder structure
+  const traverseFileTree = async (entry: any, files: File[]): Promise<void> => {
+    if (entry.isFile) {
+      return new Promise((resolve) => {
+        entry.file((file: File) => {
+          files.push(file)
+          resolve()
+        })
+      })
+    } else if (entry.isDirectory) {
+      const dirReader = entry.createReader()
+      return new Promise((resolve) => {
+        dirReader.readEntries(async (entries: any[]) => {
+          for (const entry of entries) {
+            await traverseFileTree(entry, files)
+          }
+          resolve()
+        })
+      })
     }
   }
 
@@ -319,9 +397,11 @@ export function TenderFileManager({
           >
             <div className="flex flex-col items-center gap-4">
               <div className="flex items-center gap-2 text-muted-foreground">
-                <Upload className="h-5 w-5" />
+                <FolderUp className="h-5 w-5" />
                 <p className="text-sm font-medium">
-                  {isDragging ? 'Drop file here' : 'Drag and drop a file here, or click to browse'}
+                  {isDragging 
+                    ? 'Drop files or folders here' 
+                    : 'Drag and drop files or folders here, or click to browse'}
                 </p>
               </div>
               <div className="flex items-center gap-4 w-full">
@@ -331,19 +411,30 @@ export function TenderFileManager({
                     type="file"
                     onChange={handleFileSelect}
                     disabled={uploading}
+                    multiple
+                    webkitdirectory=""
+                    directory=""
                   />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Select multiple files or an entire folder
+                  </p>
                 </div>
                 <Button
                   onClick={() => handleUpload()}
-                  disabled={!selectedFile || uploading}
+                  disabled={!selectedFiles || uploading}
                 >
                   <Upload className="h-4 w-4 mr-2" />
                   {uploading ? 'Uploading...' : 'Upload'}
                 </Button>
               </div>
-              {selectedFile && (
+              {selectedFiles && selectedFiles.length > 0 && (
                 <p className="text-sm text-muted-foreground">
-                  Selected: {selectedFile.name} ({formatFileSize(selectedFile.size)})
+                  Selected: {selectedFiles.length} file{selectedFiles.length > 1 ? 's' : ''}
+                </p>
+              )}
+              {uploadProgress && (
+                <p className="text-sm font-medium text-primary">
+                  {uploadProgress}
                 </p>
               )}
             </div>
