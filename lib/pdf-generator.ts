@@ -180,26 +180,29 @@ async function addCompanyFooter(doc: jsPDF, pageNumber: number, totalPages: numb
     { align: 'center' }
   )
   
-  // Right side - Generation date
-  doc.text(
-    `Generated: ${new Date().toLocaleDateString()}`,
-    pageWidth - margin,
-    pageHeight - 22,
-    { align: 'right' }
-  )
-  
-  // Prepared by (if available)
+  // Right side - Prepared by (if available) above Generated
   if (preparedBy) {
     doc.setFontSize(8)
     doc.setFont('helvetica', 'normal')
     doc.setTextColor(100, 100, 100)
     doc.text(
       `Prepared by: ${preparedBy}`,
-      margin,
-      pageHeight - 10,
-      { align: 'left' }
+      pageWidth - margin,
+      pageHeight - 28,
+      { align: 'right' }
     )
   }
+  
+  // Right side - Generation date
+  doc.setFontSize(8)
+  doc.setFont('helvetica', 'normal')
+  doc.setTextColor(100, 100, 100)
+  doc.text(
+    `Generated: ${new Date().toLocaleDateString()}`,
+    pageWidth - margin,
+    pageHeight - 22,
+    { align: 'right' }
+  )
   
   // Bottom line - Computer-generated statement with adequate spacing
   doc.setFontSize(7)

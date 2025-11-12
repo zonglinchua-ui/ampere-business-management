@@ -66,6 +66,13 @@ export async function GET(
           orderBy: {
             order: 'asc'
           }
+        },
+        User: {
+          select: {
+            firstName: true,
+            lastName: true,
+            name: true
+          }
         }
       }
     })
@@ -108,7 +115,12 @@ export async function GET(
         unitPrice: Number(item.unitPrice),
         totalPrice: Number(item.totalPrice),
         notes: item.notes
-      })) || []
+      })) || [],
+      preparedBy: quotation.User ? {
+        firstName: quotation.User.firstName,
+        lastName: quotation.User.lastName,
+        name: quotation.User.name
+      } : undefined
     }
 
     // Generate PDF buffer
