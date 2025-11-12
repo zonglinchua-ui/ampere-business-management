@@ -57,7 +57,7 @@ export function DataQualityTab() {
     try {
       const [errorsRes, duplicatesRes] = await Promise.all([
         fetch('/api/xero/sync-errors'),
-        fetch('/api/contacts/duplicates?statsOnly=true')
+        fetch('/api/xero/duplicate-contacts?threshold=0.8')
       ])
 
       if (errorsRes.ok) {
@@ -68,7 +68,12 @@ export function DataQualityTab() {
 
       if (duplicatesRes.ok) {
         const duplicatesData = await duplicatesRes.json()
-        setDuplicates(duplicatesData.duplicates || [])
+        console.log('[Data Quality] Duplicates data:', duplicatesData)
+        if (duplicatesData.success && duplicatesData.duplicates) {
+          setDuplicates(duplicatesData.duplicates)
+        } else {
+          setDuplicates([])
+        }
       }
     } catch (error) {
       console.error('Error fetching data:', error)
