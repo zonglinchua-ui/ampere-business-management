@@ -1,6 +1,6 @@
 // File: app/api/tenders/[id]/files/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { writeFile, readdir, unlink, stat, readFile } from 'fs/promises'
+import { writeFile, readdir, unlink, stat, readFile, rm } from 'fs/promises'
 import { join } from 'path'
 import { existsSync, mkdirSync } from 'fs'
 import { prisma } from '@/lib/db'
