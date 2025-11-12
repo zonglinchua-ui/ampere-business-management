@@ -616,9 +616,13 @@ export async function generateQuotationPDF(quotationData: any): Promise<Buffer> 
   doc.text('TO:', margin, yPosition)
   if (quotationData.client?.name) {
     doc.setFont('helvetica', 'normal')
-    const clientNameLines = doc.splitTextToSize(quotationData.client.name, clientSectionMaxWidth - 15)
-    doc.text(clientNameLines, margin + 15, yPosition)
-    yPosition += clientNameLines.length * 5
+    const clientInfo = [quotationData.client.name]
+    if (quotationData.client.address) {
+      clientInfo.push(quotationData.client.address)
+    }
+    const clientInfoLines = doc.splitTextToSize(clientInfo.join('\n'), clientSectionMaxWidth - 15)
+    doc.text(clientInfoLines, margin + 15, yPosition)
+    yPosition += clientInfoLines.length * 5
   }
 
   // Quotation Info
@@ -706,17 +710,29 @@ export async function generateQuotationPDF(quotationData: any): Promise<Buffer> 
       5: { cellWidth: 30, halign: 'center' }
     },
     didDrawCell: (data) => {
-      if (data.column.index === 1 && data.cell.text && data.cell.text.length > 1) {
-        const [description, ...notes] = data.cell.text
-        doc.setFontSize(9)
-        doc.setTextColor(0, 0, 0)
-        doc.text(description, data.cell.x + 2, data.cell.y + 4)
+      if (data.column.index === 1 && data.cell.raw) {
+        const rawText = data.cell.raw as string
+        const [description, ...notes] = rawText.split('\n')
 
-        if (notes.length > 0) {
+        // Clear the cell content that was automatically drawn
+        doc.setFillColor(255, 255, 255) // White background
+        doc.rect(data.cell.x, data.cell.y, data.cell.width, data.cell.height, 'F')
+
+        // Draw the description
+        doc.setFontSize(9)
+        doc.setFont('helvetica', 'normal')
+        doc.setTextColor(0, 0, 0)
+        const descriptionLines = doc.splitTextToSize(description, data.cell.width - 4)
+        doc.text(descriptionLines, data.cell.x + 2, data.cell.y + 4)
+
+        // Draw the notes below the description
+        if (notes.length > 0 && notes.join('').trim()) {
+          const notesY = data.cell.y + 4 + (descriptionLines.length * 4) + 2
           doc.setFontSize(8)
           doc.setFont('helvetica', 'italic')
           doc.setTextColor(128, 128, 128)
-          doc.text(notes.join('\n'), data.cell.x + 2, data.cell.y + 9)
+          const notesLines = doc.splitTextToSize(notes.join('\n'), data.cell.width - 4)
+          doc.text(notesLines, data.cell.x + 2, notesY)
         }
       }
     }
