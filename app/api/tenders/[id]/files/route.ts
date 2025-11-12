@@ -47,17 +47,28 @@ export async function GET(
     const tenderId = params.id
     const searchParams = request.nextUrl.searchParams
     const filename = searchParams.get('filename')
+    const subPath = searchParams.get('path') || ''
     
-    const folderPath = await getTenderFolderPath(tenderId)
+    const baseFolderPath = await getTenderFolderPath(tenderId)
+    const folderPath = join(baseFolderPath, subPath)
 
     // If filename is provided, download the file
     if (filename) {
-      const filePath = join(folderPath, filename)
+      const filePath = join(baseFolderPath, filename)
       
       if (!existsSync(filePath)) {
         return NextResponse.json(
           { error: 'File not found' },
           { status: 404 }
+        )
+      }
+
+      // Check if it's a directory
+      const stats = await stat(filePath)
+      if (stats.isDirectory()) {
+        return NextResponse.json(
+          { error: 'Cannot download a directory' },
+          { status: 400 }
         )
       }
 
@@ -225,12 +236,24 @@ export async function DELETE(
       )
     }
 
-    await unlink(filePath)
-
-    return NextResponse.json({
-      message: 'File deleted successfully',
-      filename,
-    })
+    // Check if it's a directory or file
+    const stats = await stat(filePath)
+    
+    if (stats.isDirectory()) {
+      // Delete directory recursively
+      await rm(filePath, { recursive: true, force: true })
+      return NextResponse.json({
+        message: 'Folder deleted successfully',
+        filename,
+      })
+    } else {
+      // Delete file
+      await unlink(filePath)
+      return NextResponse.json({
+        message: 'File deleted successfully',
+        filename,
+      })
+    }
   } catch (error) {
     console.error('Error in DELETE /api/tenders/[id]/files:', error)
     return NextResponse.json(
