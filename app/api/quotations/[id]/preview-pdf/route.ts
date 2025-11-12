@@ -67,7 +67,7 @@ export async function GET(
             order: 'asc'
           }
         },
-        User: {
+        User_Quotation_createdByIdToUser: {
           select: {
             firstName: true,
             lastName: true,
@@ -116,10 +116,10 @@ export async function GET(
         totalPrice: Number(item.totalPrice),
         notes: item.notes
       })) || [],
-      preparedBy: quotation.User ? {
-        firstName: quotation.User.firstName,
-        lastName: quotation.User.lastName,
-        name: quotation.User.name
+      preparedBy: quotation.User_Quotation_createdByIdToUser ? {
+        firstName: quotation.User_Quotation_createdByIdToUser.firstName,
+        lastName: quotation.User_Quotation_createdByIdToUser.lastName,
+        name: quotation.User_Quotation_createdByIdToUser.name
       } : undefined
     }
 
