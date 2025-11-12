@@ -795,8 +795,20 @@ export async function generateQuotationPDF(quotationData: any): Promise<Buffer> 
           }
         ])
       } else {
+        // Build description with notes underneath if notes exist
+        let descriptionContent = item.description || ''
+        if (item.notes && item.notes.trim()) {
+          descriptionContent += '\n' + item.notes.trim()
+        }
+        
         tableData.push([
-          item.description || '',
+          {
+            content: descriptionContent,
+            styles: item.notes && item.notes.trim() ? {
+              fontSize: 9,
+              cellPadding: { top: 2, bottom: 2, left: 3, right: 3 }
+            } : {}
+          },
           parseFloat(item.quantity || 0).toString(),
           item.unit || 'pcs',
           formatCurrency(parseFloat(item.unitPrice || 0), quotationData.currency),
@@ -816,15 +828,41 @@ export async function generateQuotationPDF(quotationData: any): Promise<Buffer> 
     headStyles: {
       fillColor: [0, 51, 102],
       textColor: [255, 255, 255],
-      fontStyle: 'bold'
+      fontStyle: 'bold',
+      halign: 'center'
     },
     margin: { left: margin, right: margin, bottom: 70 }, // Footer protection with optimized spacing
     columnStyles: {
-      0: { cellWidth: 'auto' }, // Description
-      1: { cellWidth: 20 },     // Qty  
-      2: { cellWidth: 20 },     // Unit
-      3: { cellWidth: 30 },     // Unit Price
-      4: { cellWidth: 30 }      // Total
+      0: { cellWidth: 'auto', valign: 'top' }, // Description
+      1: { cellWidth: 20, halign: 'right' },   // Qty - right aligned
+      2: { cellWidth: 20, halign: 'center' },  // Unit - centered
+      3: { cellWidth: 30, halign: 'right' },   // Unit Price - right aligned
+      4: { cellWidth: 30, halign: 'right' }    // Total - right aligned
+    },
+    didDrawCell: function(data: any) {
+      // Style notes text in description column (column 0)
+      if (data.column.index === 0 && data.cell.raw?.content) {
+        const content = data.cell.raw.content
+        if (content.includes('\n')) {
+          // Split description and notes
+          const lines = content.split('\n')
+          const description = lines[0]
+          const notes = lines.slice(1).join('\n')
+          
+          // Draw description in normal font
+          doc.setFontSize(9)
+          doc.setFont('helvetica', 'normal')
+          doc.setTextColor(0, 0, 0)
+          doc.text(description, data.cell.x + 3, data.cell.y + 5)
+          
+          // Draw notes in smaller italic font
+          doc.setFontSize(8)
+          doc.setFont('helvetica', 'italic')
+          doc.setTextColor(100, 100, 100)
+          const noteLines = doc.splitTextToSize(notes, data.cell.width - 6)
+          doc.text(noteLines, data.cell.x + 3, data.cell.y + 9)
+        }
+      }
     }
   })
 

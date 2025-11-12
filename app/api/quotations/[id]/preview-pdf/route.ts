@@ -106,7 +106,8 @@ export async function GET(
         quantity: Number(item.quantity),
         unit: item.unit,
         unitPrice: Number(item.unitPrice),
-        totalPrice: Number(item.totalPrice)
+        totalPrice: Number(item.totalPrice),
+        notes: item.notes
       })) || []
     }
 
