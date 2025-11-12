@@ -781,8 +781,9 @@ export async function generateQuotationPDF(quotationData: any): Promise<Buffer> 
   }
 
   // Items Table
-  const tableHeaders = ['Description', 'Qty', 'Unit', 'Unit Price', 'Total']
+  const tableHeaders = ['S/N', 'Description', 'Qty', 'Unit', 'Unit Price', 'Total']
   const tableData: any[][] = []
+  let itemCounter = 1
 
   if (quotationData.items && quotationData.items.length > 0) {
     quotationData.items.forEach((item: any) => {
@@ -791,7 +792,7 @@ export async function generateQuotationPDF(quotationData: any): Promise<Buffer> 
           { 
             content: item.description.toUpperCase(), 
             styles: { fontStyle: 'bold', fillColor: [230, 230, 230] }, 
-            colSpan: 5 
+            colSpan: 6 
           }
         ])
       } else {
@@ -802,6 +803,7 @@ export async function generateQuotationPDF(quotationData: any): Promise<Buffer> 
         }
         
         tableData.push([
+          itemCounter++,
           {
             content: descriptionContent,
             styles: item.notes && item.notes.trim() ? {
@@ -833,36 +835,12 @@ export async function generateQuotationPDF(quotationData: any): Promise<Buffer> 
     },
     margin: { left: margin, right: margin, bottom: 70 }, // Footer protection with optimized spacing
     columnStyles: {
-      0: { cellWidth: 'auto', valign: 'top' }, // Description
-      1: { cellWidth: 20, halign: 'right' },   // Qty - right aligned
-      2: { cellWidth: 20, halign: 'center' },  // Unit - centered
-      3: { cellWidth: 30, halign: 'right' },   // Unit Price - right aligned
-      4: { cellWidth: 30, halign: 'right' }    // Total - right aligned
-    },
-    didDrawCell: function(data: any) {
-      // Style notes text in description column (column 0)
-      if (data.column.index === 0 && data.cell.raw?.content) {
-        const content = data.cell.raw.content
-        if (content.includes('\n')) {
-          // Split description and notes
-          const lines = content.split('\n')
-          const description = lines[0]
-          const notes = lines.slice(1).join('\n')
-          
-          // Draw description in normal font
-          doc.setFontSize(9)
-          doc.setFont('helvetica', 'normal')
-          doc.setTextColor(0, 0, 0)
-          doc.text(description, data.cell.x + 3, data.cell.y + 5)
-          
-          // Draw notes in smaller italic font
-          doc.setFontSize(8)
-          doc.setFont('helvetica', 'italic')
-          doc.setTextColor(100, 100, 100)
-          const noteLines = doc.splitTextToSize(notes, data.cell.width - 6)
-          doc.text(noteLines, data.cell.x + 3, data.cell.y + 9)
-        }
-      }
+      0: { cellWidth: 15, halign: 'center' }, // S/N
+      1: { cellWidth: 'auto', valign: 'top' }, // Description
+      2: { cellWidth: 20, halign: 'center' },   // Qty
+      3: { cellWidth: 20, halign: 'center' },  // Unit
+      4: { cellWidth: 30, halign: 'center' },   // Unit Price
+      5: { cellWidth: 30, halign: 'center' }    // Total
     }
   })
 
