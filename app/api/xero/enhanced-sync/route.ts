@@ -194,10 +194,26 @@ export async function POST(request: NextRequest) {
 
     // Validate Xero connection before sync operations (except test_connection)
     if (syncType !== 'test_connection') {
+      // CRITICAL: Ensure tokens are fresh before any sync operation
+      const { ensureXeroTokensFresh } = await import('@/lib/xero-auto-refresh')
+      console.log('🔄 [Enhanced Sync] Ensuring tokens are fresh...')
+      const tokensFresh = await ensureXeroTokensFresh(20)
+      
+      if (!tokensFresh) {
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: 'Token refresh failed',
+            message: 'Failed to refresh Xero tokens. Please reconnect to Xero.'
+          },
+          { status: 401 }
+        )
+      }
+      
       const { validateOrThrow } = await import('@/lib/xero-connection-validator')
       try {
         await validateOrThrow()
-        console.log('✅ [Enhanced Sync] Connection validated')
+        console.log('✅ [Enhanced Sync] Connection validated and tokens fresh')
       } catch (validationError: any) {
         console.error('❌ [Enhanced Sync] Connection validation failed:', validationError.message)
         return NextResponse.json(

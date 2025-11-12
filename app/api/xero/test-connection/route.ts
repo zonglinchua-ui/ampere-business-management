@@ -9,6 +9,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { XeroOAuthService } from '@/lib/xero-oauth-service'
 import { createXeroApiService } from '@/lib/xero-api-service'
+import { ensureXeroTokensFresh } from '@/lib/xero-auto-refresh'
 
 export const dynamic = 'force-dynamic'
 
@@ -57,7 +58,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if we have stored tokens
+    // CRITICAL: Ensure tokens are fresh before testing
+    console.log('🔄 [Test Connection] Ensuring tokens are fresh...')
+    await ensureXeroTokensFresh(20)
+    
+    // Check if we have stored tokens (may have been refreshed)
     const tokens = await XeroOAuthService.getStoredTokens()
 
     if (!tokens) {

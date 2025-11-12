@@ -11,6 +11,7 @@ import { authOptions } from '@/lib/auth'
 import { XeroOAuthService } from '@/lib/xero-oauth-service'
 import { createXeroApiService } from '@/lib/xero-api-service'
 import { prisma } from '@/lib/db'
+import { ensureXeroTokensFresh } from '@/lib/xero-auto-refresh'
 
 export const dynamic = 'force-dynamic'
 
@@ -58,7 +59,11 @@ async function getCachedStatus(userRole: string, canManage: boolean) {
   console.log('[Xero Status] Cache miss or expired, fetching fresh data')
   
   try {
-    // Check if we have stored tokens
+    // CRITICAL: Automatically refresh tokens if needed (prevents re-authentication)
+    console.log('[Xero Status] Ensuring tokens are fresh...')
+    await ensureXeroTokensFresh(20) // Refresh if expiring within 20 minutes
+    
+    // Check if we have stored tokens (may have been refreshed)
     const tokens = await XeroOAuthService.getStoredTokens()
 
     if (!tokens) {
