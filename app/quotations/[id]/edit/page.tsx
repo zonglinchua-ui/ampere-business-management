@@ -998,9 +998,17 @@ export default function EditQuotationPage({ params }: { params: { id: string } }
                       <div className="space-y-1">
                         <div>
                           <label className="text-[10px] font-medium mb-0.5 block text-gray-600">Description *</label>
-                          <Input 
+                          <ItemAutocomplete
                             value={item.description}
-                            onChange={(e) => updateLineItem(item.id, { description: e.target.value })}
+                            onChange={(value) => updateLineItem(item.id, { description: value })}
+                            onSelect={(selectedItem) => {
+                              updateLineItem(item.id, {
+                                description: selectedItem.description,
+                                category: selectedItem.category,
+                                unit: selectedItem.unit,
+                                unitPrice: selectedItem.lastUnitPrice
+                              })
+                            }}
                             onKeyDown={(e) => handleKeyDown(e, item.id, 'description')}
                             placeholder="Type to search or enter item description..."
                             className="text-xs h-6 px-2"
@@ -1081,6 +1089,31 @@ export default function EditQuotationPage({ params }: { params: { id: string } }
                     )}
                   </Droppable>
                 </DragDropContext>
+
+              {/* Bulk Add Buttons */}
+              <div className="flex items-center space-x-2 mt-4">
+                <Button 
+                  onClick={() => addMultipleRows(5)} 
+                  size="sm" 
+                  variant="outline"
+                  className="h-7 text-xs"
+                >
+                  <Layers className="h-3 w-3 mr-1" />
+                  Add 5 Rows
+                </Button>
+                <Button 
+                  onClick={() => addMultipleRows(10)} 
+                  size="sm" 
+                  variant="outline"
+                  className="h-7 text-xs"
+                >
+                  <Layers className="h-3 w-3 mr-1" />
+                  Add 10 Rows
+                </Button>
+                <div className="text-[10px] text-muted-foreground ml-2">
+                  💡 Tip: Press <kbd className="px-1 py-0.5 bg-muted rounded text-[9px]">Ctrl+Enter</kbd> to add row, <kbd className="px-1 py-0.5 bg-muted rounded text-[9px]">Tab</kbd> from last field auto-adds
+                </div>
+              </div>
 
               {/* Financial Summary - Compact version */}
               <div className="mt-3 border-t pt-3">

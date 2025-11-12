@@ -52,6 +52,7 @@ import { format } from "date-fns"
 import { toast } from "sonner"
 import { ItemAutocomplete } from "@/components/quotations/item-autocomplete"
 import { DynamicSelect } from "@/components/ui/dynamic-select"
+import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd'
 
 interface Customer {
   id: string
@@ -477,6 +478,18 @@ This document is computer generated. No signature is required.`
     }
   }
 
+    const onDragEnd = (result: any) => {
+    if (!result.destination) return
+
+    const items = Array.from(lineItems)
+    const [reorderedItem] = items.splice(result.source.index, 1)
+    items.splice(result.destination.index, 0, reorderedItem)
+
+    const updatedItems = items.map((item, index) => ({ ...item, order: index + 1 }))
+    setLineItems(updatedItems)
+    toast.success('Items reordered')
+  }
+
   const handleSubmit = async (isDraft = false) => {
     setSaving(true)
     try {
@@ -841,10 +854,15 @@ This document is computer generated. No signature is required.`
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-0">
-              <div className="space-y-1">
-                {lineItems.map((item, index) => (
-                  <div key={item.id} className={`border rounded-md p-2 ${item.type === 'subtitle' ? 'bg-gray-50 dark:bg-gray-800 border-dashed' : 'bg-white'}`}>
-                    <div className="flex items-center justify-between mb-1">
+              <DragDropContext onDragEnd={onDragEnd}>
+                  <Droppable droppableId="line-items">
+                    {(provided) => (
+                      <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-1">
+                        {lineItems.map((item, index) => (
+                          <Draggable key={item.id} draggableId={item.id} index={index}>
+                            {(provided) => (
+                                              <div ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps} className={`border rounded-md p-2 ${item.type === 'subtitle' ? 'bg-gray-50 dark:bg-gray-800 border-dashed' : 'bg-white'}`}>
+                              <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center space-x-1">
                         <Badge variant={item.type === 'subtitle' ? 'secondary' : 'outline'} className="text-[10px] h-4 px-1">
                           {item.type === 'subtitle' ? (
@@ -1018,8 +1036,14 @@ This document is computer generated. No signature is required.`
                       </div>
                     )}
                   </div>
-                ))}
-              </div>
+                          )}
+                        </Draggable>
+                        ))}
+                        {provided.placeholder}
+                      </div>
+                    )}
+                  </Droppable>
+                </DragDropContext>
 
               {/* Quick Add Buttons */}
               <div className="mt-2 flex gap-2 items-center justify-center">
