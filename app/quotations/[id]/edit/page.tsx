@@ -44,12 +44,15 @@ import {
   Package,
   Percent,
   Hash,
-  Type
+  Type,
+  Copy,
+  Layers
 } from "lucide-react"
 import { format } from "date-fns"
 import { ItemAutocomplete } from "@/components/quotations/item-autocomplete"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import { CustomerCombobox } from "@/components/quotations/customer-combobox"
+import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd'
 
 interface Customer {
   id: string
@@ -112,7 +115,7 @@ const units = [
 export default function EditQuotationPage({ params }: { params: { id: string } }) {
   const router = useRouter()
   const { data: session } = useSession()
-  const { toast } = useToast()
+  
   const quotationId = params.id
   const [currentStep, setCurrentStep] = useState(1)
   const [loading, setLoading] = useState(true)
@@ -442,6 +445,74 @@ export default function EditQuotationPage({ params }: { params: { id: string } }
     }
   }
 
+  const duplicateLineItem = (id: string) => {
+    const itemToDuplicate = lineItems.find(item => item.id === id)
+    if (itemToDuplicate) {
+      const newItem: LineItem = {
+        ...itemToDuplicate,
+        id: Date.now().toString(),
+        order: lineItems.length + 1
+      }
+      setLineItems([...lineItems, newItem])
+      toast.success('Item duplicated')
+    }
+  }
+
+  const addMultipleRows = (count: number) => {
+    const newItems: LineItem[] = []
+    for (let i = 0; i < count; i++) {
+      newItems.push({
+        id: `${Date.now()}-${i}`,
+        type: 'item',
+        description: '',
+        category: "MATERIALS",
+        quantity: 1,
+        unit: "pcs",
+        unitPrice: 0,
+        subtotal: 0,
+        totalPrice: 0,
+        notes: "",
+        order: lineItems.length + i + 1
+      })
+    }
+    setLineItems([...lineItems, ...newItems])
+    toast.success(`Added ${count} rows`)
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent, itemId: string, fieldName: string) => {
+    // Ctrl+Enter to add new row
+    if (e.ctrlKey && e.key === 'Enter') {
+      e.preventDefault()
+      addLineItem('item')
+      toast.success('New row added (Ctrl+Enter)')
+    }
+    
+    // Auto-add row when tabbing from last field of last item
+    if (e.key === 'Tab' && !e.shiftKey) {
+      const currentIndex = lineItems.findIndex(item => item.id === itemId)
+      const isLastItem = currentIndex === lineItems.length - 1
+      const isLastField = fieldName === 'notes'
+      
+      if (isLastItem && isLastField) {
+        setTimeout(() => {
+          addLineItem('item')
+        }, 100)
+      }
+    }
+  }
+
+    const onDragEnd = (result: any) => {
+    if (!result.destination) return
+
+    const items = Array.from(lineItems)
+    const [reorderedItem] = items.splice(result.source.index, 1)
+    items.splice(result.destination.index, 0, reorderedItem)
+
+    const updatedItems = items.map((item, index) => ({ ...item, order: index + 1 }))
+    setLineItems(updatedItems)
+    toast.success('Items reordered')
+  }
+
   const handleSubmit = async (isDraft = false) => {
     if (saving) return // Prevent double submissions
     
@@ -656,9 +727,15 @@ export default function EditQuotationPage({ params }: { params: { id: string } }
                       }`} 
                     />
                   )}
-                </div>
-              ))}
-            </div>
+</div>
+                            )}
+                          </Draggable>
+                        ))}
+                        {provided.placeholder}
+                      </div>
+                    )}
+                  </Droppable>
+                </DragDropContext>
           </CardContent>
         </Card>
 
@@ -835,10 +912,15 @@ export default function EditQuotationPage({ params }: { params: { id: string } }
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-0">
-              <div className="space-y-1">
-                {lineItems.map((item, index) => (
-                  <div key={item.id} className={`border rounded-md p-2 ${item.type === 'subtitle' ? 'bg-gray-50 dark:bg-gray-800 border-dashed' : 'bg-white'}`}>
-                    <div className="flex items-center justify-between mb-1">
+              <DragDropContext onDragEnd={onDragEnd}>
+                  <Droppable droppableId="line-items">
+                    {(provided) => (
+                      <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-1">
+                        {lineItems.map((item, index) => (
+                          <Draggable key={item.id} draggableId={item.id} index={index}>
+                            {(provided) => (
+                                              <div ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps} className={`border rounded-md p-2 ${item.type === 'subtitle' ? 'bg-gray-50 dark:bg-gray-800 border-dashed' : 'bg-white'}`}>
+                              <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center space-x-1">
                         <Badge variant={item.type === 'subtitle' ? 'secondary' : 'outline'} className="text-[10px] h-4 px-1">
                           {item.type === 'subtitle' ? (
@@ -881,8 +963,11 @@ export default function EditQuotationPage({ params }: { params: { id: string } }
                         <Button onClick={() => addLineItem('item')} size="sm" variant="ghost" className="h-4 w-4 p-0">
                           <Plus className="h-2 w-2" />
                         </Button>
-                        <Button onClick={() => addLineItem('subtitle')} size="sm" variant="ghost" className="h-4 w-4 p-0">
+                        <Button onClick={() => addLineItem('subtitle')} size="sm" variant="ghost" className="h-4 w-4 p-0" title="Add section">
                           <Hash className="h-2 w-2" />
+                        </Button>
+                        <Button onClick={() => duplicateLineItem(item.id)} size="sm" variant="ghost" className="h-4 w-4 p-0" title="Duplicate row">
+                          <Copy className="h-2 w-2" />
                         </Button>
                         {lineItems.length > 1 && (
                           <Button 
@@ -925,17 +1010,10 @@ export default function EditQuotationPage({ params }: { params: { id: string } }
                       <div className="space-y-1">
                         <div>
                           <label className="text-[10px] font-medium mb-0.5 block text-gray-600">Description *</label>
-                          <ItemAutocomplete
+                          <Input 
                             value={item.description}
-                            onChange={(value) => updateLineItem(item.id, { description: value })}
-                            onSelect={(selectedItem) => {
-                              updateLineItem(item.id, {
-                                description: selectedItem.description,
-                                category: selectedItem.category,
-                                unit: selectedItem.unit,
-                                unitPrice: selectedItem.lastUnitPrice
-                              })
-                            }}
+                            onChange={(e) => updateLineItem(item.id, { description: e.target.value })}
+                            onKeyDown={(e) => handleKeyDown(e, item.id, 'description')}
                             placeholder="Type to search or enter item description..."
                             className="text-xs h-6 px-2"
                           />
@@ -949,6 +1027,7 @@ export default function EditQuotationPage({ params }: { params: { id: string } }
                               placeholder="0"
                               value={item.quantity}
                               onChange={(e) => updateLineItem(item.id, { quantity: Number(e.target.value) })}
+                              onKeyDown={(e) => handleKeyDown(e, item.id, 'quantity')}
                               className="text-xs h-6 px-1"
                             />
                           </div>
@@ -980,6 +1059,7 @@ export default function EditQuotationPage({ params }: { params: { id: string } }
                               step="0.01"
                               value={item.unitPrice}
                               onChange={(e) => updateLineItem(item.id, { unitPrice: Number(e.target.value) })}
+                              onKeyDown={(e) => handleKeyDown(e, item.id, 'unitPrice')}
                               className="text-xs h-6 px-1"
                             />
                           </div>
@@ -997,6 +1077,7 @@ export default function EditQuotationPage({ params }: { params: { id: string } }
                             placeholder="Item notes"
                             value={item.notes}
                             onChange={(e) => updateLineItem(item.id, { notes: e.target.value })}
+                            onKeyDown={(e) => handleKeyDown(e, item.id, 'notes')}
                             rows={1}
                             className="text-[10px] resize-none h-5 px-2 py-1"
                           />
