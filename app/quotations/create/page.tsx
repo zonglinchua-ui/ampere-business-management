@@ -44,7 +44,9 @@ import {
   Package,
   Percent,
   Hash,
-  Type
+  Type,
+  Copy,
+  Layers
 } from "lucide-react"
 import { format } from "date-fns"
 import { toast } from "sonner"
@@ -416,6 +418,62 @@ This document is computer generated. No signature is required.`
   const removeLineItem = (id: string) => {
     if (lineItems.length > 1) {
       setLineItems(items => items.filter(item => item.id !== id))
+    }
+  }
+
+  const duplicateLineItem = (id: string) => {
+    const itemToDuplicate = lineItems.find(item => item.id === id)
+    if (itemToDuplicate) {
+      const newItem: LineItem = {
+        ...itemToDuplicate,
+        id: Date.now().toString(),
+        order: lineItems.length + 1
+      }
+      setLineItems([...lineItems, newItem])
+      toast.success('Item duplicated')
+    }
+  }
+
+  const addMultipleRows = (count: number) => {
+    const newItems: LineItem[] = []
+    for (let i = 0; i < count; i++) {
+      newItems.push({
+        id: `${Date.now()}-${i}`,
+        type: 'item',
+        description: '',
+        category: "MATERIALS",
+        quantity: 1,
+        unit: "pcs",
+        unitPrice: 0,
+        subtotal: 0,
+        totalPrice: 0,
+        notes: "",
+        order: lineItems.length + i + 1
+      })
+    }
+    setLineItems([...lineItems, ...newItems])
+    toast.success(`Added ${count} rows`)
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent, itemId: string, fieldName: string) => {
+    // Ctrl+Enter to add new row
+    if (e.ctrlKey && e.key === 'Enter') {
+      e.preventDefault()
+      addLineItem('item')
+      toast.success('New row added (Ctrl+Enter)')
+    }
+    
+    // Auto-add row when tabbing from last field of last item
+    if (e.key === 'Tab' && !e.shiftKey) {
+      const currentIndex = lineItems.findIndex(item => item.id === itemId)
+      const isLastItem = currentIndex === lineItems.length - 1
+      const isLastField = fieldName === 'notes'
+      
+      if (isLastItem && isLastField) {
+        setTimeout(() => {
+          addLineItem('item')
+        }, 100)
+      }
     }
   }
 
@@ -826,11 +884,14 @@ This document is computer generated. No signature is required.`
                         )}
                       </div>
                       <div className="flex items-center space-x-0.5">
-                        <Button onClick={() => addLineItem('item')} size="sm" variant="ghost" className="h-4 w-4 p-0">
+                        <Button onClick={() => addLineItem('item')} size="sm" variant="ghost" className="h-4 w-4 p-0" title="Add item (Ctrl+Enter)">
                           <Plus className="h-2 w-2" />
                         </Button>
-                        <Button onClick={() => addLineItem('subtitle')} size="sm" variant="ghost" className="h-4 w-4 p-0">
+                        <Button onClick={() => addLineItem('subtitle')} size="sm" variant="ghost" className="h-4 w-4 p-0" title="Add section">
                           <Hash className="h-2 w-2" />
+                        </Button>
+                        <Button onClick={() => duplicateLineItem(item.id)} size="sm" variant="ghost" className="h-4 w-4 p-0" title="Duplicate row">
+                          <Copy className="h-2 w-2" />
                         </Button>
                         {lineItems.length > 1 && (
                           <Button 
@@ -838,6 +899,7 @@ This document is computer generated. No signature is required.`
                             size="sm"
                             className="h-4 w-4 p-0"
                             onClick={() => removeLineItem(item.id)}
+                            title="Delete row"
                           >
                             <Trash2 className="h-2 w-2" />
                           </Button>
@@ -884,6 +946,7 @@ This document is computer generated. No signature is required.`
                                 unitPrice: selectedItem.lastUnitPrice
                               })
                             }}
+                            onKeyDown={(e) => handleKeyDown(e, item.id, 'description')}
                             placeholder="Type to search or enter item description..."
                             className="text-xs h-6 px-2"
                           />
@@ -897,6 +960,7 @@ This document is computer generated. No signature is required.`
                               placeholder="0"
                               value={item.quantity}
                               onChange={(e) => updateLineItem(item.id, { quantity: Number(e.target.value) })}
+                              onKeyDown={(e) => handleKeyDown(e, item.id, 'quantity')}
                               className="text-xs h-6 px-1"
                             />
                           </div>
@@ -928,6 +992,7 @@ This document is computer generated. No signature is required.`
                               step="0.01"
                               value={item.unitPrice}
                               onChange={(e) => updateLineItem(item.id, { unitPrice: Number(e.target.value) })}
+                              onKeyDown={(e) => handleKeyDown(e, item.id, 'unitPrice')}
                               className="text-xs h-6 px-1"
                             />
                           </div>
@@ -945,6 +1010,7 @@ This document is computer generated. No signature is required.`
                             placeholder="Item notes"
                             value={item.notes}
                             onChange={(e) => updateLineItem(item.id, { notes: e.target.value })}
+                            onKeyDown={(e) => handleKeyDown(e, item.id, 'notes')}
                             rows={1}
                             className="text-[10px] resize-none h-5 px-2 py-1"
                           />
@@ -953,6 +1019,40 @@ This document is computer generated. No signature is required.`
                     )}
                   </div>
                 ))}
+              </div>
+
+              {/* Quick Add Buttons */}
+              <div className="mt-2 flex gap-2 items-center justify-center">
+                <Button 
+                  onClick={() => addLineItem('item')} 
+                  size="sm" 
+                  variant="outline"
+                  className="h-7 text-xs"
+                >
+                  <Plus className="h-3 w-3 mr-1" />
+                  Add Row
+                </Button>
+                <Button 
+                  onClick={() => addMultipleRows(5)} 
+                  size="sm" 
+                  variant="outline"
+                  className="h-7 text-xs"
+                >
+                  <Layers className="h-3 w-3 mr-1" />
+                  Add 5 Rows
+                </Button>
+                <Button 
+                  onClick={() => addMultipleRows(10)} 
+                  size="sm" 
+                  variant="outline"
+                  className="h-7 text-xs"
+                >
+                  <Layers className="h-3 w-3 mr-1" />
+                  Add 10 Rows
+                </Button>
+                <div className="text-[10px] text-muted-foreground ml-2">
+                  💡 Tip: Press <kbd className="px-1 py-0.5 bg-muted rounded text-[9px]">Ctrl+Enter</kbd> to add row, <kbd className="px-1 py-0.5 bg-muted rounded text-[9px]">Tab</kbd> from last field auto-adds
+                </div>
               </div>
 
               {/* Financial Summary - Compact version */}
