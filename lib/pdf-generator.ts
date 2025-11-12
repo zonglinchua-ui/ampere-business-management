@@ -1,3 +1,4 @@
+
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { DocumentTemplate } from './document-templates'
@@ -5,257 +6,207 @@ import { DocumentTemplate } from './document-templates'
 // Company letterhead configuration
 const COMPANY_INFO = {
   name: 'Ampere Engineering Pte Ltd',
-  address: '2 Gambas Crescent, #04-10, Nordcom Two, Singapore 757044',
-  phone: '+65 6251 9107',
-  email: 'contact@ampere.com.sg',
-  website: 'www.ampere.com.sg',
-  logoUrl: 'https://raw.githubusercontent.com/zonglinchua-ui/ampere-web-app/main/public/logo-full.png' // URL to your logo
+  address: '101 Upper Cross Street #04-05',
+  address2: "People's Park Centre Singapore 058357",
+  phone: 'Tel: +65 66778457',
+  email: 'projects@ampere.com.sg',
+  logos: {
+    company: '/branding/ampere-logo.png',
+    iso45001: '/branding/iso-45001-new.jpg',
+    bizsafe: '/branding/bizsafe-star-new.jpg'
+  }
 }
 
-// Helper function to format dates
-const formatDate = (date: Date | string) => {
-  if (!date) return ''
-  const d = new Date(date)
-  return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()}`
+// Helper function to load image as base64
+async function loadImageAsBase64(imagePath: string): Promise<string | null> {
+  try {
+    const fs = require('fs').promises
+    const path = require('path')
+    const fullPath = path.join(process.cwd(), 'public', imagePath)
+    const imageBuffer = await fs.readFile(fullPath)
+    const base64 = imageBuffer.toString('base64')
+    const ext = path.extname(imagePath).toLowerCase()
+    const mimeType = ext === '.png' ? 'png' : ext === '.jpg' || ext === '.jpeg' ? 'jpeg' : 'png'
+    return `data:image/${mimeType};base64,${base64}`
+  } catch (error) {
+    console.warn(`Could not load image: ${imagePath}`, error)
+    return null
+  }
 }
 
-// Helper function to format currency
-const formatCurrency = (amount: number, currency: string = 'SGD') => {
-  return new Intl.NumberFormat('en-SG', { style: 'currency', currency }).format(amount)
-}
-
-// Reusable header function
-async function addHeader(doc: jsPDF, title: string) {
+// Helper function to add company letterhead
+async function addCompanyLetterhead(doc: jsPDF): Promise<number> {
   const pageWidth = doc.internal.pageSize.getWidth()
   const margin = 20
-  let yPosition = 20
+  let yPosition = margin
 
-  // Add logo if URL is provided
-  if (COMPANY_INFO.logoUrl) {
-    try {
-      const response = await fetch(COMPANY_INFO.logoUrl)
-      const blob = await response.blob()
-      const reader = new FileReader()
-      const dataUrl = await new Promise<string>((resolve) => {
-        reader.onloadend = () => resolve(reader.result as string)
-        reader.readAsDataURL(blob)
-      })
-      doc.addImage(dataUrl, 'PNG', margin, yPosition, 50, 15) // Adjust size as needed
-    } catch (error) {
-      console.error('Error fetching or adding logo:', error)
+  try {
+    // Load and add company logo at the top
+    const companyLogoData = await loadImageAsBase64(COMPANY_INFO.logos.company)
+    
+    if (companyLogoData) {
+      // Add company logo (top left) with proper aspect ratio
+      // Original logo dimensions: 3188 x 580 (aspect ratio ~5.5:1)
+      const logoMaxWidth = 60 // Max width in PDF units
+      const logoAspectRatio = 3188 / 580 // Width / Height
+      const logoWidth = logoMaxWidth
+      const logoHeight = logoWidth / logoAspectRatio // Maintain aspect ratio
+      
+      doc.addImage(companyLogoData, 'PNG', margin, yPosition, logoWidth, logoHeight)
+      
+      // Move to position below logo
+      yPosition += logoHeight + 5
+      
+      // Address, phone and email directly below logo with smaller fonts
+      doc.setFontSize(8)
+      doc.setFont('helvetica', 'normal')
+      doc.setTextColor(0, 0, 0)
+      
+      doc.text(COMPANY_INFO.address, margin, yPosition)
+      yPosition += 4
+      doc.text(COMPANY_INFO.address2, margin, yPosition)
+      yPosition += 4
+      doc.text(COMPANY_INFO.phone, margin, yPosition)
+      yPosition += 4
+      doc.text(COMPANY_INFO.email, margin, yPosition)
+      
+      yPosition += 6
+    } else {
+      // Fallback to text-based header
+      doc.setFontSize(20)
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(0, 51, 102)
+      doc.text(COMPANY_INFO.name.toUpperCase(), margin, yPosition)
+      yPosition += 15
+      
+      // Address, phone and email with smaller fonts
+      doc.setFontSize(8)
+      doc.setFont('helvetica', 'normal')
+      doc.setTextColor(0, 0, 0)
+      
+      doc.text(COMPANY_INFO.address, margin, yPosition)
+      yPosition += 4
+      doc.text(COMPANY_INFO.address2, margin, yPosition)
+      yPosition += 4
+      doc.text(COMPANY_INFO.phone, margin, yPosition)
+      yPosition += 4
+      doc.text(COMPANY_INFO.email, margin, yPosition)
+      yPosition += 12
     }
+    
+    // Add a professional separator line
+    doc.setDrawColor(0, 51, 102)
+    doc.setLineWidth(0.5)
+    doc.line(margin, yPosition, pageWidth - margin, yPosition)
+    yPosition += 5
+    
+  } catch (error) {
+    console.warn('Could not load company logos, using text-based header')
+    // Fallback to simple text header
+    doc.setFontSize(20)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(0, 51, 102)
+    doc.text(COMPANY_INFO.name.toUpperCase(), margin, yPosition)
+    yPosition += 15
+    
+    // Address, phone and email with smaller fonts
+    doc.setFontSize(8)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(0, 0, 0)
+    
+    doc.text(COMPANY_INFO.address, margin, yPosition)
+    yPosition += 4
+    doc.text(COMPANY_INFO.address2, margin, yPosition)
+    yPosition += 4
+    doc.text(COMPANY_INFO.phone, margin, yPosition)
+    yPosition += 4
+    doc.text(COMPANY_INFO.email, margin, yPosition)
+    yPosition += 4
   }
-
-  // Company address on the right
-  doc.setFontSize(8)
-  doc.setFont('helvetica', 'normal')
-  doc.setTextColor(100, 100, 100)
-  doc.text(COMPANY_INFO.address, pageWidth - margin, yPosition, { align: 'right' })
-  doc.text(COMPANY_INFO.phone, pageWidth - margin, yPosition + 4, { align: 'right' })
-  doc.text(COMPANY_INFO.email, pageWidth - margin, yPosition + 8, { align: 'right' })
-  doc.text(COMPANY_INFO.website, pageWidth - margin, yPosition + 12, { align: 'right' })
-
-  yPosition += 30 // Space after header
-
-  // Add a horizontal line
-  doc.setDrawColor(200, 200, 200)
-  doc.line(margin, yPosition, pageWidth - margin, yPosition)
-  yPosition += 10
-
+  
   return yPosition
 }
 
-// Reusable footer function
-function addFooter(doc: jsPDF) {
-  const pageCount = doc.internal.pages.length
+// Helper function to add company footer
+async function addCompanyFooter(doc: jsPDF, pageNumber: number, totalPages: number): Promise<void> {
   const pageWidth = doc.internal.pageSize.getWidth()
   const pageHeight = doc.internal.pageSize.getHeight()
   const margin = 20
-
-  for (let i = 1; i <= pageCount; i++) {
-    doc.setPage(i)
+  
+  // Footer line - positioned lower to maximize usable space
+  doc.setDrawColor(0, 51, 102)
+  doc.setLineWidth(0.3)
+  doc.line(margin, pageHeight - 35, pageWidth - margin, pageHeight - 35)
+  
+  try {
+    // Load accreditation logos
+    const iso45001LogoData = await loadImageAsBase64(COMPANY_INFO.logos.iso45001)
+    const bizsafeLogoData = await loadImageAsBase64(COMPANY_INFO.logos.bizsafe)
+    
+    // Add accreditation logos at bottom left - with proper spacing from footer line
+    let logoXPosition = margin
+    
+    if (iso45001LogoData) {
+      doc.addImage(iso45001LogoData, 'JPEG', logoXPosition, pageHeight - 32, 24, 12)
+      logoXPosition += 27
+    }
+    
+    if (bizsafeLogoData) {
+      doc.addImage(bizsafeLogoData, 'JPEG', logoXPosition, pageHeight - 32, 15, 12)
+      logoXPosition += 18
+    }
+    
+    // Footer information
     doc.setFontSize(8)
     doc.setFont('helvetica', 'normal')
-    doc.setTextColor(150, 150, 150)
-
-    // Page number
-    doc.text(`Page ${i} of ${pageCount}`, pageWidth / 2, pageHeight - 10, { align: 'center' })
-
-    // Generated date
-    doc.text(`Generated: ${formatDate(new Date())}`, pageWidth - margin, pageHeight - 10, { align: 'right' })
-
-    // "This document is computer generated..." text
-    doc.text('This document is computer generated. No signature is required.', margin, pageHeight - 10, { align: 'left' })
+    doc.setTextColor(100, 100, 100)
+    
+    // Company name (next to logos) - removed per user request
+    
+  } catch (error) {
+    console.warn('Could not load accreditation logos')
+    // Footer information without logos - company name removed per user request
+    doc.setFontSize(8)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(100, 100, 100)
   }
-}
-
-// Quotation-specific PDF generator
-export async function generateQuotationPDF(quotationData: any): Promise<Buffer> {
-  const doc = new jsPDF()
-  const pageWidth = doc.internal.pageSize.getWidth()
-  const pageHeight = doc.internal.pageSize.getHeight()
-  const margin = 20
-
-  let yPosition = await addHeader(doc, 'Quotation')
-
-  // Document Title
-  doc.setFontSize(18)
+  
+  // Center - Page number with improved spacing
+  doc.setFontSize(8)
+  doc.text(
+    `Page ${pageNumber} of ${totalPages}`,
+    pageWidth / 2,
+    pageHeight - 22,
+    { align: 'center' }
+  )
+  
+  // Right side - Generation date
+  doc.text(
+    `Generated: ${new Date().toLocaleDateString()}`,
+    pageWidth - margin,
+    pageHeight - 22,
+    { align: 'right' }
+  )
+  
+  // Bottom line - Computer-generated statement with adequate spacing
+  doc.setFontSize(7)
   doc.setFont('helvetica', 'bold')
   doc.setTextColor(0, 51, 102)
-  doc.text('QUOTATION', pageWidth / 2, yPosition, { align: 'center' })
-  yPosition += 12
+  doc.text(
+    'This document is computer generated. No signature is required.',
+    pageWidth / 2,
+    pageHeight - 10,
+    { align: 'center' }
+  )
+}
 
-  // Client and Quotation Info
-  const startYPosition = yPosition
-  const clientSectionMaxWidth = (pageWidth - 2 * margin) * 0.55
-  const rightSideX = margin + clientSectionMaxWidth + 10
-
-  // Client Info
-  doc.setFontSize(10)
-  doc.setFont('helvetica', 'bold')
-  doc.text('TO:', margin, yPosition)
-  if (quotationData.client?.name) {
-    doc.setFont('helvetica', 'normal')
-    const clientNameLines = doc.splitTextToSize(quotationData.client.name, clientSectionMaxWidth - 15)
-    doc.text(clientNameLines, margin + 15, yPosition)
-    yPosition += clientNameLines.length * 5
-  }
-
-  // Quotation Info
-  let rightYPosition = startYPosition
-  doc.setFontSize(10)
-  doc.setFont('helvetica', 'bold')
-  doc.text('Quotation No:', rightSideX, rightYPosition)
-  doc.setFont('helvetica', 'normal')
-  doc.text(`${quotationData.quotationNumber} (v${quotationData.version})`, rightSideX + 35, rightYPosition)
-  rightYPosition += 5
-
-  doc.setFont('helvetica', 'bold')
-  doc.text('Date:', rightSideX, rightYPosition)
-  doc.setFont('helvetica', 'normal')
-  doc.text(formatDate(new Date()), rightSideX + 35, rightYPosition)
-  rightYPosition += 5
-
-  doc.setFont('helvetica', 'bold')
-  doc.text('Valid Until:', rightSideX, rightYPosition)
-  doc.setFont('helvetica', 'normal')
-  doc.text(formatDate(quotationData.validUntil), rightSideX + 35, rightYPosition)
-
-  yPosition = Math.max(yPosition, rightYPosition) + 10
-
-  // RE: Section
-  if (quotationData.title) {
-    doc.setFontSize(12)
-    doc.setFont('helvetica', 'bold')
-    doc.text(`RE: ${quotationData.title}`, margin, yPosition)
-    yPosition += 10
-  }
-
-  // Items Table
-  const tableHeaders = [['S/N', 'Description', 'Qty', 'Unit', 'Unit Price', 'Total']]
-  const tableData: any[][] = []
-  let sectionCounter = 0
-  let itemCounter = 1
-
-  if (quotationData.items && quotationData.items.length > 0) {
-    quotationData.items.forEach((item: any) => {
-      if (item.category === 'SUBTITLE') {
-        sectionCounter++
-        itemCounter = 1
-        tableData.push([
-          {
-            content: String.fromCharCode(64 + sectionCounter),
-            styles: { fontStyle: 'bold', fillColor: [230, 230, 230], halign: 'center' }
-          },
-          {
-            content: item.description.toUpperCase(),
-            styles: { fontStyle: 'bold', fillColor: [230, 230, 230] },
-            colSpan: 5
-          }
-        ])
-      } else {
-        let descriptionContent = item.description || ''
-        if (item.notes && item.notes.trim()) {
-          descriptionContent += '\n' + item.notes.trim()
-        }
-
-        tableData.push([
-          `${String.fromCharCode(64 + sectionCounter)}.${itemCounter++}`,
-          descriptionContent,
-          parseFloat(item.quantity || 0).toString(),
-          item.unit || 'pcs',
-          formatCurrency(parseFloat(item.unitPrice || 0), quotationData.currency),
-          formatCurrency(parseFloat(item.totalPrice || 0), quotationData.currency)
-        ])
-      }
-    })
-  }
-
-  autoTable(doc, {
-    head: tableHeaders,
-    body: tableData,
-    startY: yPosition,
-    theme: 'striped',
-    headStyles: { fillColor: [0, 51, 102], textColor: [255, 255, 255], fontStyle: 'bold', halign: 'center' },
-    columnStyles: {
-      0: { cellWidth: 15, halign: 'center' },
-      1: { cellWidth: 'auto', valign: 'top' },
-      2: { cellWidth: 20, halign: 'center' },
-      3: { cellWidth: 20, halign: 'center' },
-      4: { cellWidth: 30, halign: 'center' },
-      5: { cellWidth: 30, halign: 'center' }
-    },
-    didDrawCell: (data) => {
-      if (data.column.index === 1 && data.cell.text && data.cell.text.length > 1) {
-        const [description, ...notes] = data.cell.text
-        doc.setFontSize(9)
-        doc.setTextColor(0, 0, 0)
-        doc.text(description, data.cell.x + 2, data.cell.y + 4)
-
-        if (notes.length > 0) {
-          doc.setFontSize(8)
-          doc.setFont('helvetica', 'italic')
-          doc.setTextColor(128, 128, 128)
-          doc.text(notes.join('\n'), data.cell.x + 2, data.cell.y + 9)
-        }
-      }
-    }
-  })
-
-  yPosition = (doc as any).lastAutoTable.finalY + 10
-
-  // Summary
-  const summaryBoxWidth = 95
-  const summaryBoxX = pageWidth - margin - summaryBoxWidth
-  doc.setFontSize(12)
-  doc.setFont('helvetica', 'bold')
-  doc.text('Summary:', summaryBoxX, yPosition)
-  yPosition += 6
-
-  const summaryRows = [
-    { label: 'Subtotal:', value: formatCurrency(quotationData.subtotal, quotationData.currency) },
-    { label: 'GST (9%):', value: formatCurrency(quotationData.taxAmount, quotationData.currency) },
-    { label: 'Total:', value: formatCurrency(quotationData.totalAmount, quotationData.currency), isBold: true }
-  ]
-
-  autoTable(doc, {
-    body: summaryRows.map(row => [row.label, row.value]),
-    startY: yPosition,
-    theme: 'plain',
-    tableWidth: summaryBoxWidth,
-    margin: { left: summaryBoxX },
-    styles: { fontSize: 10 },
-    columnStyles: { 1: { halign: 'right' } },
-    didParseCell: (data) => {
-      if (summaryRows[data.row.index].isBold) {
-        data.cell.styles.fontStyle = 'bold'
-      }
-    }
-  })
-
-  addFooter(doc)
-
-  return Buffer.from(doc.output('arraybuffer'))
+interface ProjectInfo {
+  projectName: string
+  projectNumber: string
+  clientName: string
+  location?: string
+  startDate?: string
+  endDate?: string
 }
 
 export async function generatePDFFromTemplate(
@@ -645,7 +596,6 @@ export async function generateQuotationPDF(quotationData: any): Promise<Buffer> 
   const pageHeight = doc.internal.pageSize.getHeight()
   const margin = 20
 
-  // Enhanced header with logo and right-aligned address
   let yPosition = await addQuotationHeader(doc)
 
   // Document Title
@@ -653,125 +603,28 @@ export async function generateQuotationPDF(quotationData: any): Promise<Buffer> 
   doc.setFont('helvetica', 'bold')
   doc.setTextColor(0, 51, 102)
   doc.text('QUOTATION', pageWidth / 2, yPosition, { align: 'center' })
-  yPosition += 12  // Reduced space from 20 to 12
+  yPosition += 12
 
-  // Client Information and Quotation Information (same level)
+  // Client and Quotation Info
   const startYPosition = yPosition
-  
-  // Define layout boundaries to prevent overlap
-  // Client info takes left 55% of the page, quotation info takes right 45%
   const clientSectionMaxWidth = (pageWidth - 2 * margin) * 0.55
-  const rightSideX = margin + clientSectionMaxWidth + 10  // 10 units gap between sections
-  
-  // Client Information Section (Left Side)
+  const rightSideX = margin + clientSectionMaxWidth + 10
+
+  // Client Info
   doc.setFontSize(10)
   doc.setFont('helvetica', 'bold')
-  doc.setTextColor(0, 0, 0)
-  
-  // Put "TO:" and client name on the same row
-  let clientYPosition = yPosition
-  doc.text('TO:', margin, clientYPosition)
-  
+  doc.text('TO:', margin, yPosition)
   if (quotationData.client?.name) {
     doc.setFont('helvetica', 'normal')
-    // Wrap long client names if needed
     const clientNameLines = doc.splitTextToSize(quotationData.client.name, clientSectionMaxWidth - 15)
-    doc.text(clientNameLines[0], margin + 15, clientYPosition)  // First line next to "TO:"
-    clientYPosition += 5
-    
-    // If name wrapped to multiple lines, add them
-    if (clientNameLines.length > 1) {
-      for (let i = 1; i < clientNameLines.length; i++) {
-        doc.text(clientNameLines[i], margin + 15, clientYPosition)
-        clientYPosition += 5
-      }
-    }
-    
-    // Add client address information in smaller fonts underneath client name
-    doc.setFontSize(9)
-    doc.setFont('helvetica', 'normal')
-    doc.setTextColor(80, 80, 80)  // Slightly gray for address
-    
-    let hasAddress = false
-    
-    // Display primary address (wrap if too long)
-    if (quotationData.client?.address && quotationData.client.address.trim()) {
-      const addressLines = doc.splitTextToSize(quotationData.client.address.trim(), clientSectionMaxWidth - 15)
-      addressLines.forEach((line: string) => {
-        doc.text(line, margin + 15, clientYPosition)
-        clientYPosition += 4
-      })
-      hasAddress = true
-    }
-    
-    // Display city, state, and postal code on one line (wrap if needed)
-    let locationParts = []
-    if (quotationData.client?.city && quotationData.client.city.trim()) {
-      locationParts.push(quotationData.client.city.trim())
-    }
-    if (quotationData.client?.state && quotationData.client.state.trim()) {
-      locationParts.push(quotationData.client.state.trim())
-    }
-    if (quotationData.client?.postalCode && quotationData.client.postalCode.trim()) {
-      locationParts.push(quotationData.client.postalCode.trim())
-    }
-    if (locationParts.length > 0) {
-      const locationText = locationParts.join(', ')
-      const locationLines = doc.splitTextToSize(locationText, clientSectionMaxWidth - 15)
-      locationLines.forEach((line: string) => {
-        doc.text(line, margin + 15, clientYPosition)
-        clientYPosition += 4
-      })
-      hasAddress = true
-    }
-    
-    // Display country if available (and not Singapore which is default)
-    if (quotationData.client?.country && quotationData.client.country.trim() && quotationData.client.country !== 'Singapore') {
-      doc.text(quotationData.client.country.trim(), margin + 15, clientYPosition)
-      clientYPosition += 4
-      hasAddress = true
-    }
-    
-    // If no address components were found, display a placeholder
-    if (!hasAddress) {
-      doc.setTextColor(120, 120, 120)  // Light gray for placeholder
-      doc.text('Address not provided', margin + 15, clientYPosition)
-      clientYPosition += 4
-    }
-    
-    // Reset font and color for contact info
-    doc.setFontSize(9)
-    doc.setTextColor(0, 0, 0)
-    clientYPosition += 2  // Small gap before contact info
-  } else {
-    clientYPosition += 5
-  }
-  
-  // Email (wrap if too long)
-  if (quotationData.client?.email) {
-    doc.setFontSize(9)
-    doc.setFont('helvetica', 'normal')
-    const emailLines = doc.splitTextToSize(quotationData.client.email, clientSectionMaxWidth - 15)
-    emailLines.forEach((line: string) => {
-      doc.text(line, margin + 15, clientYPosition)
-      clientYPosition += 4
-    })
-  }
-  
-  // Phone
-  if (quotationData.client?.phone) {
-    doc.setFontSize(9)
-    doc.setFont('helvetica', 'normal')
-    doc.text(quotationData.client.phone, margin + 15, clientYPosition)
-    clientYPosition += 4
+    doc.text(clientNameLines, margin + 15, yPosition)
+    yPosition += clientNameLines.length * 5
   }
 
-  // Quotation Information (Right Side) - same starting level as TO:
+  // Quotation Info
   let rightYPosition = startYPosition
-
   doc.setFontSize(10)
   doc.setFont('helvetica', 'bold')
-  doc.setTextColor(0, 0, 0)
   doc.text('Quotation No:', rightSideX, rightYPosition)
   doc.setFont('helvetica', 'normal')
   doc.text(`${quotationData.quotationNumber} (v${quotationData.version})`, rightSideX + 35, rightYPosition)
@@ -788,78 +641,47 @@ export async function generateQuotationPDF(quotationData: any): Promise<Buffer> 
   doc.setFont('helvetica', 'normal')
   doc.text(formatDate(quotationData.validUntil), rightSideX + 35, rightYPosition)
 
-  // Use the max Y position from both sides
-  yPosition = Math.max(clientYPosition, rightYPosition) + 10
+  yPosition = Math.max(yPosition, rightYPosition) + 10
 
-  // RE: Section - on same line and underlined
+  // RE: Section
   if (quotationData.title) {
     doc.setFontSize(12)
     doc.setFont('helvetica', 'bold')
-    
-    // Put RE: and title on the same line
-    const reText = 'RE: ' + quotationData.title
-    const reLines = doc.splitTextToSize(reText, pageWidth - 2 * margin)
-    doc.text(reLines, margin, yPosition)
-    
-    // Add underline for the RE: line
-    const textWidth = doc.getTextWidth(reLines[0] || reText)
-    doc.setLineWidth(0.5)
-    doc.line(margin, yPosition + 1, margin + textWidth, yPosition + 1)
-    
-    yPosition += reLines.length * 5 + 8
-    
-    // Add reference line
-    doc.setFont('helvetica', 'normal')
-    const referenceLine = 'With reference to the above mentioned, we are pleased to submit the following quotation for your kind consideration.'
-    const referenceLines = doc.splitTextToSize(referenceLine, pageWidth - 2 * margin)
-    doc.text(referenceLines, margin, yPosition)
-    yPosition += referenceLines.length * 5 + 10
+    doc.text(`RE: ${quotationData.title}`, margin, yPosition)
+    yPosition += 10
   }
 
-  // Description
-  if (quotationData.description) {
-    doc.setFontSize(12)
-    doc.setFont('helvetica', 'bold')
-    doc.text('Description:', margin, yPosition)
-    yPosition += 6
-    
-    doc.setFont('helvetica', 'normal')
-    const descLines = doc.splitTextToSize(quotationData.description, pageWidth - 2 * margin)
-    doc.text(descLines, margin, yPosition)
-    yPosition += descLines.length * 5 + 10
-  }
-
-  // Items Table
-  const tableHeaders = ['S/N', 'Description', 'Qty', 'Unit', 'Unit Price', 'Total']
+  // Items Table with hierarchical S/N
+  const tableHeaders = [['S/N', 'Description', 'Qty', 'Unit', 'Unit Price', 'Total']]
   const tableData: any[][] = []
+  let sectionCounter = 0
   let itemCounter = 1
 
   if (quotationData.items && quotationData.items.length > 0) {
     quotationData.items.forEach((item: any) => {
       if (item.category === 'SUBTITLE') {
+        sectionCounter++
+        itemCounter = 1
         tableData.push([
-          { 
-            content: item.description.toUpperCase(), 
-            styles: { fontStyle: 'bold', fillColor: [230, 230, 230] }, 
-            colSpan: 6 
+          {
+            content: String.fromCharCode(64 + sectionCounter),
+            styles: { fontStyle: 'bold', fillColor: [230, 230, 230], halign: 'center' }
+          },
+          {
+            content: item.description.toUpperCase(),
+            styles: { fontStyle: 'bold', fillColor: [230, 230, 230] },
+            colSpan: 5
           }
         ])
       } else {
-        // Build description with notes underneath if notes exist
         let descriptionContent = item.description || ''
         if (item.notes && item.notes.trim()) {
           descriptionContent += '\n' + item.notes.trim()
         }
-        
+
         tableData.push([
-          itemCounter++,
-          {
-            content: descriptionContent,
-            styles: item.notes && item.notes.trim() ? {
-              fontSize: 9,
-              cellPadding: { top: 2, bottom: 2, left: 3, right: 3 }
-            } : {}
-          },
+          `${String.fromCharCode(64 + sectionCounter)}.${itemCounter++}`,
+          descriptionContent,
           parseFloat(item.quantity || 0).toString(),
           item.unit || 'pcs',
           formatCurrency(parseFloat(item.unitPrice || 0), quotationData.currency),
@@ -867,49 +689,51 @@ export async function generateQuotationPDF(quotationData: any): Promise<Buffer> 
         ])
       }
     })
-  } else {
-    tableData.push(['No items specified', '', '', '', ''])
   }
 
   autoTable(doc, {
-    head: [tableHeaders],
+    head: tableHeaders,
     body: tableData,
     startY: yPosition,
     theme: 'striped',
-    headStyles: {
-      fillColor: [0, 51, 102],
-      textColor: [255, 255, 255],
-      fontStyle: 'bold',
-      halign: 'center'
-    },
-    margin: { left: margin, right: margin, bottom: 70 }, // Footer protection with optimized spacing
+    headStyles: { fillColor: [0, 51, 102], textColor: [255, 255, 255], fontStyle: 'bold', halign: 'center' },
     columnStyles: {
-      0: { cellWidth: 15, halign: 'center' }, // S/N
-      1: { cellWidth: 'auto', valign: 'top' }, // Description
-      2: { cellWidth: 20, halign: 'center' },   // Qty
-      3: { cellWidth: 20, halign: 'center' },  // Unit
-      4: { cellWidth: 30, halign: 'center' },   // Unit Price
-      5: { cellWidth: 30, halign: 'center' }    // Total
+      0: { cellWidth: 15, halign: 'center' },
+      1: { cellWidth: 'auto', valign: 'top' },
+      2: { cellWidth: 20, halign: 'center' },
+      3: { cellWidth: 20, halign: 'center' },
+      4: { cellWidth: 30, halign: 'center' },
+      5: { cellWidth: 30, halign: 'center' }
+    },
+    didDrawCell: (data) => {
+      if (data.column.index === 1 && data.cell.text && data.cell.text.length > 1) {
+        const [description, ...notes] = data.cell.text
+        doc.setFontSize(9)
+        doc.setTextColor(0, 0, 0)
+        doc.text(description, data.cell.x + 2, data.cell.y + 4)
+
+        if (notes.length > 0) {
+          doc.setFontSize(8)
+          doc.setFont('helvetica', 'italic')
+          doc.setTextColor(128, 128, 128)
+          doc.text(notes.join('\n'), data.cell.x + 2, data.cell.y + 9)
+        }
+      }
     }
   })
 
-  // Get position after table
-  yPosition = (doc as any).lastAutoTable?.finalY + 10 || yPosition + 50
+  yPosition = (doc as any).lastAutoTable.finalY + 10
 
-  // Check if we need a new page for the summary - use 100-unit footer protection
+  // Check if we need a new page for the summary
   if (yPosition > pageHeight - 50) {
     doc.addPage()
     yPosition = margin
   }
 
-  // Financial Summary - Two-column flex-style layout
+  // Financial Summary
+  const summaryBoxWidth = 95
+  const summaryBoxX = pageWidth - margin - summaryBoxWidth
   
-  // Calculate summary box dimensions to align with Total column
-  // Items table has: Description (auto), Qty (20), Unit (20), Unit Price (30), Total (30)
-  const summaryBoxWidth = 95 // Width to accommodate labels + values
-  const summaryBoxX = pageWidth - margin - summaryBoxWidth // Right-aligned under table
-  
-  // Add "Summary:" heading above the box, left-aligned with the box itself
   doc.setFontSize(12)
   doc.setFont('helvetica', 'bold')
   doc.setTextColor(0, 0, 0)
@@ -917,9 +741,8 @@ export async function generateQuotationPDF(quotationData: any): Promise<Buffer> 
   yPosition += 6
   
   const summaryBoxY = yPosition
-  const summaryBoxPadding = 8 // Reduced padding for tighter fit
+  const summaryBoxPadding = 8
   
-  // Prepare summary rows
   const summaryRows: Array<{ label: string; value: string; isBold: boolean }> = []
   
   summaryRows.push({
@@ -950,47 +773,28 @@ export async function generateQuotationPDF(quotationData: any): Promise<Buffer> 
     isBold: true
   })
   
-  // Calculate box height based on number of rows - tighter spacing
-  const rowHeight = 7
-  const summaryBoxHeight = summaryRows.length * rowHeight + summaryBoxPadding * 2
-  
-  // Draw rounded rectangle with thin border and light background
-  doc.setDrawColor(18, 58, 99) // #123a63 border
-  doc.setFillColor(250, 250, 250) // #fafafa background
-  doc.setLineWidth(0.5) // 1px thin border
-  doc.roundedRect(summaryBoxX, summaryBoxY, summaryBoxWidth, summaryBoxHeight, 8, 8, 'FD') // 8px rounded corners
-  
-  // Draw summary rows
-  let currentY = summaryBoxY + summaryBoxPadding + 4
-  
-  summaryRows.forEach(row => {
-    // Set font style (bold for Total row)
-    if (row.isBold) {
-      doc.setFont('helvetica', 'bold')
-      doc.setFontSize(11)
-    } else {
-      doc.setFont('helvetica', 'normal')
-      doc.setFontSize(10)
+  autoTable(doc, {
+    body: summaryRows.map(row => [row.label, row.value]),
+    startY: yPosition,
+    theme: 'plain',
+    tableWidth: summaryBoxWidth,
+    margin: { left: summaryBoxX },
+    styles: { fontSize: 10, cellPadding: 2 },
+    columnStyles: { 
+      0: { halign: 'left' },
+      1: { halign: 'right' }
+    },
+    didParseCell: (data) => {
+      if (summaryRows[data.row.index].isBold) {
+        data.cell.styles.fontStyle = 'bold'
+      }
     }
-    
-    // Label (left-aligned)
-    doc.setTextColor(0, 0, 0)
-    doc.text(row.label, summaryBoxX + summaryBoxPadding, currentY, { align: 'left' })
-    
-    // Value (right-aligned) - with proper right-side padding from box edge
-    // Add padding to prevent values from touching the border
-    const valueX = summaryBoxX + summaryBoxWidth - summaryBoxPadding - 2 // Extra 2 units for spacing
-    doc.text(row.value, valueX, currentY, { align: 'right' })
-    
-    currentY += rowHeight
   })
-  
-  // Update position after summary box
-  yPosition = summaryBoxY + summaryBoxHeight + 15
 
-  // Terms and Conditions
-  if (quotationData.terms || quotationData.validityDays || quotationData.paymentTerms || quotationData.additionalTerms || yPosition < pageHeight - 50) {
-    // Check if we need a new page - use 100-unit footer protection
+  yPosition = (doc as any).lastAutoTable.finalY + 10
+
+  // Terms & Conditions
+  if (quotationData.termsAndConditions) {
     if (yPosition > pageHeight - 50) {
       doc.addPage()
       yPosition = margin
@@ -1001,96 +805,14 @@ export async function generateQuotationPDF(quotationData: any): Promise<Buffer> 
     doc.text('Terms & Conditions:', margin, yPosition)
     yPosition += 8
 
-    doc.setFontSize(10)
+    doc.setFontSize(9)
     doc.setFont('helvetica', 'normal')
-    
-    // Build terms content
-    let termsContent = ''
-    
-    // Add validity period if provided
-    if (quotationData.validityDays) {
-      termsContent += `1. Quotation Validity:\n`
-      termsContent += `   • This quotation is valid for ${quotationData.validityDays} days from the date of issue.\n\n`
-    }
-    
-    // Add payment terms if provided
-    if (quotationData.paymentTerms && Array.isArray(quotationData.paymentTerms) && quotationData.paymentTerms.length > 0) {
-      termsContent += `2. Payment Terms:\n`
-      quotationData.paymentTerms.forEach((term: any, index: number) => {
-        if (term.percentage && term.description) {
-          termsContent += `   • ${term.percentage}% ${term.description}\n`
-        }
-      })
-      termsContent += `\n`
-    }
-    
-    // Add additional terms if provided
-    if (quotationData.additionalTerms && quotationData.additionalTerms.trim()) {
-      termsContent += `3. Additional Terms:\n`
-      const additionalLines = quotationData.additionalTerms.split('\n')
-      additionalLines.forEach((line: string) => {
-        if (line.trim()) {
-          termsContent += `   • ${line.trim()}\n`
-        }
-      })
-      termsContent += `\n`
-    }
-    
-    // Default comprehensive terms and conditions
-    const defaultTerms = `
-• The following items are excluded from this quotation: Utilities, insurance, scaffolding, staging, performance bond
-• Any other items not listed in this quotation
-• Any changes in the works, design other than the drawings provided, would be subjected to price variations.
-• Prices are not inclusive of protection material after installation, unless otherwise quoted.
-• All quantities shall be subjected to final site measurements.
-• All prices are in ${quotationData.currency || 'SGD'} and inclusive of ${quotationData.taxAmount ? '9% GST' : 'applicable taxes'} unless otherwise stated.
-• All work will be carried out in accordance with relevant codes and safety regulations.
-
-Delivery Schedule:
-• As per Main Contractor schedule of work.
-
-CONFIDENTIAL DOCUMENT - This document contains proprietary information and is intended solely for the use of the addressee.
-
-This document is computer generated. No signature is required.`
-
-    // Combine custom terms with general terms
-    const finalTerms = termsContent + (quotationData.terms || defaultTerms)
-    const termLines = doc.splitTextToSize(finalTerms, pageWidth - 2 * margin)
-    // Add terms text with page break protection to avoid footer overlap
-    for (let i = 0; i < termLines.length; i++) {
-      // Check if we need a new page before adding this line
-      // Reserve 60mm from bottom for footer area
-      if (yPosition > pageHeight - 60) {
-        doc.addPage()
-        yPosition = margin
-      }
-      doc.text(termLines[i], margin, yPosition)
-      yPosition += 5
-    }
-
+    const termsLines = doc.splitTextToSize(quotationData.termsAndConditions, pageWidth - 2 * margin)
+    doc.text(termsLines, margin, yPosition)
   }
 
-  // Notes (if any)
-  if (quotationData.notes && quotationData.notes.trim()) {
-    // Check if we need a new page - use 100-unit footer protection
-    if (yPosition > pageHeight - 50) {
-      doc.addPage()
-      yPosition = margin
-    }
-
-    doc.setFontSize(12)
-    doc.setFont('helvetica', 'bold')
-    doc.text('Notes:', margin, yPosition)
-    yPosition += 8
-
-    doc.setFontSize(10)
-    doc.setFont('helvetica', 'normal')
-    const notesLines = doc.splitTextToSize(quotationData.notes, pageWidth - 2 * margin)
-    doc.text(notesLines, margin, yPosition)
-  }
-
-  // Add standardized footer to all pages
-  const totalPages = doc.getNumberOfPages()
+  // Add footer to all pages
+  const totalPages = doc.internal.pages.length - 1
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i)
     await addCompanyFooter(doc, i, totalPages)
@@ -1099,7 +821,7 @@ This document is computer generated. No signature is required.`
   return Buffer.from(doc.output('arraybuffer'))
 }
 
-// Purchase Order-specific PDF generator
+
 export async function generatePurchaseOrderPDF(poData: any): Promise<Buffer> {
   const doc = new jsPDF()
   const pageWidth = doc.internal.pageSize.getWidth()
