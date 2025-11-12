@@ -405,18 +405,16 @@ export function TenderFileManager({
                 </p>
               </div>
               <div className="flex items-center gap-4 w-full">
-                <div className="flex-1">
+                <div className="flex-1 space-y-2">
                   <Input
                     id="file-upload"
                     type="file"
                     onChange={handleFileSelect}
                     disabled={uploading}
                     multiple
-                    webkitdirectory=""
-                    directory=""
                   />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Select multiple files or an entire folder
+                  <p className="text-xs text-muted-foreground">
+                    Select multiple files (hold Ctrl/Cmd to select multiple)
                   </p>
                 </div>
                 <Button
