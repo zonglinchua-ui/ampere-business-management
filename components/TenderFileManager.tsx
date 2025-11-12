@@ -62,6 +62,7 @@ export function TenderFileManager({
   const [uploading, setUploading] = useState(false)
   const [fileToDelete, setFileToDelete] = useState<string | null>(null)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [isDragging, setIsDragging] = useState(false)
 
   // Load files on mount
   useEffect(() => {
@@ -102,8 +103,10 @@ export function TenderFileManager({
     }
   }
 
-  const handleUpload = async () => {
-    if (!selectedFile) {
+  const handleUpload = async (fileToUpload?: File) => {
+    const file = fileToUpload || selectedFile
+    
+    if (!file) {
       toast.error('Please select a file first')
       return
     }
@@ -116,7 +119,7 @@ export function TenderFileManager({
     setUploading(true)
     try {
       const formData = new FormData()
-      formData.append('file', selectedFile)
+      formData.append('file', file)
 
       const response = await fetch(`/api/tenders/${tenderId}/files`, {
         method: 'POST',
@@ -198,6 +201,38 @@ export function TenderFileManager({
     }
   }
 
+  // Drag and drop handlers
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(true)
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+
+    const droppedFiles = e.dataTransfer.files
+    if (droppedFiles && droppedFiles.length > 0) {
+      const file = droppedFiles[0]
+      setSelectedFile(file)
+      // Automatically upload the dropped file
+      await handleUpload(file)
+    }
+  }
+
   const getFileIcon = (filename: string) => {
     const ext = filename.split('.').pop()?.toLowerCase()
     
@@ -270,30 +305,48 @@ export function TenderFileManager({
           </div>
         </CardHeader>
         <CardContent>
-          {/* Upload Section */}
-          <div className="mb-6 p-4 border rounded-lg bg-muted/50">
-            <div className="flex items-center gap-4">
-              <div className="flex-1">
-                <Input
-                  id="file-upload"
-                  type="file"
-                  onChange={handleFileSelect}
-                  disabled={uploading}
-                />
+          {/* Upload Section with Drag & Drop */}
+          <div 
+            className={`mb-6 p-6 border-2 border-dashed rounded-lg transition-colors ${
+              isDragging 
+                ? 'border-primary bg-primary/5' 
+                : 'border-muted-foreground/25 bg-muted/50'
+            }`}
+            onDragEnter={handleDragEnter}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
+            <div className="flex flex-col items-center gap-4">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Upload className="h-5 w-5" />
+                <p className="text-sm font-medium">
+                  {isDragging ? 'Drop file here' : 'Drag and drop a file here, or click to browse'}
+                </p>
               </div>
-              <Button
-                onClick={handleUpload}
-                disabled={!selectedFile || uploading}
-              >
-                <Upload className="h-4 w-4 mr-2" />
-                {uploading ? 'Uploading...' : 'Upload'}
-              </Button>
+              <div className="flex items-center gap-4 w-full">
+                <div className="flex-1">
+                  <Input
+                    id="file-upload"
+                    type="file"
+                    onChange={handleFileSelect}
+                    disabled={uploading}
+                  />
+                </div>
+                <Button
+                  onClick={() => handleUpload()}
+                  disabled={!selectedFile || uploading}
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  {uploading ? 'Uploading...' : 'Upload'}
+                </Button>
+              </div>
+              {selectedFile && (
+                <p className="text-sm text-muted-foreground">
+                  Selected: {selectedFile.name} ({formatFileSize(selectedFile.size)})
+                </p>
+              )}
             </div>
-            {selectedFile && (
-              <p className="text-sm text-muted-foreground mt-2">
-                Selected: {selectedFile.name} ({formatFileSize(selectedFile.size)})
-              </p>
-            )}
           </div>
 
           {/* Files Table */}
