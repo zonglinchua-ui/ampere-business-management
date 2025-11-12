@@ -658,9 +658,9 @@ export async function DELETE(
       return NextResponse.json({ error: 'Quotation not found' }, { status: 404 })
     }
 
-    // Only allow deleting DRAFT quotations
-    if (existingQuotation.status !== 'DRAFT') {
-      return NextResponse.json({ error: 'Can only delete draft quotations' }, { status: 400 })
+    // Only allow deleting DRAFT quotations (unless user is SUPERADMIN)
+    if (existingQuotation.status !== 'DRAFT' && userRole !== 'SUPERADMIN') {
+      return NextResponse.json({ error: 'Can only delete draft quotations. Contact a superadmin to delete approved quotations.' }, { status: 400 })
     }
 
     await prisma.$transaction(async (tx) => {
