@@ -45,6 +45,7 @@ import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { eventBus, XERO_SYNC_COMPLETED, XERO_SYNC_STARTED, XERO_SYNC_ERROR } from '@/lib/events'
 import { useXeroConnectionStatus } from '@/hooks/use-xero-connection-status'
+import { DataQualityTab } from './data-quality-tab'
 
 interface XeroStatus {
   connected: boolean
@@ -637,11 +638,12 @@ export function EnhancedXeroIntegration() {
       {/* Main Integration Tabs */}
       {status.connected && (
         <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="sync">Data Sync</TabsTrigger>
             <TabsTrigger value="automation">Automation</TabsTrigger>
             <TabsTrigger value="logs">Sync Logs</TabsTrigger>
+            <TabsTrigger value="quality">Data Quality</TabsTrigger>
             <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
 
@@ -1117,6 +1119,10 @@ export function EnhancedXeroIntegration() {
                 </Alert>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="quality" className="space-y-4">
+            <DataQualityTab />
           </TabsContent>
         </Tabs>
       )}
