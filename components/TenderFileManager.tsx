@@ -216,26 +216,13 @@ export function TenderFileManager({
     }
 
     try {
-      const response = await fetch(
-        `/api/tenders/${tenderId}/files?filename=${encodeURIComponent(filename)}`
-      )
-      if (response.ok) {
-        const blob = await response.blob()
-        const url = window.URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = filename.split('/').pop() || filename
-        document.body.appendChild(a)
-        a.click()
-        window.URL.revokeObjectURL(url)
-        document.body.removeChild(a)
-        toast.success('File downloaded')
-      } else {
-        toast.error('Failed to download file')
-      }
+      // Open file in new tab - browser will display if viewable, or download if not
+      const url = `/api/tenders/${tenderId}/files?filename=${encodeURIComponent(filename)}`
+      window.open(url, '_blank')
+      toast.success('Opening file...')
     } catch (error) {
-      console.error('Error downloading file:', error)
-      toast.error('Error downloading file')
+      console.error('Error opening file:', error)
+      toast.error('Error opening file')
     }
   }
 

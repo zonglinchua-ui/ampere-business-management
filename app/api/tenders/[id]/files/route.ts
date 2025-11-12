@@ -1,6 +1,6 @@
 // File: app/api/tenders/[id]/files/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { writeFile, readdir, unlink, stat, readFile, rmdir, rm } from 'fs/promises'
+import { writeFile, readdir, unlink, stat, readFile } from 'fs/promises'
 import { join } from 'path'
 import { existsSync, mkdirSync } from 'fs'
 import { prisma } from '@/lib/db'
@@ -47,14 +47,12 @@ export async function GET(
     const tenderId = params.id
     const searchParams = request.nextUrl.searchParams
     const filename = searchParams.get('filename')
-    const subPath = searchParams.get('path') || ''
     
-    const baseFolderPath = await getTenderFolderPath(tenderId)
-    const folderPath = join(baseFolderPath, subPath)
+    const folderPath = await getTenderFolderPath(tenderId)
 
     // If filename is provided, download the file
     if (filename) {
-      const filePath = join(baseFolderPath, filename)
+      const filePath = join(folderPath, filename)
       
       if (!existsSync(filePath)) {
         return NextResponse.json(
@@ -63,46 +61,72 @@ export async function GET(
         )
       }
 
-      // Check if it's a directory
-      const stats = await stat(filePath)
-      if (stats.isDirectory()) {
-        return NextResponse.json(
-          { error: 'Cannot download a directory' },
-          { status: 400 }
-        )
-      }
-
       const fileBuffer = await readFile(filePath)
       const actualFilename = filename.split('/').pop() || filename
       
+      // Determine MIME type based on file extension
+      const ext = actualFilename.split('.').pop()?.toLowerCase()
+      let contentType = 'application/octet-stream'
+      
+      const mimeTypes: Record<string, string> = {
+        'pdf': 'application/pdf',
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'png': 'image/png',
+        'gif': 'image/gif',
+        'bmp': 'image/bmp',
+        'svg': 'image/svg+xml',
+        'webp': 'image/webp',
+        'txt': 'text/plain',
+        'html': 'text/html',
+        'css': 'text/css',
+        'js': 'text/javascript',
+        'json': 'application/json',
+        'xml': 'application/xml',
+        'csv': 'text/csv',
+        'mp4': 'video/mp4',
+        'webm': 'video/webm',
+        'mp3': 'audio/mpeg',
+        'wav': 'audio/wav',
+      }
+      
+      if (ext && mimeTypes[ext]) {
+        contentType = mimeTypes[ext]
+      }
+      
+      // Use 'inline' for viewable files, 'attachment' for downloads
+      const viewableTypes = ['application/pdf', 'image/', 'text/', 'video/', 'audio/']
+      const isViewable = viewableTypes.some(type => contentType.startsWith(type))
+      const disposition = isViewable 
+        ? `inline; filename="${actualFilename}"`
+        : `attachment; filename="${actualFilename}"`
+      
       return new NextResponse(fileBuffer, {
         headers: {
-          'Content-Type': 'application/octet-stream',
-          'Content-Disposition': `attachment; filename="${actualFilename}"`,
+          'Content-Type': contentType,
+          'Content-Disposition': disposition,
         },
       })
     }
 
-    // Otherwise, list all files and folders
+    // Otherwise, list all files
     if (!existsSync(folderPath)) {
       // Folder doesn't exist yet, return empty list
       return NextResponse.json({ files: [] })
     }
 
-    const items = await readdir(folderPath)
+    const files = await readdir(folderPath)
     
     const fileDetails = await Promise.all(
-      items.map(async (itemName) => {
-        const itemPath = join(folderPath, itemName)
-        const stats = await stat(itemPath)
-        const relativePath = subPath ? `${subPath}/${itemName}` : itemName
+      files.map(async (filename) => {
+        const filePath = join(folderPath, filename)
+        const stats = await stat(filePath)
         
         return {
-          name: relativePath,
+          name: filename,
           size: stats.size,
           modifiedAt: stats.mtime.toISOString(),
-          type: stats.isDirectory() ? 'directory' : (itemName.split('.').pop() || 'unknown'),
-          isDirectory: stats.isDirectory(),
+          type: filename.split('.').pop() || 'unknown',
         }
       })
     )
@@ -173,7 +197,7 @@ export async function POST(
   }
 }
 
-// DELETE - Delete a file or folder
+// DELETE - Delete a file
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -195,33 +219,21 @@ export async function DELETE(
 
     if (!existsSync(filePath)) {
       return NextResponse.json(
-        { error: 'File or folder not found' },
+        { error: 'File not found' },
         { status: 404 }
       )
     }
 
-    // Check if it's a directory or file
-    const stats = await stat(filePath)
-    
-    if (stats.isDirectory()) {
-      // Delete directory recursively
-      await rm(filePath, { recursive: true, force: true })
-      return NextResponse.json({
-        message: 'Folder deleted successfully',
-        filename,
-      })
-    } else {
-      // Delete file
-      await unlink(filePath)
-      return NextResponse.json({
-        message: 'File deleted successfully',
-        filename,
-      })
-    }
+    await unlink(filePath)
+
+    return NextResponse.json({
+      message: 'File deleted successfully',
+      filename,
+    })
   } catch (error) {
     console.error('Error in DELETE /api/tenders/[id]/files:', error)
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to delete file or folder' },
+      { error: error instanceof Error ? error.message : 'Failed to delete file' },
       { status: 500 }
     )
   }
