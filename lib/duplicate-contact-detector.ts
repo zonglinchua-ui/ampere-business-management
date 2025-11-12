@@ -13,8 +13,8 @@ export interface DuplicateContact {
   name: string
   email?: string | null
   phone?: string | null
-  isCustomer: boolean
-  isSupplier: boolean
+  isCustomer: boolean | null
+  isSupplier: boolean | null
   xeroContactId?: string | null
   createdAt: Date
 }
