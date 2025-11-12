@@ -13,7 +13,7 @@ async function getTenderFolderPath(tenderId: string) {
     // Fetch tender from database with customer information
     const tender = await prisma.tender.findUnique({
       where: { id: tenderId },
-      include: { client: true }
+      include: { Customer: true }
     })
     
     if (!tender) {
@@ -21,7 +21,7 @@ async function getTenderFolderPath(tenderId: string) {
     }
 
     // Create folder path: A:\AMPERE WEB SERVER\TENDER\{CUSTOMER}\{TENDER}\
-    const customerName = tender.client?.name || 'Unknown Customer'
+    const customerName = tender.Customer?.name || 'Unknown Customer'
     const tenderTitle = tender.title || 'Unknown Tender'
     
     const folderPath = join(NAS_BASE_PATH, customerName, tenderTitle)
