@@ -728,14 +728,8 @@ export default function EditQuotationPage({ params }: { params: { id: string } }
                     />
                   )}
 </div>
-                            )}
-                          </Draggable>
-                        ))}
-                        {provided.placeholder}
-                      </div>
-                    )}
-                  </Droppable>
-                </DragDropContext>
+              ))}
+            </div>
           </CardContent>
         </Card>
 
@@ -1085,8 +1079,14 @@ export default function EditQuotationPage({ params }: { params: { id: string } }
                       </div>
                     )}
                   </div>
-                ))}
-              </div>
+                          )}
+                        </Draggable>
+                        ))}
+                        {provided.placeholder}
+                      </div>
+                    )}
+                  </Droppable>
+                </DragDropContext>
 
               {/* Financial Summary - Compact version */}
               <div className="mt-3 border-t pt-3">
