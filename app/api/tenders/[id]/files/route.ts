@@ -47,12 +47,14 @@ export async function GET(
     const tenderId = params.id
     const searchParams = request.nextUrl.searchParams
     const filename = searchParams.get('filename')
+    const subPath = searchParams.get('path') || ''
     
-    const folderPath = await getTenderFolderPath(tenderId)
+    const baseFolderPath = await getTenderFolderPath(tenderId)
+    const folderPath = join(baseFolderPath, subPath)
 
     // If filename is provided, download the file
     if (filename) {
-      const filePath = join(folderPath, filename)
+      const filePath = join(baseFolderPath, filename)
       
       if (!existsSync(filePath)) {
         return NextResponse.json(
@@ -61,34 +63,46 @@ export async function GET(
         )
       }
 
+      // Check if it's a directory
+      const stats = await stat(filePath)
+      if (stats.isDirectory()) {
+        return NextResponse.json(
+          { error: 'Cannot download a directory' },
+          { status: 400 }
+        )
+      }
+
       const fileBuffer = await readFile(filePath)
+      const actualFilename = filename.split('/').pop() || filename
       
       return new NextResponse(fileBuffer, {
         headers: {
           'Content-Type': 'application/octet-stream',
-          'Content-Disposition': `attachment; filename="${filename}"`,
+          'Content-Disposition': `attachment; filename="${actualFilename}"`,
         },
       })
     }
 
-    // Otherwise, list all files
+    // Otherwise, list all files and folders
     if (!existsSync(folderPath)) {
       // Folder doesn't exist yet, return empty list
       return NextResponse.json({ files: [] })
     }
 
-    const files = await readdir(folderPath)
+    const items = await readdir(folderPath)
     
     const fileDetails = await Promise.all(
-      files.map(async (filename) => {
-        const filePath = join(folderPath, filename)
-        const stats = await stat(filePath)
+      items.map(async (itemName) => {
+        const itemPath = join(folderPath, itemName)
+        const stats = await stat(itemPath)
+        const relativePath = subPath ? `${subPath}/${itemName}` : itemName
         
         return {
-          name: filename,
+          name: relativePath,
           size: stats.size,
           modifiedAt: stats.mtime.toISOString(),
-          type: filename.split('.').pop() || 'unknown',
+          type: stats.isDirectory() ? 'directory' : (itemName.split('.').pop() || 'unknown'),
+          isDirectory: stats.isDirectory(),
         }
       })
     )

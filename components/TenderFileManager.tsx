@@ -34,6 +34,9 @@ import {
   RefreshCw,
   HardDrive,
   FolderUp,
+  Folder,
+  ChevronRight,
+  Home,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatDistanceToNow } from 'date-fns'
@@ -43,6 +46,7 @@ interface TenderFile {
   size: number
   modifiedAt: string
   type: string
+  isDirectory?: boolean
 }
 
 interface FileWithPath extends File {
@@ -69,13 +73,14 @@ export function TenderFileManager({
   const [selectedFiles, setSelectedFiles] = useState<FileWithPath[]>([])
   const [isDragging, setIsDragging] = useState(false)
   const [uploadProgress, setUploadProgress] = useState<string>('')
+  const [currentPath, setCurrentPath] = useState<string>('')
 
   // Load files on mount
   useEffect(() => {
     if (tenderId) {
       loadFiles()
     }
-  }, [tenderId])
+  }, [tenderId, currentPath])
 
   const loadFiles = async () => {
     if (!tenderId) {
@@ -86,7 +91,8 @@ export function TenderFileManager({
 
     setLoading(true)
     try {
-      const response = await fetch(`/api/tenders/${tenderId}/files`)
+      const url = `/api/tenders/${tenderId}/files${currentPath ? `?path=${encodeURIComponent(currentPath)}` : ''}`
+      const response = await fetch(url)
       if (response.ok) {
         const data = await response.json()
         setFiles(data.files || [])
@@ -108,7 +114,7 @@ export function TenderFileManager({
       const filesArray: FileWithPath[] = Array.from(fileList).map(file => {
         const fileWithPath = file as FileWithPath
         // For regular file input, use just the filename
-        fileWithPath.relativePath = file.name
+        fileWithPath.relativePath = currentPath ? `${currentPath}/${file.name}` : file.name
         return fileWithPath
       })
       setSelectedFiles(filesArray)
@@ -193,6 +199,16 @@ export function TenderFileManager({
     }
   }
 
+  const handleItemClick = async (item: TenderFile) => {
+    if (item.isDirectory) {
+      // Navigate into folder
+      setCurrentPath(item.name)
+    } else {
+      // Download file
+      await handleDownload(item.name)
+    }
+  }
+
   const handleDownload = async (filename: string) => {
     if (!tenderId) {
       toast.error('Tender ID is missing')
@@ -248,6 +264,16 @@ export function TenderFileManager({
     }
   }
 
+  const navigateToRoot = () => {
+    setCurrentPath('')
+  }
+
+  const navigateUp = () => {
+    const pathParts = currentPath.split('/').filter(Boolean)
+    pathParts.pop()
+    setCurrentPath(pathParts.join('/'))
+  }
+
   // Drag and drop handlers
   const handleDragEnter = (e: React.DragEvent) => {
     e.preventDefault()
@@ -281,7 +307,7 @@ export function TenderFileManager({
         if (item.kind === 'file') {
           const entry = item.webkitGetAsEntry()
           if (entry) {
-            await traverseFileTree(entry, files, '')
+            await traverseFileTree(entry, files, currentPath ? `${currentPath}/` : '')
           }
         }
       }
@@ -290,7 +316,7 @@ export function TenderFileManager({
       const droppedFiles = e.dataTransfer.files
       for (let i = 0; i < droppedFiles.length; i++) {
         const file = droppedFiles[i] as FileWithPath
-        file.relativePath = file.name
+        file.relativePath = currentPath ? `${currentPath}/${file.name}` : file.name
         files.push(file)
       }
     }
@@ -330,8 +356,12 @@ export function TenderFileManager({
     }
   }
 
-  const getFileIcon = (filename: string) => {
-    const ext = filename.split('.').pop()?.toLowerCase()
+  const getFileIcon = (item: TenderFile) => {
+    if (item.isDirectory) {
+      return <Folder className="h-5 w-5 text-yellow-500" />
+    }
+    
+    const ext = item.name.split('.').pop()?.toLowerCase()
     
     switch (ext) {
       case 'pdf':
@@ -362,6 +392,10 @@ export function TenderFileManager({
     return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
   }
 
+  const getDisplayName = (fullPath: string) => {
+    return fullPath.split('/').pop() || fullPath
+  }
+
   // Show error if tenderId is missing
   if (!tenderId) {
     return (
@@ -376,6 +410,13 @@ export function TenderFileManager({
     )
   }
 
+  // Sort files: directories first, then files
+  const sortedFiles = [...files].sort((a, b) => {
+    if (a.isDirectory && !b.isDirectory) return -1
+    if (!a.isDirectory && b.isDirectory) return 1
+    return a.name.localeCompare(b.name)
+  })
+
   return (
     <>
       <Card>
@@ -387,18 +428,41 @@ export function TenderFileManager({
                 <CardTitle>Tender Documents</CardTitle>
                 <CardDescription className="mt-1">
                   {nasPath || `A:\\AMPERE WEB SERVER\\TENDER\\${customerName}\\${tenderTitle}\\`}
+                  {currentPath && currentPath}
                 </CardDescription>
               </div>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={loadFiles}
-              disabled={loading}
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-              Refresh
-            </Button>
+            <div className="flex items-center gap-2">
+              {currentPath && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={navigateToRoot}
+                  >
+                    <Home className="h-4 w-4 mr-2" />
+                    Root
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={navigateUp}
+                  >
+                    <ChevronRight className="h-4 w-4 mr-2 rotate-180" />
+                    Up
+                  </Button>
+                </>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={loadFiles}
+                disabled={loading}
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -434,6 +498,7 @@ export function TenderFileManager({
                   />
                   <p className="text-xs text-muted-foreground">
                     Select multiple files (hold Ctrl/Cmd to select multiple)
+                    {currentPath && ` - Files will be uploaded to: ${currentPath}/`}
                   </p>
                 </div>
                 <Button
@@ -462,7 +527,7 @@ export function TenderFileManager({
             <div className="flex items-center justify-center py-12">
               <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
-          ) : files.length === 0 ? (
+          ) : sortedFiles.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <FolderOpen className="h-16 w-16 text-muted-foreground mb-4" />
               <p className="text-lg font-medium text-muted-foreground">No files yet</p>
@@ -483,39 +548,44 @@ export function TenderFileManager({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {files.map((file) => (
+                  {sortedFiles.map((item) => (
                     <TableRow 
-                      key={file.name}
+                      key={item.name}
                       className="cursor-pointer hover:bg-muted/50 transition-colors"
-                      onClick={() => handleDownload(file.name)}
+                      onClick={() => handleItemClick(item)}
                     >
-                      <TableCell>{getFileIcon(file.name)}</TableCell>
-                      <TableCell className="font-medium">{file.name}</TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {formatFileSize(file.size)}
+                      <TableCell>{getFileIcon(item)}</TableCell>
+                      <TableCell className="font-medium">
+                        {getDisplayName(item.name)}
+                        {item.isDirectory && <span className="text-muted-foreground ml-2">(folder)</span>}
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {formatDistanceToNow(new Date(file.modifiedAt), { addSuffix: true })}
+                        {item.isDirectory ? '-' : formatFileSize(item.size)}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {formatDistanceToNow(new Date(item.modifiedAt), { addSuffix: true })}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
+                          {!item.isDirectory && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleDownload(item.name)
+                              }}
+                              title="Download"
+                            >
+                              <Download className="h-4 w-4" />
+                            </Button>
+                          )}
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={(e) => {
                               e.stopPropagation()
-                              handleDownload(file.name)
-                            }}
-                            title="Download"
-                          >
-                            <Download className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setFileToDelete(file.name)
+                              setFileToDelete(item.name)
                             }}
                             className="text-red-600 hover:text-red-700 hover:bg-red-50"
                             title="Delete"
@@ -537,7 +607,7 @@ export function TenderFileManager({
       <AlertDialog open={!!fileToDelete} onOpenChange={(open) => !open && setFileToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete File</AlertDialogTitle>
+            <AlertDialogTitle>Delete {fileToDelete?.includes('/') ? 'Folder' : 'File'}</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete "{fileToDelete}"? This action cannot be undone.
             </AlertDialogDescription>
