@@ -309,7 +309,7 @@ export function TenderFileManager({
       return new Promise((resolve) => {
         entry.file((file: File) => {
           const fileWithPath = file as FileWithPath
-          // Preserve the full relative path
+          // Preserve the full relative path (path already includes directory structure)
           fileWithPath.relativePath = path + file.name
           files.push(fileWithPath)
           resolve()
@@ -319,9 +319,10 @@ export function TenderFileManager({
       const dirReader = entry.createReader()
       return new Promise((resolve) => {
         dirReader.readEntries(async (entries: any[]) => {
-          for (const entry of entries) {
-            // Add directory name to path
-            await traverseFileTree(entry, files, path + entry.name + '/')
+          // Add current directory name to path for subdirectories and files
+          const newPath = path + entry.name + '/'
+          for (const subEntry of entries) {
+            await traverseFileTree(subEntry, files, newPath)
           }
           resolve()
         })
