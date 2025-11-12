@@ -121,10 +121,9 @@ export async function GET(
       items.map(async (itemName) => {
         const itemPath = join(folderPath, itemName)
         const stats = await stat(itemPath)
-        const relativePath = subPath ? `${subPath}/${itemName}` : itemName
         
         return {
-          name: relativePath,
+          name: itemName,
           size: stats.size,
           modifiedAt: stats.mtime.toISOString(),
           type: stats.isDirectory() ? 'directory' : (itemName.split('.').pop() || 'unknown'),
