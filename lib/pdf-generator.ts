@@ -713,20 +713,26 @@ export async function generateQuotationPDF(quotationData: any): Promise<Buffer> 
       if (data.column.index === 1 && data.cell.raw && typeof data.cell.raw === 'string') {
         const rawText = data.cell.raw
         const [description, ...notes] = rawText.split('\n')
+        
+        // Check if this is a subtitle row (has grey background)
+        const isSubtitle = data.cell.styles && data.cell.styles.fillColor && 
+                          Array.isArray(data.cell.styles.fillColor) && 
+                          data.cell.styles.fillColor[0] === 230
 
-        // Clear the cell content that was automatically drawn
-        doc.setFillColor(255, 255, 255) // White background
-        doc.rect(data.cell.x, data.cell.y, data.cell.width, data.cell.height, 'F')
+        // Only process non-subtitle rows with notes
+        if (!isSubtitle && notes.length > 0 && notes.join('').trim()) {
+          // Clear the cell content that was automatically drawn
+          doc.setFillColor(255, 255, 255) // White background
+          doc.rect(data.cell.x, data.cell.y, data.cell.width, data.cell.height, 'F')
 
-        // Draw the description
-        doc.setFontSize(9)
-        doc.setFont('helvetica', 'normal')
-        doc.setTextColor(0, 0, 0)
-        const descriptionLines = doc.splitTextToSize(description, data.cell.width - 4)
-        doc.text(descriptionLines, data.cell.x + 2, data.cell.y + 4)
+          // Draw the description
+          doc.setFontSize(9)
+          doc.setFont('helvetica', 'normal')
+          doc.setTextColor(0, 0, 0)
+          const descriptionLines = doc.splitTextToSize(description, data.cell.width - 4)
+          doc.text(descriptionLines, data.cell.x + 2, data.cell.y + 4)
 
-        // Draw the notes below the description
-        if (notes.length > 0 && notes.join('').trim()) {
+          // Draw the notes below the description
           const notesY = data.cell.y + 4 + (descriptionLines.length * 4) + 2
           doc.setFontSize(8)
           doc.setFont('helvetica', 'italic')

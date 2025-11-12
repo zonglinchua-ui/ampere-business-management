@@ -998,19 +998,11 @@ export default function EditQuotationPage({ params }: { params: { id: string } }
                       <div className="space-y-1">
                         <div>
                           <label className="text-[10px] font-medium mb-0.5 block text-gray-600">Description *</label>
-                          <ItemAutocomplete
+                          <Input 
                             value={item.description}
-                            onChange={(value) => updateLineItem(item.id, { description: value })}
-                            onSelect={(selectedItem) => {
-                              updateLineItem(item.id, {
-                                description: selectedItem.description,
-                                category: selectedItem.category,
-                                unit: selectedItem.unit,
-                                unitPrice: selectedItem.lastUnitPrice
-                              })
-                            }}
+                            onChange={(e) => updateLineItem(item.id, { description: e.target.value })}
                             onKeyDown={(e) => handleKeyDown(e, item.id, 'description')}
-                            placeholder="Type to search or enter item description..."
+                            placeholder="Enter item description..."
                             className="text-xs h-6 px-2"
                           />
                         </div>
