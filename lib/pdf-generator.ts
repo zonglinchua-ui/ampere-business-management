@@ -128,7 +128,7 @@ async function addCompanyLetterhead(doc: jsPDF): Promise<number> {
 }
 
 // Helper function to add company footer
-async function addCompanyFooter(doc: jsPDF, pageNumber: number, totalPages: number): Promise<void> {
+async function addCompanyFooter(doc: jsPDF, pageNumber: number, totalPages: number, preparedBy?: string): Promise<void> {
   const pageWidth = doc.internal.pageSize.getWidth()
   const pageHeight = doc.internal.pageSize.getHeight()
   const margin = 20
@@ -187,6 +187,19 @@ async function addCompanyFooter(doc: jsPDF, pageNumber: number, totalPages: numb
     pageHeight - 22,
     { align: 'right' }
   )
+  
+  // Prepared by (if available)
+  if (preparedBy) {
+    doc.setFontSize(8)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(100, 100, 100)
+    doc.text(
+      `Prepared by: ${preparedBy}`,
+      margin,
+      pageHeight - 10,
+      { align: 'left' }
+    )
+  }
   
   // Bottom line - Computer-generated statement with adequate spacing
   doc.setFontSize(7)
@@ -849,9 +862,13 @@ export async function generateQuotationPDF(quotationData: any): Promise<Buffer> 
 
   // Add footer to all pages
   const totalPages = doc.internal.pages.length - 1
+  const preparedBy = quotationData.preparedBy?.firstName && quotationData.preparedBy?.lastName 
+    ? `${quotationData.preparedBy.firstName} ${quotationData.preparedBy.lastName}`
+    : quotationData.preparedBy?.name || null
+  
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i)
-    await addCompanyFooter(doc, i, totalPages)
+    await addCompanyFooter(doc, i, totalPages, preparedBy)
   }
 
   return Buffer.from(doc.output('arraybuffer'))
