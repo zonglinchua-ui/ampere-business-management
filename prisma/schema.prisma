@@ -2149,6 +2149,10 @@ enum XeroSyncEntityType {
   CONTACT
   INVOICE
   PAYMENT
+  BILL
+  ITEM
+  ACCOUNT
+  OTHER
 }
 
 enum XeroSyncDirection {
@@ -2368,5 +2372,39 @@ enum ProgressClaimStatus {
   REJECTED
   INVOICED
   CANCELLED
+}
+
+
+
+// Xero Sync Error Logging
+model XeroSyncLog {
+  id              String              @id @default(cuid())
+  syncType        XeroSyncEntityType
+  status          XeroSyncLogStatus
+  entityId        String?
+  entityName      String?
+  xeroId          String?
+  errorMessage    String?
+  errorDetails    Json?
+  attemptCount    Int                 @default(1)
+  lastAttemptAt   DateTime            @default(now())
+  resolvedAt      DateTime?
+  resolvedBy      String?
+  notes           String?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  @@index([syncType])
+  @@index([status])
+  @@index([createdAt])
+  @@index([entityId])
+  @@index([xeroId])
+}
+
+enum XeroSyncLogStatus {
+  SUCCESS
+  FAILED
+  SKIPPED
+  PARTIAL
 }
 
