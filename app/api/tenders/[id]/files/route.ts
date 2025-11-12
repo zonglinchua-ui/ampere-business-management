@@ -112,6 +112,7 @@ export async function POST(
     const tenderId = params.id
     const formData = await request.formData()
     const file = formData.get('file') as File
+    const relativePath = formData.get('relativePath') as string | null
     
     if (!file) {
       return NextResponse.json(
@@ -120,8 +121,17 @@ export async function POST(
       )
     }
 
-    const folderPath = await getTenderFolderPath(tenderId)
-    const filePath = join(folderPath, file.name)
+    const baseFolderPath = await getTenderFolderPath(tenderId)
+    
+    // Use relative path if provided, otherwise just the filename
+    const fileRelativePath = relativePath || file.name
+    const filePath = join(baseFolderPath, fileRelativePath)
+    
+    // Create subdirectories if they don't exist
+    const fileDir = join(baseFolderPath, ...fileRelativePath.split('/').slice(0, -1))
+    if (!existsSync(fileDir)) {
+      mkdirSync(fileDir, { recursive: true })
+    }
 
     // Check if file already exists
     if (existsSync(filePath)) {
@@ -138,7 +148,7 @@ export async function POST(
 
     return NextResponse.json({
       message: 'File uploaded successfully',
-      filename: file.name,
+      filename: fileRelativePath,
     })
   } catch (error) {
     console.error('Error in POST /api/tenders/[id]/files:', error)
