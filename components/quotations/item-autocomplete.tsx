@@ -23,6 +23,7 @@ interface ItemAutocompleteProps {
   onChange: (value: string) => void
   placeholder?: string
   className?: string
+  onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void
 }
 
 export function ItemAutocomplete({ 
@@ -30,7 +31,8 @@ export function ItemAutocomplete({
   onSelect, 
   onChange, 
   placeholder = "Type to search items...",
-  className 
+  className,
+  onKeyDown
 }: ItemAutocompleteProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -139,6 +141,7 @@ export function ItemAutocomplete({
               setOpen(true)
             }
           }}
+          onKeyDown={onKeyDown}
           placeholder={placeholder}
           className={`pr-10 ${className || ""}`}
           autoComplete="off"
