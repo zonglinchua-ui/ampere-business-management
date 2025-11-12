@@ -61,8 +61,23 @@ async function geocode(address: string) {
 
   if (data.status === 'REQUEST_DENIED') {
     console.error('[Server Geocoding] Request denied:', data.error_message)
+    console.error('[Server Geocoding] This usually means:')
+    console.error('  1. The Geocoding API is not enabled in Google Cloud Console')
+    console.error('  2. The API key has incorrect restrictions (IP/HTTP referer)')
+    console.error('  3. The API key is invalid or expired')
+    console.error('[Server Geocoding] API key (first 20 chars):', apiKey.substring(0, 20) + '...')
     return NextResponse.json(
-      { error: `Google Maps API access denied: ${data.error_message || 'Unknown reason'}` },
+      { 
+        error: `Google Maps API access denied: ${data.error_message || 'Unknown reason'}`,
+        troubleshooting: {
+          possibleCauses: [
+            'Geocoding API not enabled in Google Cloud Console',
+            'API key has incorrect restrictions',
+            'API key is invalid or expired'
+          ],
+          instructions: 'Please enable the Geocoding API in Google Cloud Console and check API key restrictions'
+        }
+      },
       { status: 403 }
     )
   }
