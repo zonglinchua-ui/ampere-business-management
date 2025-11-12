@@ -346,7 +346,19 @@ export function ProjectsClient() {
       if (data.address && data.address.trim() !== '') {
         try {
           toast.info("Geocoding address...", { duration: 2000 })
-          const geocodeResult = await geocodeAddressWithRetry(data.address)
+          
+          // Build full address with city and country for better geocoding accuracy
+          const addressParts = [
+            data.address,
+            data.city,
+            data.postalCode,
+            data.country || 'Singapore' // Default to Singapore if not specified
+          ].filter(Boolean) // Remove null/undefined/empty values
+          
+          const fullAddress = addressParts.join(', ')
+          console.log("[Project Form] Geocoding full address:", fullAddress)
+          
+          const geocodeResult = await geocodeAddressWithRetry(fullAddress)
           
           if (geocodeResult) {
             latitude = geocodeResult.latitude
