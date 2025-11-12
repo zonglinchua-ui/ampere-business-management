@@ -710,8 +710,8 @@ export async function generateQuotationPDF(quotationData: any): Promise<Buffer> 
       5: { cellWidth: 30, halign: 'center' }
     },
     didDrawCell: (data) => {
-      if (data.column.index === 1 && data.cell.raw) {
-        const rawText = data.cell.raw as string
+      if (data.column.index === 1 && data.cell.raw && typeof data.cell.raw === 'string') {
+        const rawText = data.cell.raw
         const [description, ...notes] = rawText.split('\n')
 
         // Clear the cell content that was automatically drawn
