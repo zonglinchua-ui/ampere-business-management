@@ -59,7 +59,7 @@ async function getCachedStatus(userRole: string, canManage: boolean) {
   
   try {
     // Check if we have stored tokens
-    const tokens = await XeroOAuthService.getStoredTokens()
+    let tokens = await XeroOAuthService.getStoredTokens()
 
     if (!tokens) {
       const result = {
