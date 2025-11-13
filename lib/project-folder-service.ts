@@ -133,9 +133,13 @@ export async function createProjectFolders(
       }
     }
 
+    // Ensure projects directory exists first
+    const projectsDir = path.join(nasBasePath, 'projects')
+    await ensureDirectoryExists(projectsDir)
+
     // Generate project folder name
     const projectFolderName = generateProjectFolderName(projectNumber, projectName)
-    const projectBasePath = path.join(nasBasePath, 'projects', projectFolderName)
+    const projectBasePath = path.join(projectsDir, projectFolderName)
 
     console.log(`[Project Folders] Creating folder structure for: ${projectFolderName}`)
     console.log(`[Project Folders] Base path: ${projectBasePath}`)
