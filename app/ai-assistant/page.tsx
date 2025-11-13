@@ -479,14 +479,10 @@ export default function AIAssistantPage() {
 
         {/* Main Content */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="chat" className="flex items-center space-x-2">
               <MessageSquare className="h-4 w-4" />
               <span>AI Chat</span>
-            </TabsTrigger>
-            <TabsTrigger value="documents" className="flex items-center space-x-2">
-              <FileSearch className="h-4 w-4" />
-              <span>Document Manager</span>
             </TabsTrigger>
             <TabsTrigger value="analytics" className="flex items-center space-x-2">
               <BrainCircuit className="h-4 w-4" />
@@ -655,8 +651,8 @@ export default function AIAssistantPage() {
             </div>
           </TabsContent>
 
-          {/* Document Manager Tab */}
-          <TabsContent value="documents" className="space-y-4">
+          {/* Document Manager Tab - REMOVED */}
+          {/* <TabsContent value="documents" className="space-y-4">
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
               {/* Upload Area */}
               <div className="lg:col-span-4">
@@ -865,7 +861,7 @@ export default function AIAssistantPage() {
                 </Card>
               </div>
             </div>
-          </TabsContent>
+          </TabsContent> */}
 
           {/* AI Analytics Tab */}
           <TabsContent value="analytics" className="space-y-4">

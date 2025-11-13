@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * Document Processor Component
+ * Document Processor Component with Drag & Drop
  * 
  * Handles AI-powered document processing for:
  * - Purchase Orders (PO) → Create Projects
@@ -9,7 +9,7 @@
  * - Progress Claims → Prepare Invoices
  */
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -32,7 +32,8 @@ import {
   FileSearch,
   Building2,
   Receipt,
-  FileBarChart
+  FileBarChart,
+  X
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
@@ -55,10 +56,57 @@ export function DocumentProcessor() {
   const [documentId, setDocumentId] = useState<string | null>(null)
   const [selectedProject, setSelectedProject] = useState<string>('')
   const [projects, setProjects] = useState<any[]>([])
+  const [dragActive, setDragActive] = useState(false)
+
+  const handleDrag = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true)
+    } else if (e.type === "dragleave") {
+      setDragActive(false)
+    }
+  }, [])
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDragActive(false)
+    
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const file = e.dataTransfer.files[0]
+      
+      // Validate file type
+      const validTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
+      if (!validTypes.includes(file.type)) {
+        toast.error('Invalid file type. Please upload PDF, image, or DOCX files.')
+        return
+      }
+      
+      // Validate file size (10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error('File size exceeds 10MB limit.')
+        return
+      }
+      
+      setSelectedFile(file)
+      setExtractedData(null)
+      setDocumentId(null)
+      toast.success(`File selected: ${file.name}`)
+    }
+  }, [])
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setSelectedFile(e.target.files[0])
+      const file = e.target.files[0]
+      
+      // Validate file size (10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error('File size exceeds 10MB limit.')
+        return
+      }
+      
+      setSelectedFile(file)
       setExtractedData(null)
       setDocumentId(null)
     }
@@ -247,9 +295,15 @@ export function DocumentProcessor() {
     }
   }
 
+  const clearFile = () => {
+    setSelectedFile(null)
+    setExtractedData(null)
+    setDocumentId(null)
+  }
+
   return (
     <div className="space-y-6">
-      {/* Document Type Selection */}
+      {/* Document Type Selection & Drag-Drop Upload */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -260,7 +314,8 @@ export function DocumentProcessor() {
             Upload a document and let AI extract the information automatically
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-6">
+          {/* Document Type Selection */}
           <div className="space-y-2">
             <Label>Document Type</Label>
             <Select value={documentType} onValueChange={(value) => setDocumentType(value as DocumentType)}>
@@ -290,37 +345,89 @@ export function DocumentProcessor() {
             </Select>
           </div>
 
-          <div className="space-y-2">
-            <Label>Upload Document</Label>
-            <div className="flex items-center gap-2">
-              <Input
-                type="file"
-                accept=".pdf,.png,.jpg,.jpeg,.docx"
-                onChange={handleFileSelect}
-                disabled={isProcessing}
-              />
-              <Button
-                onClick={handleUploadAndExtract}
-                disabled={!selectedFile || isProcessing}
-              >
-                {isProcessing ? (
-                  <>
-                    <Loader className="mr-2 h-4 w-4 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    <Upload className="mr-2 h-4 w-4" />
-                    Upload & Extract
-                  </>
-                )}
-              </Button>
+          {/* Drag & Drop Upload Area */}
+          <div
+            className={`border-2 border-dashed rounded-lg p-8 transition-colors ${
+              dragActive 
+                ? 'border-blue-500 bg-blue-50' 
+                : selectedFile 
+                ? 'border-green-500 bg-green-50' 
+                : 'border-gray-300 hover:border-gray-400'
+            }`}
+            onDragEnter={handleDrag}
+            onDragLeave={handleDrag}
+            onDragOver={handleDrag}
+            onDrop={handleDrop}
+          >
+            <div className="flex flex-col items-center justify-center text-center">
+              {selectedFile ? (
+                <>
+                  <FileText className="h-12 w-12 text-green-500 mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    File Selected
+                  </h3>
+                  <div className="flex items-center gap-2 mb-4">
+                    <p className="text-gray-600">
+                      {selectedFile.name} ({(selectedFile.size / 1024).toFixed(2)} KB)
+                    </p>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={clearFile}
+                      disabled={isProcessing}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <Button
+                    onClick={handleUploadAndExtract}
+                    disabled={isProcessing}
+                    size="lg"
+                  >
+                    {isProcessing ? (
+                      <>
+                        <Loader className="mr-2 h-5 w-5 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="mr-2 h-5 w-5" />
+                        Upload & Extract Data
+                      </>
+                    )}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Upload className={`h-12 w-12 mb-4 ${
+                    dragActive ? 'text-blue-500' : 'text-gray-400'
+                  }`} />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    {dragActive ? 'Drop file here' : 'Drag & drop your document'}
+                  </h3>
+                  <p className="text-gray-500 mb-4">
+                    or click to browse files
+                  </p>
+                  <input
+                    type="file"
+                    accept=".pdf,.png,.jpg,.jpeg,.docx"
+                    onChange={handleFileSelect}
+                    disabled={isProcessing}
+                    className="hidden"
+                    id="file-input"
+                  />
+                  <label htmlFor="file-input">
+                    <Button variant="outline" className="cursor-pointer" disabled={isProcessing}>
+                      <FileText className="mr-2 h-4 w-4" />
+                      Choose File
+                    </Button>
+                  </label>
+                  <p className="text-sm text-gray-400 mt-4">
+                    Supported: PDF, PNG, JPG, DOCX (Max 10MB)
+                  </p>
+                </>
+              )}
             </div>
-            {selectedFile && (
-              <p className="text-sm text-muted-foreground">
-                Selected: {selectedFile.name} ({(selectedFile.size / 1024).toFixed(2)} KB)
-              </p>
-            )}
           </div>
         </CardContent>
       </Card>
@@ -473,7 +580,7 @@ export function DocumentProcessor() {
               </div>
             )}
 
-            <div className="flex justify-end gap-2 pt-4">
+            <div className="flex justify-end gap-2 pt-4 border-t">
               <Button variant="outline" onClick={() => {
                 setExtractedData(null)
                 setSelectedFile(null)
