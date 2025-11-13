@@ -20,6 +20,7 @@ export interface ProjectFolderStructure {
  *   ├── OMM/
  *   ├── BCA forms/
  *   ├── documents/
+ *   ├── Drawings/
  *   ├── invoices & quotations from suppliers/
  *   ├── VOs/
  *   ├── POs from customer/
@@ -29,6 +30,7 @@ const STANDARD_FOLDERS = [
   'OMM',
   'BCA forms',
   'documents',
+  'Drawings',
   'invoices & quotations from suppliers',
   'VOs',
   'POs from customer',
@@ -160,6 +162,7 @@ Folder Structure:
 - OMM: Operation & Maintenance Manuals
 - BCA forms: Building and Construction Authority forms
 - documents: General project documents
+- Drawings: Project drawings, blueprints, and technical diagrams
 - invoices & quotations from suppliers: Supplier invoices and quotations
 - VOs: Variation Orders
 - POs from customer: Purchase Orders from customer
@@ -231,7 +234,7 @@ export async function projectFoldersExist(
 
 /**
  * Get project subfolder path
- * @param folderType - One of: 'OMM', 'BCA forms', 'documents', 'invoices & quotations from suppliers', 'VOs', 'POs from customer', 'POs to suppliers'
+ * @param folderType - One of: 'OMM', 'BCA forms', 'documents', 'Drawings', 'invoices & quotations from suppliers', 'VOs', 'POs from customer', 'POs to suppliers'
  */
 export async function getProjectSubfolderPath(
   projectNumber: string,
