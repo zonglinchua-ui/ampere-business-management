@@ -78,22 +78,57 @@ async function getCachedStatus(userRole: string, canManage: boolean) {
       return { ...result, user: { role: userRole, canManage } }
     }
 
-    // Check token expiry before making API call
-    if (tokens.expiresAt <= new Date()) {
-      const result = {
-        connected: false,
-        message: 'Token expired',
-        reason: 'Access token has expired, please reconnect',
-        tokenExpired: true
-      }
+    // Check token expiry and auto-refresh if needed
+    const tokenExpiryTime = tokens.expiresAt.getTime()
+    const currentTime = Date.now()
+    const timeUntilExpiry = tokenExpiryTime - currentTime
+    const REFRESH_THRESHOLD = 20 * 60 * 1000 // 20 minutes
+
+    // If token expired or expiring soon, try to refresh it
+    if (timeUntilExpiry <= REFRESH_THRESHOLD) {
+      console.log(`[Xero Status] Token expiring in ${Math.round(timeUntilExpiry / 60000)} minutes, attempting refresh...`)
       
-      statusCache = {
-        data: result,
-        timestamp: now,
-        expires: now + 60000 // Cache for 1 minute
+      try {
+        const oauthService = new XeroOAuthService()
+        const refreshed = await oauthService.refreshAccessToken()
+        
+        if (refreshed) {
+          console.log('[Xero Status] ✅ Token refreshed successfully')
+          // Continue with the refreshed token
+        } else {
+          console.log('[Xero Status] ❌ Token refresh failed')
+          const result = {
+            connected: false,
+            message: 'Token expired and refresh failed',
+            reason: 'Access token has expired and could not be refreshed. Please reconnect.',
+            tokenExpired: true
+          }
+          
+          statusCache = {
+            data: result,
+            timestamp: now,
+            expires: now + 60000 // Cache for 1 minute
+          }
+          
+          return { ...result, user: { role: userRole, canManage } }
+        }
+      } catch (refreshError: any) {
+        console.error('[Xero Status] Token refresh error:', refreshError)
+        const result = {
+          connected: false,
+          message: 'Token refresh failed',
+          reason: refreshError.message || 'Could not refresh access token. Please reconnect.',
+          tokenExpired: true
+        }
+        
+        statusCache = {
+          data: result,
+          timestamp: now,
+          expires: now + 60000
+        }
+        
+        return { ...result, user: { role: userRole, canManage } }
       }
-      
-      return { ...result, user: { role: userRole, canManage } }
     }
 
     // Test connection with Xero API
