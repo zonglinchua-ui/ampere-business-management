@@ -24,6 +24,15 @@ export async function proactivelyRefreshXeroTokens(): Promise<TokenRefreshResult
   try {
     console.log('\n🔍 [Token Refresh Service] Checking Xero token status...')
     
+    // Check if Xero is configured
+    if (!process.env.XERO_CLIENT_ID || !process.env.XERO_CLIENT_SECRET) {
+      console.log('ℹ️ [Token Refresh Service] Xero is not configured, skipping token refresh')
+      return {
+        success: true,
+        message: 'Xero not configured'
+      }
+    }
+    
     // Get active Xero integration
     const integration = await prisma.xeroIntegration.findFirst({
       where: { isActive: true },

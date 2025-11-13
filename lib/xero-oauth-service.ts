@@ -33,11 +33,17 @@ export class XeroOAuthService {
 
   constructor(userId?: string) {
     // Initialize Xero client with credentials from environment
+    // Use defaults if credentials are not set (allows app to run without Xero)
+    const clientId = process.env.XERO_CLIENT_ID || 'not-configured'
+    const clientSecret = process.env.XERO_CLIENT_SECRET || 'not-configured'
+    const redirectUri = process.env.XERO_REDIRECT_URI || 'http://localhost:3000/api/xero/callback'
+    const scopes = (process.env.XERO_SCOPES || 'offline_access').split(' ')
+    
     this.xeroClient = new XeroClient({
-      clientId: process.env.XERO_CLIENT_ID!,
-      clientSecret: process.env.XERO_CLIENT_SECRET!,
-      redirectUris: [process.env.XERO_REDIRECT_URI!],
-      scopes: process.env.XERO_SCOPES!.split(' '),
+      clientId,
+      clientSecret,
+      redirectUris: [redirectUri],
+      scopes,
     })
     this.userId = userId
   }
