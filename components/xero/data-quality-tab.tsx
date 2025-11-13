@@ -39,6 +39,7 @@ interface DuplicateGroup {
   }>
   similarityScore: number
   suggestedMerge: string
+  matchReasons?: string[]
 }
 
 export function DataQualityTab() {
@@ -271,14 +272,21 @@ export function DataQualityTab() {
                       key={group.id}
                       className="border rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-800"
                     >
-                      <div className="flex items-center gap-2 mb-3">
-                        <AlertTriangle className="h-5 w-5 text-orange-600" />
-                        <span className="font-medium">
-                          {group.contacts.length} similar contacts
-                        </span>
-                        <Badge variant="secondary">
-                          {(group.similarityScore * 100).toFixed(0)}% match
-                        </Badge>
+                      <div className="mb-3">
+                        <div className="flex items-center gap-2 mb-2">
+                          <AlertTriangle className="h-5 w-5 text-orange-600" />
+                          <span className="font-medium">
+                            {group.contacts.length} similar contacts
+                          </span>
+                          <Badge variant="secondary">
+                            {(group.similarityScore * 100).toFixed(0)}% match
+                          </Badge>
+                        </div>
+                        {group.matchReasons && group.matchReasons.length > 0 && (
+                          <div className="text-sm text-gray-600 dark:text-gray-400 ml-7">
+                            <span className="font-medium">Match reasons:</span> {group.matchReasons.join(', ')}
+                          </div>
+                        )}
                       </div>
                       <div className="space-y-2">
                         {group.contacts.map((contact) => (

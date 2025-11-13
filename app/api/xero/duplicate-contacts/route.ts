@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { detectDuplicateContacts, getDuplicateStats } from '@/lib/duplicate-contact-detector'
+import { detectDuplicateContactsEnhanced, getDuplicateStatsEnhanced } from '@/lib/duplicate-contact-detector-enhanced'
 
 /**
  * GET /api/xero/duplicate-contacts
@@ -31,15 +31,15 @@ export async function GET(request: Request) {
 
     if (statsOnly) {
       // Return statistics only (faster)
-      const stats = await getDuplicateStats()
+      const stats = await getDuplicateStatsEnhanced()
       return NextResponse.json({
         success: true,
         stats,
       })
     }
 
-    // Full scan with duplicate groups
-    const duplicates = await detectDuplicateContacts(threshold)
+    // Full scan with duplicate groups using AI-enhanced detection
+    const duplicates = await detectDuplicateContactsEnhanced(threshold)
 
     return NextResponse.json({
       success: true,
