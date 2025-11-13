@@ -90,10 +90,12 @@ async function getCachedStatus(userRole: string, canManage: boolean) {
       
       try {
         const oauthService = new XeroOAuthService()
-        const refreshed = await oauthService.refreshAccessToken()
+        const refreshed = await oauthService.refreshAccessToken(tokens.refreshToken, tokens.tenantId)
         
         if (refreshed) {
           console.log('[Xero Status] ✅ Token refreshed successfully')
+          // Update tokens reference with refreshed tokens
+          tokens = refreshed
           // Continue with the refreshed token
         } else {
           console.log('[Xero Status] ❌ Token refresh failed')

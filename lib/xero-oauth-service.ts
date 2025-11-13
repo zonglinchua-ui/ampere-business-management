@@ -265,11 +265,22 @@ export class XeroOAuthService {
     } catch (error: any) {
       console.error('❌ Token refresh failed:', error.message)
       
-      // Mark integration as inactive if refresh fails
-      await prisma.xeroIntegration.updateMany({
-        where: { tenantId },
-        data: { isActive: false }
-      })
+      // Only mark as inactive if it's a permanent error (not temporary network issues)
+      const isPermanentError = 
+        error.message?.includes('invalid_grant') ||
+        error.message?.includes('unauthorized_client') ||
+        error.message?.includes('invalid_client')
+      
+      if (isPermanentError) {
+        console.error('❌ Permanent OAuth error detected, marking integration as inactive')
+        await prisma.xeroIntegration.updateMany({
+          where: { tenantId },
+          data: { isActive: false }
+        })
+      } else {
+        console.warn('⚠️ Temporary refresh error, keeping integration active for retry')
+        // Don't deactivate - let it retry on next attempt
+      }
 
       return null
     }
