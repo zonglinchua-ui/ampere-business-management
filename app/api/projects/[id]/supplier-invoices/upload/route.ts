@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
-import { uploadFile } from '@/lib/s3'
+import { uploadSupplierInvoice } from '@/lib/nas-file-storage'
 import { v4 as uuidv4 } from 'uuid'
 
 // POST /api/projects/[id]/supplier-invoices/upload - Upload supplier invoice
@@ -90,24 +90,29 @@ export async function POST(
       }
     }
 
-    // Upload file to S3
-    console.log('Starting file upload to S3...')
+    // Upload file to NAS
+    console.log('Starting file upload to NAS...')
     console.log('File details:', {
       name: file.name,
       size: file.size,
       type: file.type
     })
     
-    let s3Key: string
+    let nasPath: string
     try {
       const buffer = Buffer.from(await file.arrayBuffer())
-      const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`
-      console.log('Uploading file:', fileName, 'Size:', buffer.length, 'bytes')
-      s3Key = await uploadFile(buffer, fileName)
-      console.log('File uploaded successfully to S3:', s3Key)
-    } catch (s3Error) {
-      console.error('S3 upload failed:', s3Error)
-      throw new Error(`Failed to upload file to S3: ${s3Error instanceof Error ? s3Error.message : 'Unknown error'}`)
+      console.log('Uploading file:', file.name, 'Size:', buffer.length, 'bytes')
+      nasPath = await uploadSupplierInvoice(
+        buffer,
+        file.name,
+        project.id,
+        project.projectNumber,
+        project.name
+      )
+      console.log('File uploaded successfully to NAS:', nasPath)
+    } catch (nasError) {
+      console.error('NAS upload failed:', nasError)
+      throw new Error(`Failed to upload file to NAS: ${nasError instanceof Error ? nasError.message : 'Unknown error'}`)
     }
 
     // Use provided invoice number or generate one
@@ -195,7 +200,7 @@ export async function POST(
           receivedDate: new Date(),
           description: `Uploaded invoice: ${file.name}${wasAutoExtracted ? ' (AI-extracted)' : ''}`,
           notes: notes || null,
-          documentPath: s3Key,
+          documentPath: nasPath,
           createdById: session.user.id,
           updatedAt: new Date()
         }
@@ -320,7 +325,7 @@ export async function POST(
             supplier: supplier.name,
             project: project.name,
             budgetCategory: validatedBudgetCategoryId,
-            documentPath: s3Key,
+            documentPath: nasPath,
             wasAutoExtracted,
             extractionConfidence: extractionConfidence || null
           },
@@ -343,7 +348,7 @@ export async function POST(
         taxAmount: parsedTaxAmount,
         totalAmount: parsedTotalAmount,
         budgetCategoryId: validatedBudgetCategoryId,
-        documentPath: s3Key
+        documentPath: nasPath
       }
     })
 
