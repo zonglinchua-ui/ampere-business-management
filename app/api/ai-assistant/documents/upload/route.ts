@@ -3,8 +3,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { uploadFile } from '@/lib/s3'
 import { v4 as uuidv4 } from 'uuid'
+import { promises as fs } from 'fs'
+import path from 'path'
+import { getNASPath } from '@/lib/nas-storage'
 
 
 export async function POST(request: NextRequest) {
@@ -50,22 +52,43 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'File type not supported' }, { status: 400 })
     }
 
-    // Convert file to buffer and upload to S3
+    // Get NAS base path
+    const nasBasePath = await getNASPath()
+    if (!nasBasePath) {
+      return NextResponse.json({ error: 'NAS path not configured' }, { status: 500 })
+    }
+
+    // Create PROCESSED DOCUMENT folder structure
+    const processedDocPath = path.join(nasBasePath, 'PROCESSED DOCUMENT')
+    await fs.mkdir(processedDocPath, { recursive: true })
+
+    // Generate unique filename with timestamp
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+    const fileExt = path.extname(file.name)
+    const fileBaseName = path.basename(file.name, fileExt)
+    const uniqueFileName = `${timestamp}_${fileBaseName}${fileExt}`
+    const filePath = path.join(processedDocPath, uniqueFileName)
+
+    // Convert file to buffer and save to NAS
     const buffer = Buffer.from(await file.arrayBuffer())
-    const cloudStoragePath = await uploadFile(buffer, file.name)
+    await fs.writeFile(filePath, buffer)
+
+    console.log(`[AI Document Upload] ✅ File saved to NAS: ${filePath}`)
 
     // Save document record to database
     const document = await prisma.document.create({
       data: {
         id: uuidv4(),
-        filename: file.name,
+        filename: uniqueFileName,
         originalName: file.name,
         mimetype: file.type,
         size: file.size,
-        cloudStoragePath: cloudStoragePath,
-        uploadedById: session.user?.id || '',
-        category: 'GENERAL',
+        cloudStoragePath: filePath, // Store NAS path instead of S3 path
         description: 'AI Assistant uploaded document',
+        category: 'GENERAL',
+        uploadedById: session.user?.id || '',
+        isActive: true,
+        createdAt: new Date(),
         updatedAt: new Date()
       }
     })
@@ -73,16 +96,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       document: {
         id: document.id,
-        filename: file.name,
-        cloudStoragePath: cloudStoragePath,
+        filename: uniqueFileName,
+        originalName: file.name,
+        cloudStoragePath: filePath,
         uploadedAt: document.createdAt.toISOString()
       }
     })
 
   } catch (error: any) {
-    console.error('Document upload error:', error)
-    console.error('Error stack:', error.stack)
-    console.error('Error message:', error.message)
+    console.error('[AI Document Upload] ❌ Error:', error)
+    console.error('[AI Document Upload] Error stack:', error.stack)
+    console.error('[AI Document Upload] Error message:', error.message)
     return NextResponse.json(
       { 
         error: 'Failed to upload document',
