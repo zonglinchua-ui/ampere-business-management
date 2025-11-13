@@ -46,6 +46,11 @@ export async function GET(request: NextRequest) {
     console.log('🔐 Generating Xero authorization URL for user:', user.email)
     console.log('   User role:', userRole)
 
+    // Get return URL from query parameter (where to redirect after OAuth)
+    const { searchParams } = new URL(request.url)
+    const returnUrl = searchParams.get('returnUrl') || '/finance'
+    console.log('   Return URL:', returnUrl)
+
     // Validate environment configuration
     if (!process.env.XERO_CLIENT_ID) {
       console.error('❌ XERO_CLIENT_ID not configured')
@@ -69,9 +74,9 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Create enhanced OAuth service and generate authorization URL
+    // Create enhanced OAuth service and generate authorization URL with return URL
     const oauthService = new EnhancedXeroOAuthService(user.id)
-    const authUrl = await oauthService.getAuthorizationUrl()
+    const authUrl = await oauthService.getAuthorizationUrl(returnUrl)
 
     console.log('✅ Authorization URL generated successfully')
     console.log('   URL domain:', new URL(authUrl).hostname)

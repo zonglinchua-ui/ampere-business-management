@@ -223,7 +223,11 @@ export function EnhancedXeroIntegration() {
     
     setAuthLoading(true)
     try {
-      const response = await fetch('/api/xero/authorize', {
+      // Get current page path to return to after OAuth
+      const returnUrl = window.location.pathname
+      console.log('[Xero Connect] Return URL:', returnUrl)
+      
+      const response = await fetch(`/api/xero/authorize?returnUrl=${encodeURIComponent(returnUrl)}`, {
         headers: {
           'Cache-Control': 'no-cache'
         }

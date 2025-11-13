@@ -79,19 +79,34 @@ export async function GET(request: NextRequest) {
     const oauthService = new EnhancedXeroOAuthService(userId)
     const result = await oauthService.handleCallback(code)
 
+    // Decode state to get return URL
+    let returnUrl = '/finance' // Default fallback
+    if (state) {
+      try {
+        const decoded = JSON.parse(Buffer.from(state, 'base64').toString('utf-8'))
+        if (decoded.returnUrl) {
+          returnUrl = decoded.returnUrl
+          console.log('   Return URL from state:', returnUrl)
+        }
+      } catch (e) {
+        console.warn('⚠️ Failed to decode state, using default return URL')
+      }
+    }
+
     if (result.success) {
       console.log('✅ Enhanced OAuth callback successful')
       console.log('   Connected to:', result.tenantName)
       console.log('   Tenant ID:', result.tenantId)
+      console.log('   Redirecting to:', returnUrl)
       
       const message = encodeURIComponent(
         `Successfully connected to ${result.tenantName || 'Xero'}! You can now sync your financial data.`
       )
-      return NextResponse.redirect(`${baseUrl}/finance?xero=success&message=${message}`)
+      return NextResponse.redirect(`${baseUrl}${returnUrl}?xero=success&message=${message}`)
     } else {
       console.error('❌ Enhanced OAuth callback failed:', result.error)
       const message = encodeURIComponent(result.error || 'Connection failed')
-      return NextResponse.redirect(`${baseUrl}/finance?xero=error&message=${message}`)
+      return NextResponse.redirect(`${baseUrl}${returnUrl}?xero=error&message=${message}`)
     }
 
   } catch (error: any) {

@@ -77,19 +77,24 @@ export class EnhancedXeroOAuthService {
 
   /**
    * Generate authorization URL with proper error handling
+   * @param returnUrl - Optional URL to return to after OAuth (defaults to /finance)
    */
-  async getAuthorizationUrl(): Promise<string> {
+  async getAuthorizationUrl(returnUrl?: string): Promise<string> {
     try {
       console.log('🔗 Generating Xero authorization URL...')
+      console.log('   Return URL:', returnUrl || '/finance (default)')
       
       // Validate configuration before generating URL
       if (!process.env.XERO_CLIENT_ID || !process.env.XERO_CLIENT_SECRET) {
         throw new Error('Missing Xero client credentials')
       }
 
-      const consentUrl = await this.xeroClient.buildConsentUrl()
+      // Build consent URL with state containing return URL
+      const state = returnUrl ? Buffer.from(JSON.stringify({ returnUrl })).toString('base64') : undefined
+      const consentUrl = await this.xeroClient.buildConsentUrl(state)
       console.log('✅ Generated Xero authorization URL successfully')
       console.log('   URL length:', consentUrl.length)
+      console.log('   State included:', !!state)
       
       return consentUrl
     } catch (error: any) {
