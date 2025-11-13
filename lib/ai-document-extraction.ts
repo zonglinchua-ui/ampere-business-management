@@ -353,29 +353,96 @@ ${prompt}`
     throw new Error('File type not supported for AI analysis')
   }
 
-  // Call the LLM API for analysis
-  const response = await fetch('https://apps.abacus.ai/v1/chat/completions', {
-    method: 'POST',
-    headers: {
+  // Determine LLM provider from environment
+  const llmProvider = process.env.LLM_PROVIDER || 'abacusai' // Options: 'abacusai', 'ollama', 'openai'
+  const ollamaBaseUrl = process.env.OLLAMA_BASE_URL || 'http://localhost:11434'
+  const ollamaModel = process.env.OLLAMA_MODEL || 'llama3.1:8b'
+  
+  let apiUrl: string
+  let headers: Record<string, string>
+  let requestBody: any
+
+  if (llmProvider === 'ollama') {
+    // Ollama configuration
+    apiUrl = `${ollamaBaseUrl}/api/chat`
+    headers = {
+      'Content-Type': 'application/json'
+    }
+    
+    // Ollama uses a different format - convert messages to simple text for now
+    let textPrompt = ''
+    if (Array.isArray(messages[0].content)) {
+      // Extract text from structured content
+      for (const item of messages[0].content) {
+        if (item.type === 'text') {
+          textPrompt += item.text + '\n'
+        }
+      }
+    } else {
+      textPrompt = messages[0].content
+    }
+    
+    requestBody = {
+      model: ollamaModel,
+      messages: [{
+        role: 'user',
+        content: textPrompt
+      }],
+      stream: false,
+      format: 'json',
+      options: {
+        temperature: 0.1,
+        num_predict: 4000
+      }
+    }
+  } else {
+    // AbacusAI or OpenAI configuration
+    apiUrl = llmProvider === 'openai' 
+      ? 'https://api.openai.com/v1/chat/completions'
+      : 'https://apps.abacus.ai/v1/chat/completions'
+    
+    const apiKey = llmProvider === 'openai'
+      ? process.env.OPENAI_API_KEY
+      : process.env.ABACUSAI_API_KEY
+    
+    headers = {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${process.env.ABACUSAI_API_KEY}`
-    },
-    body: JSON.stringify({
-      model: 'gpt-4.1-mini',
+      'Authorization': `Bearer ${apiKey}`
+    }
+    
+    requestBody = {
+      model: llmProvider === 'openai' ? 'gpt-4o-mini' : 'gpt-4.1-mini',
       messages: messages,
       response_format: { type: "json_object" },
       max_tokens: 4000,
       temperature: 0.1
-    }),
+    }
+  }
+
+  // Call the LLM API for analysis
+  const response = await fetch(apiUrl, {
+    method: 'POST',
+    headers: headers,
+    body: JSON.stringify(requestBody),
   })
 
   if (!response.ok) {
     const errorText = await response.text()
-    throw new Error(`LLM API error: ${response.status} - ${errorText}`)
+    throw new Error(`LLM API error (${llmProvider}): ${response.status} - ${errorText}`)
   }
 
   const result = await response.json()
-  const analysis = JSON.parse(result.choices[0].message.content)
+  
+  // Parse response based on provider
+  let analysis: any
+  if (llmProvider === 'ollama') {
+    // Ollama response format
+    const content = result.message?.content || result.response
+    analysis = typeof content === 'string' ? JSON.parse(content) : content
+  } else {
+    // OpenAI/AbacusAI response format
+    analysis = JSON.parse(result.choices[0].message.content)
+  }
 
   return analysis
 }
