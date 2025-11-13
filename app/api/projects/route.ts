@@ -10,6 +10,7 @@ import {
   LegacyFormats 
 } from "@/lib/api-response"
 import { createAuditLog } from "@/lib/api-audit-context"
+import { createProjectFolders } from "@/lib/project-folder-service"
 
 // Function to generate project number
 async function generateProjectNumber(projectType: "REGULAR" | "MAINTENANCE") {
@@ -330,6 +331,19 @@ export async function POST(req: NextRequest) {
     })
 
     console.log("[POST /api/projects] Project created successfully:", projectData.id)
+
+    // Create NAS folder structure for the project (async, don't wait)
+    createProjectFolders(projectData.projectNumber, projectData.name)
+      .then(result => {
+        if (result.success) {
+          console.log(`[POST /api/projects] ✅ Project folders created: ${result.path}`)
+        } else {
+          console.warn(`[POST /api/projects] ⚠️ Project folder creation failed: ${result.error}`)
+        }
+      })
+      .catch(error => {
+        console.error('[POST /api/projects] ❌ Project folder creation error:', error)
+      })
 
     // Create audit log for dashboard Recent Activities
     await createAuditLog({
