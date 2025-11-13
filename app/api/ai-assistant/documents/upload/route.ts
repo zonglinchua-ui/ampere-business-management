@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { uploadFile } from '@/lib/s3'
+import { v4 as uuidv4 } from 'uuid'
 
 
 export async function POST(request: NextRequest) {
@@ -56,7 +57,7 @@ export async function POST(request: NextRequest) {
     // Save document record to database
     const document = await prisma.document.create({
       data: {
-        id: `doc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        id: uuidv4(),
         filename: file.name,
         originalName: file.name,
         mimetype: file.type,
