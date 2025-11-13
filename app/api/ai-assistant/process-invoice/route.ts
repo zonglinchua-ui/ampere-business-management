@@ -13,6 +13,7 @@ import { prisma } from '@/lib/db'
 import { getFileBuffer } from '@/lib/s3'
 import { extractInvoiceData } from '@/lib/ai-document-extraction'
 import { createAuditLog } from '@/lib/api-audit-context'
+import { v4 as uuidv4 } from 'uuid'
 
 export async function POST(request: NextRequest) {
   try {
@@ -59,13 +60,25 @@ export async function POST(request: NextRequest) {
           where: {
             OR: [
               { projectNumber: { contains: invoiceData.projectReference, mode: 'insensitive' } },
-              { poNumber: { contains: invoiceData.projectReference, mode: 'insensitive' } },
-              { name: { contains: invoiceData.projectReference, mode: 'insensitive' } }
+              { name: { contains: invoiceData.projectReference, mode: 'insensitive' } },
+              {
+                PurchaseOrder: {
+                  some: {
+                    poNumber: { contains: invoiceData.projectReference, mode: 'insensitive' }
+                  }
+                }
+              }
             ],
             isActive: true
           },
           include: {
-            Customer: true
+            Customer: true,
+            PurchaseOrder: {
+              where: {
+                poNumber: { contains: invoiceData.projectReference, mode: 'insensitive' }
+              },
+              take: 1
+            }
           }
         })
       }
@@ -84,9 +97,9 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Step 2: If createRecord flag is true, create the invoice record
+    // Step 2: If createRecord flag is true, create the supplier invoice record
     if (createRecord && invoiceData) {
-      console.log(`[Process Invoice] Creating invoice record: ${invoiceData.invoiceNumber}`)
+      console.log(`[Process Invoice] Creating supplier invoice record: ${invoiceData.invoiceNumber}`)
       
       // Verify project exists
       if (!projectId) {
@@ -102,8 +115,8 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Project not found' }, { status: 404 })
       }
 
-      // Find or create vendor
-      let vendor = await prisma.vendor.findFirst({
+      // Find or create supplier
+      let supplier = await prisma.supplier.findFirst({
         where: {
           name: {
             contains: invoiceData.vendor.name,
@@ -112,51 +125,98 @@ export async function POST(request: NextRequest) {
         }
       })
 
-      if (!vendor) {
-        console.log(`[Process Invoice] Creating new vendor: ${invoiceData.vendor.name}`)
-        vendor = await prisma.vendor.create({
+      if (!supplier) {
+        console.log(`[Process Invoice] Creating new supplier: ${invoiceData.vendor.name}`)
+        
+        // Generate supplier number
+        const lastSupplier = await prisma.supplier.findFirst({
+          orderBy: { createdAt: 'desc' },
+          select: { id: true }
+        })
+        const supplierCount = await prisma.supplier.count()
+        const supplierNumber = `SUP-${String(supplierCount + 1).padStart(5, '0')}`
+        
+        supplier = await prisma.supplier.create({
           data: {
-            vendorNumber: `V-${Date.now()}`,
+            id: uuidv4(),
             name: invoiceData.vendor.name,
-            email: invoiceData.vendor.email || '',
-            phone: invoiceData.vendor.phone || '',
-            address: invoiceData.vendor.address || '',
-            type: 'Supplier',
-            status: 'Active'
+            email: invoiceData.vendor.email || null,
+            phone: invoiceData.vendor.phone || null,
+            address: invoiceData.vendor.address || null,
+            supplierType: 'SUPPLIER',
+            paymentTerms: 'NET_30',
+            createdById: session.user.id,
+            createdAt: new Date(),
+            updatedAt: new Date()
           }
         })
       }
 
-      // Create expense record for the invoice
-      const expense = await prisma.expense.create({
+      // Create supplier invoice record
+      const supplierInvoice = await prisma.supplierInvoice.create({
         data: {
-          expenseNumber: `EXP-${Date.now()}`,
+          id: uuidv4(),
+          invoiceNumber: invoiceData.invoiceNumber,
+          supplierInvoiceRef: invoiceData.invoiceNumber,
+          supplierId: supplier.id,
           projectId: project.id,
-          vendorId: vendor.id,
-          description: `Invoice ${invoiceData.invoiceNumber} from ${invoiceData.vendor.name}`,
-          category: 'MATERIALS', // Default category
-          amount: invoiceData.totalAmount,
-          expenseDate: invoiceData.invoiceDate ? new Date(invoiceData.invoiceDate) : new Date(),
-          paymentStatus: 'PENDING',
-          paymentDueDate: invoiceData.dueDate ? new Date(invoiceData.dueDate) : null,
-          notes: invoiceData.paymentTerms || '',
-          receiptPath: documentId ? `Document ID: ${documentId}` : undefined
+          subtotal: invoiceData.subtotal || invoiceData.totalAmount,
+          taxAmount: invoiceData.taxAmount || 0,
+          totalAmount: invoiceData.totalAmount,
+          currency: 'SGD',
+          status: 'PENDING_PROJECT_APPROVAL',
+          invoiceDate: invoiceData.invoiceDate ? new Date(invoiceData.invoiceDate) : new Date(),
+          dueDate: invoiceData.dueDate ? new Date(invoiceData.dueDate) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          receivedDate: new Date(),
+          description: invoiceData.description || `Invoice from ${invoiceData.vendor.name}`,
+          notes: invoiceData.paymentTerms || null,
+          documentPath: documentId ? `Document ID: ${documentId}` : null,
+          createdById: session.user.id,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        },
+        include: {
+          Supplier: true,
+          Project: true
         }
       })
 
-      console.log(`[Process Invoice] Expense record created: ${expense.expenseNumber}`)
+      console.log(`[Process Invoice] Supplier invoice record created: ${supplierInvoice.invoiceNumber}`)
 
-      // Link document to project and expense
+      // Create invoice items if line items exist
+      if (invoiceData.lineItems && invoiceData.lineItems.length > 0) {
+        for (let i = 0; i < invoiceData.lineItems.length; i++) {
+          const item = invoiceData.lineItems[i]
+          await prisma.supplierInvoiceItem.create({
+            data: {
+              id: uuidv4(),
+              supplierInvoiceId: supplierInvoice.id,
+              description: item.description,
+              category: 'SERVICES',
+              quantity: item.quantity || 1,
+              unitPrice: item.unitPrice || 0,
+              subtotal: item.amount || 0,
+              taxAmount: 0,
+              totalPrice: item.amount || 0,
+              unit: 'pcs',
+              order: i
+            }
+          })
+        }
+      }
+
+      // Link document to project and supplier invoice
       if (documentId) {
         await prisma.document.update({
           where: { id: documentId },
           data: {
             projectId: project.id,
+            supplierInvoiceId: supplierInvoice.id,
             category: 'INVOICE',
             description: `Invoice ${invoiceData.invoiceNumber} from ${invoiceData.vendor.name}`
           }
         })
-        console.log(`[Process Invoice] Document linked to project`)
+        console.log(`[Process Invoice] Document linked to project and supplier invoice`)
       }
 
       // Create audit log
@@ -164,32 +224,30 @@ export async function POST(request: NextRequest) {
         userId: session.user.id,
         userEmail: session.user.email || '',
         action: 'CREATE',
-        entityType: 'EXPENSE',
-        entityId: expense.id,
-        entityName: expense.description,
+        entityType: 'SUPPLIER_INVOICE',
+        entityId: supplierInvoice.id,
+        entityName: supplierInvoice.invoiceNumber,
         newValues: {
-          expenseNumber: expense.expenseNumber,
+          invoiceNumber: supplierInvoice.invoiceNumber,
           project: project.projectNumber,
-          vendor: vendor.name,
-          invoiceNumber: invoiceData.invoiceNumber,
-          amount: expense.amount,
+          supplier: supplier.name,
+          totalAmount: supplierInvoice.totalAmount,
           source: 'AI_ASSISTANT_INVOICE_PROCESSING'
         }
       })
 
       return NextResponse.json({
         success: true,
-        expense: {
-          id: expense.id,
-          expenseNumber: expense.expenseNumber,
+        supplierInvoice: {
+          id: supplierInvoice.id,
+          invoiceNumber: supplierInvoice.invoiceNumber,
           project: {
             projectNumber: project.projectNumber,
             name: project.name
           },
-          vendor: vendor.name,
-          invoiceNumber: invoiceData.invoiceNumber,
-          amount: expense.amount,
-          paymentStatus: expense.paymentStatus
+          supplier: supplier.name,
+          totalAmount: supplierInvoice.totalAmount,
+          status: supplierInvoice.status
         },
         message: `Invoice ${invoiceData.invoiceNumber} processed and linked to project ${project.projectNumber}`
       })

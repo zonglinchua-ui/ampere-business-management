@@ -10,7 +10,10 @@
 import { createProjectFolders, getProjectFolderPath } from '../lib/project-folder-service'
 import { prisma } from '../lib/db'
 import fs from 'fs'
+import { promises as fsPromises } from 'fs'
 import path from 'path'
+
+const SETTINGS_FILE = path.join(process.cwd(), 'data', 'settings.json')
 
 async function main() {
   console.log('='.repeat(60))
@@ -26,22 +29,22 @@ async function main() {
     const nasPath = process.env.NAS_PATH
     console.log(`  Environment NAS_PATH: ${nasPath || 'NOT SET'}`)
 
-    const settings = await prisma.setting.findFirst({
-      where: {
-        OR: [
-          { key: 'nas_path' },
-          { key: 'nasPath' }
-        ]
+    // Load settings from JSON file
+    let settings: any = {
+      storage: {
+        nasPath: ""
       }
-    })
-
-    if (settings?.value) {
-      console.log(`  Database nas_path: ${JSON.stringify(settings.value)}`)
-    } else {
-      console.log(`  Database nas_path: NOT SET`)
     }
 
-    const effectiveNasPath = nasPath || (settings?.value as any)?.nasPath || (settings?.value as any)?.nas_path || (typeof settings?.value === 'string' ? settings.value : null)
+    try {
+      const settingsData = await fsPromises.readFile(SETTINGS_FILE, 'utf-8')
+      settings = JSON.parse(settingsData)
+      console.log(`  Settings file nas_path: ${settings.storage?.nasPath || 'NOT SET'}`)
+    } catch (error) {
+      console.log(`  Settings file: NOT FOUND`)
+    }
+
+    const effectiveNasPath = nasPath || settings.storage?.nasPath
 
     if (!effectiveNasPath) {
       console.error('')

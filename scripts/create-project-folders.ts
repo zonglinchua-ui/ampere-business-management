@@ -12,6 +12,10 @@
 
 import { createFoldersForExistingProjects } from '../lib/project-folder-service'
 import { prisma } from '../lib/db'
+import { promises as fs } from 'fs'
+import path from 'path'
+
+const SETTINGS_FILE = path.join(process.cwd(), 'data', 'settings.json')
 
 async function main() {
   console.log('='.repeat(60))
@@ -84,25 +88,22 @@ async function main() {
 
 async function getNASPathFromSettings(): Promise<string | null> {
   try {
-    const settings = await prisma.setting.findFirst({
-      where: {
-        OR: [
-          { key: 'nas_path' },
-          { key: 'nasPath' }
-        ]
-      }
-    })
-
-    if (settings?.value) {
-      if (typeof settings.value === 'string') {
-        return settings.value
-      } else if (typeof settings.value === 'object' && settings.value !== null) {
-        const valueObj = settings.value as any
-        return valueObj.nasPath || valueObj.nas_path || null
+    // Load settings from JSON file
+    let settings: any = {
+      storage: {
+        nasPath: ""
       }
     }
 
-    return null
+    try {
+      const settingsData = await fs.readFile(SETTINGS_FILE, 'utf-8')
+      settings = JSON.parse(settingsData)
+    } catch (error) {
+      // No settings file found
+      return null
+    }
+
+    return settings.storage?.nasPath || null
   } catch (error) {
     return null
   }

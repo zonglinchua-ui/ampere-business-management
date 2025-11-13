@@ -14,6 +14,7 @@ import { getFileBuffer } from '@/lib/s3'
 import { extractPurchaseOrderData, autoExtractDocumentData } from '@/lib/ai-document-extraction'
 import { createProjectFolders } from '@/lib/project-folder-service'
 import { createAuditLog } from '@/lib/api-audit-context'
+import { v4 as uuidv4 } from 'uuid'
 
 export async function POST(request: NextRequest) {
   try {
@@ -79,14 +80,18 @@ export async function POST(request: NextRequest) {
         console.log(`[Process PO] Creating new customer: ${poData.customer.name}`)
         customer = await prisma.customer.create({
           data: {
+            id: uuidv4(),
             customerNumber: `C-${Date.now()}`,
             name: poData.customer.name,
-            email: poData.customer.email || '',
-            phone: poData.customer.phone || '',
-            address: poData.customer.address || '',
-            contactPerson: poData.customer.contactPerson || '',
-            type: 'Enterprise',
-            status: 'Active'
+            email: poData.customer.email || null,
+            phone: poData.customer.phone || null,
+            address: poData.customer.address || null,
+            contactPerson: poData.customer.contactPerson || null,
+            customerType: 'ENTERPRISE',
+            isActive: true,
+            createdById: session.user.id,
+            createdAt: new Date(),
+            updatedAt: new Date()
           }
         })
       }
@@ -131,6 +136,7 @@ export async function POST(request: NextRequest) {
       // Create project
       const project = await prisma.project.create({
         data: {
+          id: uuidv4(),
           projectNumber,
           name: poData.projectInfo.projectName,
           description: poData.projectInfo.projectDescription || `Project from PO ${poData.poNumber}`,
@@ -138,15 +144,14 @@ export async function POST(request: NextRequest) {
           workType: workType as any,
           status: 'PLANNING',
           customerId: customer.id,
-          location: poData.projectInfo.location || '',
+          address: poData.projectInfo.location || null,
           startDate: poData.startDate ? new Date(poData.startDate) : null,
           endDate: poData.endDate ? new Date(poData.endDate) : null,
           contractValue: poData.totalAmount,
-          poNumber: poData.poNumber,
-          poDate: poData.poDate ? new Date(poData.poDate) : null,
-          paymentTerms: poData.paymentTerms || '',
-          specialInstructions: poData.specialInstructions || '',
-          isActive: true
+          createdById: session.user.id,
+          isActive: true,
+          createdAt: new Date(),
+          updatedAt: new Date()
         },
         include: {
           Customer: true

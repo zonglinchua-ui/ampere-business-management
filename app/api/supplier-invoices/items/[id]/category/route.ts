@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
-import { nanoid } from 'nanoid'
+import { v4 as uuidv4 } from 'uuid'
 import { ensureSystemBudgetCategories } from '@/lib/ensure-system-categories'
 
 // PATCH /api/supplier-invoices/items/[id]/category - Update budget category for supplier invoice item
@@ -130,7 +130,7 @@ export async function PATCH(
     try {
       await prisma.auditLog.create({
         data: {
-          id: nanoid(),
+          id: uuidv4(),
           action: 'UPDATE',
           entityType: 'SUPPLIER_INVOICE',
           entityId: itemId,

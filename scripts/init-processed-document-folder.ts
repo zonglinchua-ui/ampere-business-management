@@ -7,7 +7,8 @@
 
 import { promises as fs } from 'fs'
 import path from 'path'
-import { getNASPath } from '../lib/nas-storage'
+
+const SETTINGS_FILE = path.join(process.cwd(), 'data', 'settings.json')
 
 async function initProcessedDocumentFolder() {
   console.log('='.repeat(60))
@@ -16,14 +17,30 @@ async function initProcessedDocumentFolder() {
   console.log()
 
   try {
-    // Get NAS base path
-    const nasBasePath = await getNASPath()
-    
-    if (!nasBasePath) {
-      console.error('❌ NAS path not configured')
+    // Load settings to get NAS path
+    let settings: any = {
+      storage: {
+        nasEnabled: false,
+        nasPath: ""
+      }
+    }
+
+    try {
+      const settingsData = await fs.readFile(SETTINGS_FILE, 'utf-8')
+      settings = JSON.parse(settingsData)
+    } catch (error) {
+      console.error('❌ Settings file not found')
       console.log('\nPlease configure NAS path in:')
       console.log('  - Settings → Integrations → NAS Storage')
-      console.log('  - Or add NAS_PATH to .env file')
+      process.exit(1)
+    }
+
+    const nasBasePath = settings.storage.nasPath
+    
+    if (!nasBasePath) {
+      console.error('❌ NAS path not configured in settings')
+      console.log('\nPlease configure NAS path in:')
+      console.log('  - Settings → Integrations → NAS Storage')
       process.exit(1)
     }
 

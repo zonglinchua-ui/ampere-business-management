@@ -926,7 +926,7 @@ export default function TenderDetailsPage() {
       		<TenderFileManager
         	tenderId={tender.id}
         	tenderTitle={tender.title}
-        	customerName={tender.customer.name}
+        	customerName={tender.client.name}
         	nasPath={tender.nasDocumentPath}
 	      />
             </Card>

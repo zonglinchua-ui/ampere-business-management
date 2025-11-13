@@ -1,12 +1,14 @@
 
 import { XeroClient } from 'xero-node'
 
-if (!process.env.XERO_CLIENT_ID) {
-  throw new Error('XERO_CLIENT_ID is required')
-}
-
-if (!process.env.XERO_CLIENT_SECRET) {
-  throw new Error('XERO_CLIENT_SECRET is required')
+// Validation moved to runtime - don't block build if Xero is not configured
+function validateXeroConfig() {
+  if (!process.env.XERO_CLIENT_ID) {
+    throw new Error('XERO_CLIENT_ID is required')
+  }
+  if (!process.env.XERO_CLIENT_SECRET) {
+    throw new Error('XERO_CLIENT_SECRET is required')
+  }
 }
 
 // Force production URLs - never use preview URLs for OAuth
@@ -22,8 +24,8 @@ const redirectUri = process.env.XERO_REDIRECT_URI?.includes('preview.abacusai.ap
 
 // Xero API Configuration
 export const xeroConfig = {
-  clientId: process.env.XERO_CLIENT_ID,
-  clientSecret: process.env.XERO_CLIENT_SECRET,
+  clientId: process.env.XERO_CLIENT_ID || '',
+  clientSecret: process.env.XERO_CLIENT_SECRET || '',
   redirectUris: [redirectUri],
   scopes: (process.env.XERO_SCOPES || 'accounting.transactions accounting.contacts accounting.settings offline_access').split(' '),
   // Dynamic state generation is now handled in ImprovedXeroService
@@ -53,6 +55,7 @@ let xeroClient: XeroClient | null = null
 
 export const getXeroClient = (): XeroClient => {
   if (!xeroClient) {
+    validateXeroConfig() // Validate at runtime when client is actually needed
     xeroClient = new XeroClient({
       clientId: xeroConfig.clientId,
       clientSecret: xeroConfig.clientSecret,

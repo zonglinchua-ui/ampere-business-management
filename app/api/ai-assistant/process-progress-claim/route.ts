@@ -13,6 +13,7 @@ import { prisma } from '@/lib/db'
 import { getFileBuffer } from '@/lib/s3'
 import { extractProgressClaimData } from '@/lib/ai-document-extraction'
 import { createAuditLog } from '@/lib/api-audit-context'
+import { v4 as uuidv4 } from 'uuid'
 
 export async function POST(request: NextRequest) {
   try {
@@ -59,13 +60,25 @@ export async function POST(request: NextRequest) {
           where: {
             OR: [
               { projectNumber: { contains: claimData.projectReference, mode: 'insensitive' } },
-              { poNumber: { contains: claimData.projectReference, mode: 'insensitive' } },
-              { name: { contains: claimData.projectReference, mode: 'insensitive' } }
+              { name: { contains: claimData.projectReference, mode: 'insensitive' } },
+              {
+                PurchaseOrder: {
+                  some: {
+                    poNumber: { contains: claimData.projectReference, mode: 'insensitive' }
+                  }
+                }
+              }
             ],
             isActive: true
           },
           include: {
-            Customer: true
+            Customer: true,
+            PurchaseOrder: {
+              where: {
+                poNumber: { contains: claimData.projectReference, mode: 'insensitive' }
+              },
+              take: 1
+            }
           }
         })
       }
@@ -97,7 +110,7 @@ export async function POST(request: NextRequest) {
         where: { id: projectId },
         include: { 
           Customer: true,
-          ProgressClaims: {
+          ProgressClaim: {
             orderBy: { claimNumber: 'desc' },
             take: 1
           }
@@ -111,7 +124,7 @@ export async function POST(request: NextRequest) {
       // Generate claim number if not provided
       let claimNumber = claimData.claimNumber
       if (!claimNumber || claimNumber === 'N/A') {
-        const lastClaim = project.ProgressClaims[0]
+        const lastClaim = project.ProgressClaim[0]
         const nextClaimNum = lastClaim ? parseInt(lastClaim.claimNumber) + 1 : 1
         claimNumber = nextClaimNum.toString()
       }
@@ -125,22 +138,25 @@ export async function POST(request: NextRequest) {
       // Create progress claim
       const progressClaim = await prisma.progressClaim.create({
         data: {
+          id: uuidv4(),
           projectId: project.id,
           claimNumber: claimNumber,
+          claimTitle: claimData.claimTitle || `Progress Claim #${claimNumber}`,
+          description: claimData.description || `Processed from ${documentId ? 'uploaded document' : 'AI extraction'}`,
           claimDate: claimData.claimDate ? new Date(claimData.claimDate) : new Date(),
-          periodFrom: claimData.claimPeriod?.from ? new Date(claimData.claimPeriod.from) : null,
-          periodTo: claimData.claimPeriod?.to ? new Date(claimData.claimPeriod.to) : null,
           previousClaimedAmount: claimData.previousClaimedTotal || 0,
           currentClaimAmount: claimData.currentClaimAmount,
-          totalClaimedToDate: claimData.totalClaimedToDate || (claimData.previousClaimedTotal || 0) + claimData.currentClaimAmount,
+          cumulativeAmount: claimData.totalClaimedToDate || (claimData.previousClaimedTotal || 0) + claimData.currentClaimAmount,
           retentionPercentage: claimData.retentionPercentage || 10,
           retentionAmount: retentionAmount,
+          gstRate: claimData.gstRate || 9,
           gstAmount: gstAmount,
-          totalAmount: totalAmount,
+          subTotal: subtotal,
+          netClaimAmount: totalAmount,
           status: 'DRAFT',
-          certifiedBy: claimData.certifiedBy || '',
-          certificationDate: claimData.certificationDate ? new Date(claimData.certificationDate) : null,
-          remarks: `Processed from ${documentId ? 'uploaded document' : 'AI extraction'}`
+          createdById: session.user.id,
+          createdAt: new Date(),
+          updatedAt: new Date()
         }
       })
 
@@ -148,14 +164,27 @@ export async function POST(request: NextRequest) {
 
       // Create work items
       if (claimData.workItems && claimData.workItems.length > 0) {
-        const workItemsData = claimData.workItems.map((item, index) => ({
+        const workItemsData = claimData.workItems.map((item: any, index: number) => ({
+          id: uuidv4(),
           progressClaimId: progressClaim.id,
-          itemNumber: (index + 1).toString(),
+          itemNumber: index + 1,
           description: item.description,
-          previousClaimed: item.previousClaimed || 0,
-          currentClaim: item.currentClaim,
-          totalToDate: item.totalToDate || (item.previousClaimed || 0) + item.currentClaim,
-          percentComplete: item.percentComplete || 0
+          unit: item.unit || 'pcs',
+          unitRate: item.unitRate || 0,
+          totalQuantity: item.totalQuantity || 0,
+          totalAmount: item.totalAmount || 0,
+          previousClaimedQty: item.previousClaimedQty || 0,
+          previousClaimedPct: item.previousClaimedPct || 0,
+          previousClaimedAmount: item.previousClaimed || 0,
+          currentClaimQty: item.currentClaimQty || 0,
+          currentClaimPct: item.currentClaimPct || item.percentComplete || 0,
+          currentClaimAmount: item.currentClaim || 0,
+          cumulativeQty: item.cumulativeQty || 0,
+          cumulativePct: item.cumulativePct || 0,
+          cumulativeAmount: item.totalToDate || (item.previousClaimed || 0) + (item.currentClaim || 0),
+          notes: item.notes || null,
+          createdAt: new Date(),
+          updatedAt: new Date()
         }))
 
         await prisma.progressClaimItem.createMany({
@@ -190,7 +219,7 @@ export async function POST(request: NextRequest) {
           project: project.projectNumber,
           claimNumber: progressClaim.claimNumber,
           currentClaimAmount: progressClaim.currentClaimAmount,
-          totalAmount: progressClaim.totalAmount,
+          netClaimAmount: progressClaim.netClaimAmount,
           source: 'AI_ASSISTANT_PROGRESS_CLAIM_PROCESSING'
         }
       })
@@ -208,7 +237,7 @@ export async function POST(request: NextRequest) {
           currentClaimAmount: progressClaim.currentClaimAmount,
           retentionAmount: progressClaim.retentionAmount,
           gstAmount: progressClaim.gstAmount,
-          totalAmount: progressClaim.totalAmount,
+          netClaimAmount: progressClaim.netClaimAmount,
           status: progressClaim.status
         },
         message: `Progress Claim #${progressClaim.claimNumber} created for project ${project.projectNumber}`

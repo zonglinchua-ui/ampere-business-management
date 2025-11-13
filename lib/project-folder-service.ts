@@ -4,8 +4,11 @@
  */
 
 import fs from 'fs'
+import { promises as fsPromises } from 'fs'
 import path from 'path'
 import { prisma } from './db'
+
+const SETTINGS_FILE = path.join(process.cwd(), 'data', 'settings.json')
 
 export interface ProjectFolderStructure {
   projectNumber: string
@@ -62,27 +65,21 @@ export function generateProjectFolderName(projectNumber: string, projectName: st
  */
 async function getNASBasePath(): Promise<string | null> {
   try {
-    const settings = await prisma.setting.findFirst({
-      where: {
-        OR: [
-          { key: 'nas_path' },
-          { key: 'nasPath' }
-        ]
-      }
-    })
-
-    if (settings?.value) {
-      // Handle both string and JSON value formats
-      if (typeof settings.value === 'string') {
-        return settings.value
-      } else if (typeof settings.value === 'object' && settings.value !== null) {
-        const valueObj = settings.value as any
-        return valueObj.nasPath || valueObj.nas_path || null
+    // Load settings from JSON file
+    let settings: any = {
+      storage: {
+        nasPath: ""
       }
     }
 
-    // Fallback to environment variable
-    return process.env.NAS_PATH || null
+    try {
+      const settingsData = await fsPromises.readFile(SETTINGS_FILE, 'utf-8')
+      settings = JSON.parse(settingsData)
+    } catch (error) {
+      console.log('[Project Folders] No settings file found, using environment variable')
+    }
+
+    return settings.storage?.nasPath || process.env.NAS_PATH || null
   } catch (error) {
     console.error('[Project Folders] Error getting NAS path:', error)
     return process.env.NAS_PATH || null

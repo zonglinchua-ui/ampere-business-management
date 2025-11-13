@@ -46,6 +46,7 @@ interface TenderFile {
 
 interface TenderFileManagerProps {
   tenderId: string
+  tenderNumber?: string
   tenderTitle: string
   customerName: string
   nasPath?: string
@@ -53,6 +54,7 @@ interface TenderFileManagerProps {
 
 export function TenderFileManager({
   tenderId,
+  tenderNumber,
   tenderTitle,
   customerName,
   nasPath,

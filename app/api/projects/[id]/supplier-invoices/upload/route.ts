@@ -4,7 +4,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { uploadFile } from '@/lib/s3'
-import { nanoid } from 'nanoid'
+import { v4 as uuidv4 } from 'uuid'
 
 // POST /api/projects/[id]/supplier-invoices/upload - Upload supplier invoice
 export async function POST(
@@ -180,7 +180,7 @@ export async function POST(
     try {
       supplierInvoice = await prisma.supplierInvoice.create({
         data: {
-          id: nanoid(),
+          id: uuidv4(),
           invoiceNumber: finalInvoiceNumber,
           supplierInvoiceRef: file.name,
           supplierId,
@@ -228,7 +228,7 @@ export async function POST(
     try {
       await prisma.supplierInvoiceItem.create({
         data: {
-          id: nanoid(),
+          id: uuidv4(),
           supplierInvoiceId: supplierInvoice.id,
           description: `Invoice item: ${file.name}`,
           category: 'SERVICES',
@@ -284,7 +284,7 @@ export async function POST(
             // Create new budget entry for this category
             await tx.projectBudget.create({
               data: {
-                id: nanoid(),
+                id: uuidv4(),
                 projectId,
                 category: validatedBudgetCategoryId && validatedBudgetCategoryId.length <= 20 ? validatedBudgetCategoryId as any : 'OTHER', // System category
                 customCategoryId: validatedBudgetCategoryId && validatedBudgetCategoryId.length > 20 ? validatedBudgetCategoryId : null, // Custom category
@@ -308,7 +308,7 @@ export async function POST(
       console.log('Creating audit log...')
       await prisma.auditLog.create({
         data: {
-          id: nanoid(),
+          id: uuidv4(),
           action: 'CREATE',
           entityType: 'SUPPLIER_INVOICE',
           entityId: supplierInvoice.id,

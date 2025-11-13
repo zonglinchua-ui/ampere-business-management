@@ -13,7 +13,6 @@ import { XeroLogger, XeroSyncDirection, XeroSyncEntity, XeroSyncStatus } from '.
 import { generateClientNumber, generateSupplierNumber } from './number-generation'
 import { notifySyncSuccess, notifySyncError, notifySyncWarning } from './xero-notification-service'
 import { syncProgressManager } from './sync-progress'
-import { logSyncFailure, logSyncSuccess, logSyncSkipped } from './xero-sync-error-logger'
 import crypto from 'crypto'
 
 // ==================== TYPES ====================
@@ -370,14 +369,8 @@ export class XeroSyncService {
           console.error(`❌ Failed to process contact ${xeroContact.name}:`, error)
           
           // Log error to data quality system
-          await logSyncFailure(
-            'CONTACT',
-            error,
-            undefined,
-            xeroContact.name || 'Unknown',
-            xeroContact.contactID,
-            { xeroContact, errorStack: error.stack }
-          )
+          // TODO: Implement proper error logging
+          // await logSyncFailure('CONTACT', error, undefined, xeroContact.name || 'Unknown', xeroContact.contactID, { xeroContact, errorStack: error.stack })
         }
       }
 
@@ -1376,14 +1369,8 @@ export class XeroSyncService {
           console.error(`❌ Failed to process invoice ${xeroInvoice.invoiceNumber}:`, error)
           
           // Log error to data quality system
-          await logSyncFailure(
-            'INVOICE',
-            error,
-            undefined,
-            xeroInvoice.invoiceNumber || 'Unknown',
-            xeroInvoice.invoiceID,
-            { xeroInvoice, errorStack: error.stack }
-          )
+          // TODO: Implement proper error logging
+          // await logSyncFailure('INVOICE', error, undefined, xeroInvoice.invoiceNumber || 'Unknown', xeroInvoice.invoiceID, { xeroInvoice, errorStack: error.stack })
           
           processed++
         }
@@ -2436,14 +2423,8 @@ export class XeroSyncService {
           console.error(`❌ Failed to process payment ${xeroPayment.paymentID}:`, error)
           
           // Log error to data quality system
-          await logSyncFailure(
-            'PAYMENT',
-            error,
-            undefined,
-            `Payment ${xeroPayment.paymentID}`,
-            xeroPayment.paymentID,
-            { xeroPayment, errorStack: error.stack }
-          )
+          // TODO: Implement proper error logging
+          // await logSyncFailure('PAYMENT', error, undefined, `Payment ${xeroPayment.paymentID}`, xeroPayment.paymentID, { xeroPayment, errorStack: error.stack })
           
           processed++
         }

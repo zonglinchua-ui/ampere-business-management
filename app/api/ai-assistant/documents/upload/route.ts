@@ -6,7 +6,8 @@ import { authOptions } from '@/lib/auth'
 import { v4 as uuidv4 } from 'uuid'
 import { promises as fs } from 'fs'
 import path from 'path'
-import { getNASPath } from '@/lib/nas-storage'
+
+const SETTINGS_FILE = path.join(process.cwd(), 'data', 'settings.json')
 
 
 export async function POST(request: NextRequest) {
@@ -52,10 +53,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'File type not supported' }, { status: 400 })
     }
 
-    // Get NAS base path
-    const nasBasePath = await getNASPath()
+    // Load settings to get NAS path
+    let settings: any = {
+      storage: {
+        nasEnabled: false,
+        nasPath: ""
+      }
+    }
+
+    try {
+      const settingsData = await fs.readFile(SETTINGS_FILE, 'utf-8')
+      settings = JSON.parse(settingsData)
+    } catch (error) {
+      console.log('[AI Document Upload] No settings file found, using defaults')
+    }
+
+    const nasBasePath = settings.storage.nasPath
     if (!nasBasePath) {
-      return NextResponse.json({ error: 'NAS path not configured' }, { status: 500 })
+      return NextResponse.json({ error: 'NAS path not configured. Please configure in Settings → Integrations → NAS Storage' }, { status: 500 })
     }
 
     // Create PROCESSED DOCUMENT folder structure

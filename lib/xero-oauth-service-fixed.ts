@@ -89,12 +89,10 @@ export class EnhancedXeroOAuthService {
         throw new Error('Missing Xero client credentials')
       }
 
-      // Build consent URL with state containing return URL
-      const state = returnUrl ? Buffer.from(JSON.stringify({ returnUrl })).toString('base64') : undefined
-      const consentUrl = await this.xeroClient.buildConsentUrl(state)
+      // Build consent URL
+      const consentUrl = await this.xeroClient.buildConsentUrl()
       console.log('✅ Generated Xero authorization URL successfully')
       console.log('   URL length:', consentUrl.length)
-      console.log('   State included:', !!state)
       
       return consentUrl
     } catch (error: any) {
