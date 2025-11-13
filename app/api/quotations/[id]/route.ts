@@ -5,6 +5,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { v4 as uuidv4 } from 'uuid'
 import { updateQuotationPDF, deleteQuotationPDFs } from '@/lib/quotation-pdf-utils'
+import { archiveDeletedQuotation, logArchival } from '@/lib/nas-archival-service'
 
 export async function GET(
   request: NextRequest,
@@ -662,6 +663,21 @@ export async function DELETE(
     if (existingQuotation.status !== 'DRAFT') {
       return NextResponse.json({ error: 'Can only delete draft quotations' }, { status: 400 })
     }
+
+    // Archive quotation PDFs to NAS DELETED folder (async, don't wait)
+    archiveDeletedQuotation(existingQuotation.quotationNumber, params.id, existingQuotation.createdAt)
+      .then(result => {
+        if (result.success) {
+          console.log(`[DELETE Quotation] ✅ Quotation archived to: ${result.archivedPath}`)
+          // Log archival
+          logArchival('QUOTATION', params.id, existingQuotation.quotationNumber, result.archivedPath || '', session.user.id)
+        } else {
+          console.warn(`[DELETE Quotation] ⚠️ Quotation archival failed: ${result.error}`)
+        }
+      })
+      .catch(error => {
+        console.error('[DELETE Quotation] ❌ Quotation archival error:', error)
+      })
 
     await prisma.$transaction(async (tx) => {
       // Delete related records first

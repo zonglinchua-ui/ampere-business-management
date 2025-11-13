@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/db"
 import { z } from "zod"
 import { createAuditLog } from "@/lib/api-audit-context"
+import { archiveDeletedProject, logArchival } from "@/lib/nas-archival-service"
 
 const updateProjectSchema = z.object({
   name: z.string().min(1, "Project name is required").optional(),
@@ -459,6 +460,21 @@ export async function DELETE(
     if (!existingProject) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 })
     }
+
+    // Archive project folder to NAS DELETED folder (async, don't wait)
+    archiveDeletedProject(existingProject.projectNumber, existingProject.name, true)
+      .then(result => {
+        if (result.success) {
+          console.log(`[DELETE Project] ✅ Project archived to: ${result.archivedPath}`)
+          // Log archival
+          logArchival('PROJECT', params.id, existingProject.name, result.archivedPath || '', session.user.id)
+        } else {
+          console.warn(`[DELETE Project] ⚠️ Project archival failed: ${result.error}`)
+        }
+      })
+      .catch(error => {
+        console.error('[DELETE Project] ❌ Project archival error:', error)
+      })
 
     // Soft delete
     await prisma.project.update({

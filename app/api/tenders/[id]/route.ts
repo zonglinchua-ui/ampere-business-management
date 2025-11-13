@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
+import { archiveDeletedTender, logArchival } from '@/lib/nas-archival-service'
 
 export async function GET(
   request: Request,
@@ -371,6 +372,21 @@ export async function DELETE(
     }
 
     console.log(`[Tender API DELETE] Found tender to delete: ${existingTender.tenderNumber} - ${existingTender.title}`)
+
+    // Archive tender files to NAS DELETED folder (async, don't wait)
+    archiveDeletedTender(existingTender.tenderNumber, existingTender.title)
+      .then(result => {
+        if (result.success) {
+          console.log(`[DELETE Tender] ✅ Tender archived to: ${result.archivedPath}`)
+          // Log archival
+          logArchival('TENDER', id, `${existingTender.tenderNumber} - ${existingTender.title}`, result.archivedPath || '', session.user.id)
+        } else {
+          console.warn(`[DELETE Tender] ⚠️ Tender archival failed: ${result.error}`)
+        }
+      })
+      .catch(error => {
+        console.error('[DELETE Tender] ❌ Tender archival error:', error)
+      })
 
     // Delete tender and related records (Prisma will handle cascade)
     await prisma.tender.delete({
