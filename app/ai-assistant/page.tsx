@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { DocumentProcessor } from "@/components/ai-assistant/document-processor"
 import { 
   Bot,
   Upload,
@@ -478,7 +479,7 @@ export default function AIAssistantPage() {
 
         {/* Main Content */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="chat" className="flex items-center space-x-2">
               <MessageSquare className="h-4 w-4" />
               <span>AI Chat</span>
@@ -490,6 +491,10 @@ export default function AIAssistantPage() {
             <TabsTrigger value="analytics" className="flex items-center space-x-2">
               <BrainCircuit className="h-4 w-4" />
               <span>AI Analytics</span>
+            </TabsTrigger>
+            <TabsTrigger value="processor" className="flex items-center space-x-2">
+              <Upload className="h-4 w-4" />
+              <span>Document Processing</span>
             </TabsTrigger>
           </TabsList>
 
@@ -929,6 +934,11 @@ export default function AIAssistantPage() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Document Processing Tab */}
+          <TabsContent value="processor" className="space-y-4">
+            <DocumentProcessor />
           </TabsContent>
         </Tabs>
       </div>
