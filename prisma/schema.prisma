@@ -1312,6 +1312,8 @@ model User {
   updatedAt                                                 DateTime
   lastLoginAt                                               DateTime?
   userId                                                    String?                       @unique
+  phone                                                     String?
+  whatsappNotifications                                     Boolean                       @default(true)
   Account                                                   Account[]
   AuditLog                                                  AuditLog[]
   BcaAuditLog                                               BcaAuditLog[]
