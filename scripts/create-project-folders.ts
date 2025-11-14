@@ -37,7 +37,7 @@ async function main() {
     }
 
     console.log(`📁 NAS Base Path: ${nasPath}`)
-    console.log(`📂 Projects will be created in: ${nasPath}/projects/`)
+    console.log(`📂 Projects will be created in: ${nasPath}/PROJECT/`)
     console.log('')
 
     // Confirm before proceeding
