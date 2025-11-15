@@ -1314,6 +1314,9 @@ model User {
   userId                                                    String?                       @unique
   phone                                                     String?
   whatsappNotifications                                     Boolean                       @default(true)
+  whatsappAlertPreferences                                  Json?
+  quietHoursStart                                           String?
+  quietHoursEnd                                             String?
   Account                                                   Account[]
   AuditLog                                                  AuditLog[]
   BcaAuditLog                                               BcaAuditLog[]
@@ -2372,3 +2375,72 @@ enum ProgressClaimStatus {
   CANCELLED
 }
 
+// WhatsApp Alerts Settings
+model WhatsAppAlertSettings {
+  id                String   @id @default(cuid())
+  alertType         String   @unique
+  enabled           Boolean  @default(true)
+  timingConfig      Json?
+  recipientConfig   Json?
+  thresholdConfig   Json?
+  messageTemplate   String   @db.Text
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([alertType])
+  @@index([enabled])
+}
+
+model WhatsAppRoleRecipients {
+  id            String   @id @default(cuid())
+  roleName      String   @unique
+  phoneNumbers  String[]
+  enabled       Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@index([roleName])
+}
+
+model WhatsAppGlobalSettings {
+  id                  String   @id @default(cuid())
+  quietHoursStart     String?
+  quietHoursEnd       String?
+  defaultCountryCode  String   @default("+65")
+  maxMessagesPerHour  Int      @default(100)
+  testMode            Boolean  @default(false)
+  testPhoneNumber     String?
+  wahaApiUrl          String?
+  wahaApiKey          String?
+  wahaSession         String   @default("default")
+  enabled             Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model WhatsAppNotificationLog {
+  id              String                      @id @default(cuid())
+  alertType       String
+  recipientPhone  String
+  recipientName   String?
+  recipientRole   String?
+  message         String                      @db.Text
+  status          WhatsAppNotificationStatus  @default(QUEUED)
+  errorMessage    String?                     @db.Text
+  sentAt          DateTime?
+  retryCount      Int                         @default(0)
+  metadata        Json?
+  createdAt       DateTime                    @default(now())
+  
+  @@index([alertType])
+  @@index([status])
+  @@index([recipientPhone])
+  @@index([createdAt])
+}
+
+enum WhatsAppNotificationStatus {
+  QUEUED
+  SENT
+  FAILED
+  SKIPPED
+}

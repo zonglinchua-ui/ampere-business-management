@@ -1,0 +1,78 @@
+// WhatsApp Alerts Schema Extension
+// Add these models to your main schema.prisma file
+
+model WhatsAppAlertSettings {
+  id                String   @id @default(cuid())
+  alertType         String   @unique // e.g., "TENDER_DEADLINE", "INVOICE_OVERDUE"
+  enabled           Boolean  @default(true)
+  timingConfig      Json?    // { "daysBefore": [7, 3, 1], "daysAfter": [1, 3, 7] }
+  recipientConfig   Json?    // { "sendToAssigned": true, "sendToManager": false, "sendToCustomer": true }
+  thresholdConfig   Json?    // { "minAmount": 1000, "percentage": 75 }
+  messageTemplate   String   @db.Text
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([alertType])
+  @@index([enabled])
+}
+
+model WhatsAppRoleRecipients {
+  id            String   @id @default(cuid())
+  roleName      String   @unique // e.g., "FINANCE_TEAM", "SALES_TEAM", "SUPER_ADMINS"
+  phoneNumbers  String[] // Array of phone numbers with country code
+  enabled       Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@index([roleName])
+}
+
+model WhatsAppGlobalSettings {
+  id                  String   @id @default(cuid())
+  quietHoursStart     String?  // e.g., "22:00"
+  quietHoursEnd       String?  // e.g., "08:00"
+  defaultCountryCode  String   @default("+65")
+  maxMessagesPerHour  Int      @default(100)
+  testMode            Boolean  @default(false)
+  testPhoneNumber     String?
+  wahaApiUrl          String?
+  wahaApiKey          String?
+  wahaSession         String   @default("default")
+  enabled             Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model WhatsAppNotificationLog {
+  id              String   @id @default(cuid())
+  alertType       String   // e.g., "TENDER_DEADLINE"
+  recipientPhone  String
+  recipientName   String?
+  recipientRole   String?  // e.g., "PROJECT_MANAGER", "CUSTOMER"
+  message         String   @db.Text
+  status          WhatsAppNotificationStatus @default(QUEUED)
+  errorMessage    String?  @db.Text
+  sentAt          DateTime?
+  retryCount      Int      @default(0)
+  metadata        Json?    // Additional data like project ID, invoice ID, etc.
+  createdAt       DateTime @default(now())
+  
+  @@index([alertType])
+  @@index([status])
+  @@index([recipientPhone])
+  @@index([createdAt])
+}
+
+enum WhatsAppNotificationStatus {
+  QUEUED
+  SENT
+  FAILED
+  SKIPPED
+}
+
+// Add to existing User model:
+// phone                String?
+// whatsappNotifications Boolean @default(true)
+// whatsappAlertPreferences Json? // { "TENDER_DEADLINE": true, "INVOICE_OVERDUE": false }
+// quietHoursStart      String? // Personal quiet hours
+// quietHoursEnd        String?
