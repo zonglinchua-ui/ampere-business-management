@@ -60,7 +60,8 @@ import {
   Network,
   Activity,
   AlertCircle,
-  Download
+  Download,
+  MessageSquare
 } from "lucide-react"
 import { EnhancedXeroIntegration } from "@/components/xero/enhanced-xero-integration"
 import { TenderCategoriesManager } from "@/components/settings/tender-categories-manager"
@@ -533,7 +534,7 @@ export default function SettingsPage() {
         </div>
 
         <Tabs defaultValue="general" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-9">
+          <TabsList className="grid w-full grid-cols-10">
             <TabsTrigger value="general">General</TabsTrigger>
             <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="logos">Logos</TabsTrigger>
@@ -543,6 +544,7 @@ export default function SettingsPage() {
             <TabsTrigger value="integrations">Integrations</TabsTrigger>
             {canManageSettings && <TabsTrigger value="tender-categories">Tender Categories</TabsTrigger>}
             {canManageSettings && <TabsTrigger value="system-logs">System Logs</TabsTrigger>}
+            {canManageSettings && <TabsTrigger value="whatsapp-alerts">WhatsApp Alerts</TabsTrigger>}
           </TabsList>
 
           <TabsContent value="general" className="space-y-6">
@@ -1532,6 +1534,97 @@ export default function SettingsPage() {
                       </div>
                       <p className="text-sm text-gray-600 dark:text-gray-400">
                         Export logs to CSV for external analysis and reporting
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="whatsapp-alerts" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <MessageSquare className="mr-2 h-5 w-5" />
+                  WhatsApp Notifications & Alerts
+                </CardTitle>
+                <CardDescription>
+                  Configure automated WhatsApp notifications for deadlines, reminders, and important updates
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-6">
+                    <div className="flex items-start space-x-3">
+                      <MessageSquare className="h-6 w-6 text-green-600 mt-1" />
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold text-green-900 dark:text-green-100 mb-2">
+                          WhatsApp Business Notifications
+                        </h3>
+                        <p className="text-sm text-green-800 dark:text-green-200 mb-4">
+                          Send automated WhatsApp notifications to keep your team and customers informed:
+                        </p>
+                        <ul className="space-y-2 text-sm text-green-700 dark:text-green-300 mb-4">
+                          <li className="flex items-center">
+                            <Bell className="h-4 w-4 mr-2" />
+                            <span>Tender deadline reminders (3 days before submission)</span>
+                          </li>
+                          <li className="flex items-center">
+                            <Calendar className="h-4 w-4 mr-2" />
+                            <span>Task due date notifications (2 days before)</span>
+                          </li>
+                          <li className="flex items-center">
+                            <AlertTriangle className="h-4 w-4 mr-2" />
+                            <span>Outstanding invoice alerts (7 days before & overdue)</span>
+                          </li>
+                          <li className="flex items-center">
+                            <Activity className="h-4 w-4 mr-2" />
+                            <span>Progress claim submission reminders</span>
+                          </li>
+                          <li className="flex items-center">
+                            <Shield className="h-4 w-4 mr-2" />
+                            <span>40+ customizable alert types for all business needs</span>
+                          </li>
+                        </ul>
+                        <Link href="/settings/whatsapp-alerts">
+                          <Button className="bg-green-600 hover:bg-green-700">
+                            <MessageSquare className="mr-2 h-4 w-4" />
+                            Configure WhatsApp Alerts
+                          </Button>
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="border rounded-lg p-4">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <SettingsIcon className="h-5 w-5 text-green-600" />
+                        <h4 className="font-medium">Easy Configuration</h4>
+                      </div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Set up alert types, timing, recipients, and message templates with an intuitive interface
+                      </p>
+                    </div>
+
+                    <div className="border rounded-lg p-4">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <UserCog className="h-5 w-5 text-green-600" />
+                        <h4 className="font-medium">Role-Based Recipients</h4>
+                      </div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Define phone numbers for teams (Finance, Sales, Admins) and assign alerts to specific roles
+                      </p>
+                    </div>
+
+                    <div className="border rounded-lg p-4">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <Database className="h-5 w-5 text-green-600" />
+                        <h4 className="font-medium">Complete Audit Trail</h4>
+                      </div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        View logs of all sent notifications with status tracking and export capabilities
                       </p>
                     </div>
                   </div>
