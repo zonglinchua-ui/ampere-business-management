@@ -8,7 +8,15 @@ export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     
-    if (!session || session.user.role !== 'SUPERADMIN') {
+    if (!session) {
+      return NextResponse.json(
+        { error: 'Unauthorized - Authentication required' },
+        { status: 401 }
+      )
+    }
+
+    const userRole = session.user?.role
+    if (!['SUPERADMIN'].includes(userRole || '')) {
       return NextResponse.json(
         { error: 'Unauthorized - Super admin access required' },
         { status: 403 }
