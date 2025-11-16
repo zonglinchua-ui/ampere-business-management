@@ -31,19 +31,28 @@ const MIN_REQUEST_INTERVAL = 30 * 1000 // Minimum 30 seconds between Xero API ca
 async function getCachedStatus(userRole: string, canManage: boolean) {
   const now = Date.now()
   
-  // Return cached data if still valid
+  // Return cached data if still valid AND it's a positive connection result
+  // Don't cache negative results for too long
   if (statusCache && now < statusCache.expires) {
-    console.log(`[Xero Status] Returning cached data (age: ${now - statusCache.timestamp}ms)`)
-    return {
-      ...statusCache.data,
-      user: { role: userRole, canManage },
-      cached: true,
-      cacheAge: now - statusCache.timestamp
+    // If cached data shows disconnected, only use it for a short time
+    if (!statusCache.data.connected && (now - statusCache.timestamp) > 30000) {
+      console.log(`[Xero Status] Cached 'disconnected' status is stale, fetching fresh data`)
+      // Clear cache and fetch fresh
+      statusCache = null
+    } else {
+      console.log(`[Xero Status] Returning cached data (age: ${now - statusCache.timestamp}ms)`)
+      return {
+        ...statusCache.data,
+        user: { role: userRole, canManage },
+        cached: true,
+        cacheAge: now - statusCache.timestamp
+      }
     }
   }
 
   // Rate limit protection - don't call Xero API too frequently
-  if (statusCache && (now - statusCache.timestamp) < MIN_REQUEST_INTERVAL) {
+  // But only if the cached status is 'connected' - always recheck if disconnected
+  if (statusCache && statusCache.data.connected && (now - statusCache.timestamp) < MIN_REQUEST_INTERVAL) {
     console.log(`[Xero Status] Rate limiting - returning stale cache`)
     return {
       ...statusCache.data,
