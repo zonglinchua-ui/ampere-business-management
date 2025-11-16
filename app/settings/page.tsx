@@ -382,10 +382,12 @@ export default function SettingsPage() {
       lastName: '',
       email: '',
       userId: '',
+      phone: '',
       role: '',
       companyName: 'Ampere Engineering Pte Ltd',
       password: '',
-      confirmPassword: ''
+      confirmPassword: '',
+      whatsappNotifications: true
     })
     setAddDialogOpen(true)
   }
