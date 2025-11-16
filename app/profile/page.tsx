@@ -49,12 +49,14 @@ const profileSchema = z.object({
 }).refine((data) => {
   // Validate phone number format if provided
   if (data.phone && data.phone.trim() !== '') {
-    const phoneRegex = /^\+?[1-9]\d{1,14}$/
-    return phoneRegex.test(data.phone.replace(/[\s-]/g, ''))
+    // Remove spaces and check if it matches Singapore format
+    const cleanPhone = data.phone.replace(/\s/g, '')
+    const phoneRegex = /^\+65\d{8}$/
+    return phoneRegex.test(cleanPhone)
   }
   return true
 }, {
-  message: "Invalid phone number format. Use international format (e.g., +6591234567)",
+  message: "Invalid phone number. Use Singapore format: +65 XXXX XXXX",
   path: ["phone"]
 })
 
@@ -343,10 +345,10 @@ export default function ProfilePage() {
                   id="phone"
                   type="tel"
                   {...register('phone')}
-                  placeholder="+6591234567"
+                  placeholder="+65 9123 4567"
                 />
                 <p className="text-xs text-gray-500">
-                  Use international format (e.g., +6591234567) for WhatsApp notifications
+                  Singapore format: +65 XXXX XXXX (e.g., +65 9123 4567)
                 </p>
                 {errors.phone && (
                   <p className="text-sm text-red-600">{errors.phone.message}</p>

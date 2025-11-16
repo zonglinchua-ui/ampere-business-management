@@ -1648,7 +1648,7 @@ export default function SettingsPage() {
 
         {/* Edit User Dialog */}
         <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-          <DialogContent className="sm:max-w-[425px]">
+          <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Edit User</DialogTitle>
               <DialogDescription>
@@ -1698,10 +1698,10 @@ export default function SettingsPage() {
                   id="phone"
                   type="tel"
                   value={editFormData.phone}
-                  placeholder="+6591234567"
+                  placeholder="+65 9123 4567"
                   onChange={(e) => setEditFormData({...editFormData, phone: e.target.value})}
                 />
-                <p className="text-xs text-gray-500">International format for WhatsApp</p>
+                <p className="text-xs text-gray-500">Singapore format: +65 XXXX XXXX</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="role">Role</Label>
@@ -1767,7 +1767,7 @@ export default function SettingsPage() {
 
         {/* Add User Dialog */}
         <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
-          <DialogContent className="sm:max-w-[425px]">
+          <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Add New User</DialogTitle>
               <DialogDescription>
@@ -1817,10 +1817,10 @@ export default function SettingsPage() {
                   id="addPhone"
                   type="tel"
                   value={addFormData.phone}
-                  placeholder="+6591234567"
+                  placeholder="+65 9123 4567"
                   onChange={(e) => setAddFormData({...addFormData, phone: e.target.value})}
                 />
-                <p className="text-xs text-gray-500">International format for WhatsApp</p>
+                <p className="text-xs text-gray-500">Singapore format: +65 XXXX XXXX</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="addRole">Role *</Label>
