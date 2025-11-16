@@ -198,6 +198,15 @@ export default function SettingsPage() {
     fetchUsersAndSettings()
   }, [])
 
+  // Cleanup effect when dialogs close
+  useEffect(() => {
+    if (!editDialogOpen && !addDialogOpen) {
+      // Ensure body is clickable when all dialogs are closed
+      document.body.style.pointerEvents = ''
+      document.body.style.overflow = ''
+    }
+  }, [editDialogOpen, addDialogOpen])
+
   const handleSaveSettings = async () => {
     try {
       const response = await fetch('/api/settings', {
@@ -332,6 +341,12 @@ export default function SettingsPage() {
         await fetchUsersAndSettings() // Refresh the user list
         setEditDialogOpen(false)
         setEditingUser(null)
+        
+        // Force cleanup of any lingering overlays
+        setTimeout(() => {
+          document.body.style.pointerEvents = ''
+          document.body.style.overflow = ''
+        }, 100)
       } else {
         const errorData = await response.json()
         alert(errorData.error || 'Failed to update user')
@@ -1665,7 +1680,23 @@ export default function SettingsPage() {
         </Tabs>
 
         {/* Edit User Dialog */}
-        <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <Dialog modal={true} open={editDialogOpen} onOpenChange={(open) => {
+          setEditDialogOpen(open)
+          if (!open) {
+            // Force cleanup when dialog closes
+            setTimeout(() => {
+              document.body.style.pointerEvents = ''
+              document.body.style.overflow = ''
+              // Remove any lingering Radix portal overlays
+              const portals = document.querySelectorAll('[data-radix-portal]')
+              portals.forEach(portal => {
+                if (portal.children.length === 0) {
+                  portal.remove()
+                }
+              })
+            }, 50)
+          }
+        }}>
           <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Edit User</DialogTitle>
@@ -1787,7 +1818,23 @@ export default function SettingsPage() {
         </Dialog>
 
         {/* Add User Dialog */}
-        <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+        <Dialog modal={true} open={addDialogOpen} onOpenChange={(open) => {
+          setAddDialogOpen(open)
+          if (!open) {
+            // Force cleanup when dialog closes
+            setTimeout(() => {
+              document.body.style.pointerEvents = ''
+              document.body.style.overflow = ''
+              // Remove any lingering Radix portal overlays
+              const portals = document.querySelectorAll('[data-radix-portal]')
+              portals.forEach(portal => {
+                if (portal.children.length === 0) {
+                  portal.remove()
+                }
+              })
+            }, 50)
+          }
+        }}>
           <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Add New User</DialogTitle>
