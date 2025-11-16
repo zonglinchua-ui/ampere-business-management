@@ -34,8 +34,10 @@ export async function GET(
         lastName: true,
         email: true,
         userId: true,
+        phone: true,
         role: true,
         isActive: true,
+        whatsappNotifications: true,
         createdAt: true,
         updatedAt: true,
         lastLoginAt: true,
@@ -142,7 +144,9 @@ export async function PUT(
       updateData.lastName = data.lastName
       updateData.email = data.email
       updateData.userId = data.userId || null
+      updateData.phone = data.phone || null
       updateData.companyName = data.companyName || null
+      updateData.whatsappNotifications = data.whatsappNotifications ?? true
 
       // Only admins can change role and status for other users
       if (isAdmin && !isSelfUpdate) {
@@ -189,8 +193,10 @@ export async function PUT(
         lastName: true,
         email: true,
         userId: true,
+        phone: true,
         role: true,
         isActive: true,
+        whatsappNotifications: true,
         createdAt: true,
         updatedAt: true,
         lastLoginAt: true,

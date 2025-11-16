@@ -73,8 +73,10 @@ interface User {
   lastName: string
   email: string
   userId?: string
+  phone?: string
   role: string
   isActive: boolean
+  whatsappNotifications?: boolean
   createdAt?: string
   lastLoginAt?: string
   companyName?: string
@@ -121,10 +123,12 @@ export default function SettingsPage() {
     lastName: '',
     email: '',
     userId: '',
+    phone: '',
     role: '',
     companyName: '',
     password: '',
-    isActive: true
+    isActive: true,
+    whatsappNotifications: true
   })
   const [addDialogOpen, setAddDialogOpen] = useState(false)
   const [addFormData, setAddFormData] = useState({
@@ -132,10 +136,12 @@ export default function SettingsPage() {
     lastName: '',
     email: '',
     userId: '',
+    phone: '',
     role: '',
     companyName: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    whatsappNotifications: true
   })
   const [settings, setSettings] = useState<SystemSettings>({
     companyName: "",
@@ -282,10 +288,12 @@ export default function SettingsPage() {
       lastName: user.lastName,
       email: user.email,
       userId: user.userId || '',
+      phone: user.phone || '',
       role: user.role,
       companyName: user.companyName || '',
       password: '',
-      isActive: user.isActive
+      isActive: user.isActive,
+      whatsappNotifications: user.whatsappNotifications ?? true
     })
     setEditDialogOpen(true)
   }
@@ -410,9 +418,11 @@ export default function SettingsPage() {
           lastName: addFormData.lastName,
           email: addFormData.email,
           userId: addFormData.userId,
+          phone: addFormData.phone || null,
           role: addFormData.role,
           companyName: addFormData.companyName,
-          password: addFormData.password
+          password: addFormData.password,
+          whatsappNotifications: addFormData.whatsappNotifications ?? true
         })
       })
 
@@ -1681,6 +1691,17 @@ export default function SettingsPage() {
                 />
               </div>
               <div className="space-y-2">
+                <Label htmlFor="phone">Phone Number</Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  value={editFormData.phone}
+                  placeholder="+6591234567"
+                  onChange={(e) => setEditFormData({...editFormData, phone: e.target.value})}
+                />
+                <p className="text-xs text-gray-500">International format for WhatsApp</p>
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="role">Role</Label>
                 <Select value={editFormData.role} onValueChange={(value) => 
                   setEditFormData({...editFormData, role: value})
@@ -1721,6 +1742,14 @@ export default function SettingsPage() {
                   onCheckedChange={(checked) => setEditFormData({...editFormData, isActive: checked})}
                 />
                 <Label>Account Active</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  checked={editFormData.whatsappNotifications}
+                  onCheckedChange={(checked) => setEditFormData({...editFormData, whatsappNotifications: checked})}
+                  disabled={!editFormData.phone}
+                />
+                <Label>WhatsApp Notifications</Label>
               </div>
             </div>
             <DialogFooter>
@@ -1781,6 +1810,17 @@ export default function SettingsPage() {
                 />
               </div>
               <div className="space-y-2">
+                <Label htmlFor="addPhone">Phone Number</Label>
+                <Input
+                  id="addPhone"
+                  type="tel"
+                  value={addFormData.phone}
+                  placeholder="+6591234567"
+                  onChange={(e) => setAddFormData({...addFormData, phone: e.target.value})}
+                />
+                <p className="text-xs text-gray-500">International format for WhatsApp</p>
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="addRole">Role *</Label>
                 <Select value={addFormData.role} onValueChange={(value) => 
                   setAddFormData({...addFormData, role: value})
@@ -1824,6 +1864,14 @@ export default function SettingsPage() {
                   value={addFormData.confirmPassword}
                   onChange={(e) => setAddFormData({...addFormData, confirmPassword: e.target.value})}
                 />
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  checked={addFormData.whatsappNotifications}
+                  onCheckedChange={(checked) => setAddFormData({...addFormData, whatsappNotifications: checked})}
+                  disabled={!addFormData.phone}
+                />
+                <Label>Enable WhatsApp Notifications</Label>
               </div>
             </div>
             <DialogFooter>

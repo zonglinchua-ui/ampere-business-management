@@ -11,11 +11,12 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
+import { Switch } from '@/components/ui/switch'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { User, Mail, Building2, Calendar, Shield, Eye, EyeOff } from 'lucide-react'
+import { User, Mail, Building2, Calendar, Shield, Eye, EyeOff, Phone, MessageSquare } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatDistanceToNow } from 'date-fns'
 
@@ -23,7 +24,9 @@ const profileSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
   lastName: z.string().min(1, 'Last name is required'),
   email: z.string().email('Invalid email address'),
+  phone: z.string().optional(),
   companyName: z.string().optional(),
+  whatsappNotifications: z.boolean().optional(),
   currentPassword: z.string().optional(),
   newPassword: z.string().min(6, 'Password must be at least 6 characters').optional().or(z.literal('')),
   confirmPassword: z.string().optional()
@@ -43,6 +46,16 @@ const profileSchema = z.object({
 }, {
   message: "Current password is required to set new password",
   path: ["currentPassword"]
+}).refine((data) => {
+  // Validate phone number format if provided
+  if (data.phone && data.phone.trim() !== '') {
+    const phoneRegex = /^\+?[1-9]\d{1,14}$/
+    return phoneRegex.test(data.phone.replace(/[\s-]/g, ''))
+  }
+  return true
+}, {
+  message: "Invalid phone number format. Use international format (e.g., +6591234567)",
+  path: ["phone"]
 })
 
 type ProfileFormData = z.infer<typeof profileSchema>
@@ -78,12 +91,14 @@ export default function ProfilePage() {
     handleSubmit,
     formState: { errors, isDirty },
     reset,
-    watch
+    watch,
+    setValue
   } = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema)
   })
 
   const newPassword = watch('newPassword')
+  const whatsappNotifications = watch('whatsappNotifications')
 
   useEffect(() => {
     if (!session) {
@@ -105,7 +120,9 @@ export default function ProfilePage() {
           firstName: profile.firstName || '',
           lastName: profile.lastName || '',
           email: profile.email || '',
-          companyName: profile.companyName || ''
+          phone: profile.phone || '',
+          companyName: profile.companyName || '',
+          whatsappNotifications: profile.whatsappNotifications ?? true
         })
       }
     } catch (error) {
@@ -122,7 +139,9 @@ export default function ProfilePage() {
         firstName: data.firstName,
         lastName: data.lastName,
         email: data.email,
-        companyName: data.companyName
+        phone: data.phone || null,
+        companyName: data.companyName,
+        whatsappNotifications: data.whatsappNotifications ?? true
       }
 
       // Add password fields if changing password
@@ -155,6 +174,7 @@ export default function ProfilePage() {
           firstName: updatedProfile.firstName,
           lastName: updatedProfile.lastName,
           email: updatedProfile.email,
+          phone: updatedProfile.phone,
           companyName: updatedProfile.companyName
         }
       })
@@ -164,7 +184,9 @@ export default function ProfilePage() {
         firstName: updatedProfile.firstName || '',
         lastName: updatedProfile.lastName || '',
         email: updatedProfile.email || '',
+        phone: updatedProfile.phone || '',
         companyName: updatedProfile.companyName || '',
+        whatsappNotifications: updatedProfile.whatsappNotifications ?? true,
         currentPassword: '',
         newPassword: '',
         confirmPassword: ''
@@ -217,6 +239,12 @@ export default function ProfilePage() {
                   {userProfile.firstName} {userProfile.lastName}
                 </h2>
                 <p className="text-gray-600 dark:text-gray-400">{userProfile.email}</p>
+                {userProfile.phone && (
+                  <p className="text-sm text-gray-500 dark:text-gray-500 flex items-center mt-1">
+                    <Phone className="h-3 w-3 mr-1" />
+                    {userProfile.phone}
+                  </p>
+                )}
                 <p className="text-sm text-gray-500 dark:text-gray-500">User ID: {userProfile.id}</p>
                 <div className="flex items-center space-x-4 mt-2">
                   <Badge variant={roleInfo.variant}>
@@ -228,6 +256,12 @@ export default function ProfilePage() {
                       <Building2 className="h-3 w-3 mr-1" />
                       {userProfile.companyName}
                     </div>
+                  )}
+                  {userProfile.whatsappNotifications && userProfile.phone && (
+                    <Badge variant="outline" className="text-green-600 border-green-600">
+                      <MessageSquare className="h-3 w-3 mr-1" />
+                      WhatsApp Enabled
+                    </Badge>
                   )}
                 </div>
               </div>
@@ -304,12 +338,72 @@ export default function ProfilePage() {
               </div>
 
               <div className="space-y-2">
+                <Label htmlFor="phone">Phone Number</Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  {...register('phone')}
+                  placeholder="+6591234567"
+                />
+                <p className="text-xs text-gray-500">
+                  Use international format (e.g., +6591234567) for WhatsApp notifications
+                </p>
+                {errors.phone && (
+                  <p className="text-sm text-red-600">{errors.phone.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="companyName">Company Name (Optional)</Label>
                 <Input
                   id="companyName"
                   {...register('companyName')}
                   placeholder="Company name"
                 />
+              </div>
+
+              <Separator />
+
+              {/* WhatsApp Notifications */}
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                    WhatsApp Notifications
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                    Receive important alerts and updates via WhatsApp
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2">
+                      <MessageSquare className="h-5 w-5 text-green-600" />
+                      <Label htmlFor="whatsappNotifications" className="font-medium cursor-pointer">
+                        Enable WhatsApp Notifications
+                      </Label>
+                    </div>
+                    <p className="text-sm text-gray-500 mt-1">
+                      {userProfile.phone 
+                        ? 'Get notified about project updates, invoices, and alerts'
+                        : 'Add your phone number above to enable WhatsApp notifications'}
+                    </p>
+                  </div>
+                  <Switch
+                    id="whatsappNotifications"
+                    checked={whatsappNotifications ?? true}
+                    onCheckedChange={(checked) => setValue('whatsappNotifications', checked, { shouldDirty: true })}
+                    disabled={!userProfile.phone && !watch('phone')}
+                  />
+                </div>
+
+                {!userProfile.phone && !watch('phone') && (
+                  <Alert>
+                    <AlertDescription>
+                      Please add your phone number above to enable WhatsApp notifications.
+                    </AlertDescription>
+                  </Alert>
+                )}
               </div>
 
               <Separator />

@@ -22,8 +22,10 @@ export async function GET() {
         lastName: true,
         email: true,
         userId: true,
+        phone: true,
         role: true,
         isActive: true,
+        whatsappNotifications: true,
         createdAt: true,
         lastLoginAt: true,
         companyName: true
@@ -101,9 +103,11 @@ export async function POST(request: NextRequest) {
         name: data.userId || `${data.firstName} ${data.lastName}`, // Use userId if provided, otherwise full name
         email: data.email,
         userId: data.userId || null,
+        phone: data.phone || null,
         role: data.role,
         password: hashedPassword,
         companyName: data.companyName || null,
+        whatsappNotifications: data.whatsappNotifications ?? true,
         isActive: true,
         createdAt: new Date(),
         updatedAt: new Date()
@@ -114,8 +118,10 @@ export async function POST(request: NextRequest) {
         lastName: true,
         email: true,
         userId: true,
+        phone: true,
         role: true,
         isActive: true,
+        whatsappNotifications: true,
         createdAt: true,
         lastLoginAt: true,
         companyName: true
