@@ -11,7 +11,7 @@ export async function GET(
   try {
     const session = await getServerSession(authOptions)
     
-    if (!session || session.user.role !== 'SUPER_ADMIN') {
+    if (!session || session.user.role !== 'SUPERADMIN') {
       return NextResponse.json(
         { error: 'Unauthorized - Super admin access required' },
         { status: 403 }
@@ -49,7 +49,7 @@ export async function DELETE(
   try {
     const session = await getServerSession(authOptions)
     
-    if (!session || session.user.role !== 'SUPER_ADMIN') {
+    if (!session || session.user.role !== 'SUPERADMIN') {
       return NextResponse.json(
         { error: 'Unauthorized - Super admin access required' },
         { status: 403 }
