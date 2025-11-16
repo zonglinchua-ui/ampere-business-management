@@ -1683,18 +1683,30 @@ export default function SettingsPage() {
         <Dialog modal={true} open={editDialogOpen} onOpenChange={(open) => {
           setEditDialogOpen(open)
           if (!open) {
-            // Force cleanup when dialog closes
+            // Reset editing user state
+            setEditingUser(null)
+            
+            // Immediate cleanup
+            document.body.style.pointerEvents = ''
+            document.body.style.overflow = ''
+            
+            // Force cleanup when dialog closes (multiple attempts for reliability)
             setTimeout(() => {
               document.body.style.pointerEvents = ''
               document.body.style.overflow = ''
-              // Remove any lingering Radix portal overlays
               const portals = document.querySelectorAll('[data-radix-portal]')
               portals.forEach(portal => {
                 if (portal.children.length === 0) {
                   portal.remove()
                 }
               })
-            }, 50)
+            }, 100)
+            
+            // Second cleanup attempt
+            setTimeout(() => {
+              document.body.style.pointerEvents = ''
+              document.body.style.overflow = ''
+            }, 300)
           }
         }}>
           <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
@@ -1807,7 +1819,15 @@ export default function SettingsPage() {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+              <Button variant="outline" onClick={() => {
+                setEditDialogOpen(false)
+                setEditingUser(null)
+                // Force cleanup
+                setTimeout(() => {
+                  document.body.style.pointerEvents = ''
+                  document.body.style.overflow = ''
+                }, 100)
+              }}>
                 Cancel
               </Button>
               <Button onClick={handleUpdateUser}>
@@ -1821,18 +1841,27 @@ export default function SettingsPage() {
         <Dialog modal={true} open={addDialogOpen} onOpenChange={(open) => {
           setAddDialogOpen(open)
           if (!open) {
-            // Force cleanup when dialog closes
+            // Immediate cleanup
+            document.body.style.pointerEvents = ''
+            document.body.style.overflow = ''
+            
+            // Force cleanup when dialog closes (multiple attempts for reliability)
             setTimeout(() => {
               document.body.style.pointerEvents = ''
               document.body.style.overflow = ''
-              // Remove any lingering Radix portal overlays
               const portals = document.querySelectorAll('[data-radix-portal]')
               portals.forEach(portal => {
                 if (portal.children.length === 0) {
                   portal.remove()
                 }
               })
-            }, 50)
+            }, 100)
+            
+            // Second cleanup attempt
+            setTimeout(() => {
+              document.body.style.pointerEvents = ''
+              document.body.style.overflow = ''
+            }, 300)
           }
         }}>
           <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
@@ -1948,7 +1977,14 @@ export default function SettingsPage() {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setAddDialogOpen(false)}>
+              <Button variant="outline" onClick={() => {
+                setAddDialogOpen(false)
+                // Force cleanup
+                setTimeout(() => {
+                  document.body.style.pointerEvents = ''
+                  document.body.style.overflow = ''
+                }, 100)
+              }}>
                 Cancel
               </Button>
               <Button onClick={handleCreateUser} className="bg-red-600 hover:bg-red-700">
