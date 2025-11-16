@@ -102,6 +102,24 @@ export default function ProfilePage() {
   const newPassword = watch('newPassword')
   const whatsappNotifications = watch('whatsappNotifications')
 
+  // Auto-format phone number as user types
+  const formatPhoneNumber = (value: string) => {
+    // Remove all non-digit characters except +
+    const cleaned = value.replace(/[^\d+]/g, '')
+    
+    // If it doesn't start with +65, return as is
+    if (!cleaned.startsWith('+65')) {
+      return cleaned
+    }
+    
+    // Format as +65 XXXX XXXX
+    const digits = cleaned.slice(3) // Remove +65
+    if (digits.length <= 4) {
+      return `+65 ${digits}`
+    }
+    return `+65 ${digits.slice(0, 4)} ${digits.slice(4, 8)}`
+  }
+
   useEffect(() => {
     if (!session) {
       router.push('/auth/login')
@@ -346,6 +364,10 @@ export default function ProfilePage() {
                   type="tel"
                   {...register('phone')}
                   placeholder="+65 9123 4567"
+                  onChange={(e) => {
+                    const formatted = formatPhoneNumber(e.target.value)
+                    setValue('phone', formatted, { shouldDirty: true, shouldValidate: true })
+                  }}
                 />
                 <p className="text-xs text-gray-500">
                   Singapore format: +65 XXXX XXXX (e.g., +65 9123 4567)

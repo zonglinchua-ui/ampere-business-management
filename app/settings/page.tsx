@@ -176,6 +176,24 @@ export default function SettingsPage() {
   const canManageUsers = ["SUPERADMIN"].includes(userRole || "")
   const canManageSettings = ["SUPERADMIN"].includes(userRole || "")
 
+  // Auto-format phone number as user types
+  const formatPhoneNumber = (value: string) => {
+    // Remove all non-digit characters except +
+    const cleaned = value.replace(/[^\d+]/g, '')
+    
+    // If it doesn't start with +65, return as is
+    if (!cleaned.startsWith('+65')) {
+      return cleaned
+    }
+    
+    // Format as +65 XXXX XXXX
+    const digits = cleaned.slice(3) // Remove +65
+    if (digits.length <= 4) {
+      return `+65 ${digits}`
+    }
+    return `+65 ${digits.slice(0, 4)} ${digits.slice(4, 8)}`
+  }
+
   useEffect(() => {
     fetchUsersAndSettings()
   }, [])
@@ -1699,7 +1717,10 @@ export default function SettingsPage() {
                   type="tel"
                   value={editFormData.phone}
                   placeholder="+65 9123 4567"
-                  onChange={(e) => setEditFormData({...editFormData, phone: e.target.value})}
+                  onChange={(e) => {
+                    const formatted = formatPhoneNumber(e.target.value)
+                    setEditFormData({...editFormData, phone: formatted})
+                  }}
                 />
                 <p className="text-xs text-gray-500">Singapore format: +65 XXXX XXXX</p>
               </div>
@@ -1818,7 +1839,10 @@ export default function SettingsPage() {
                   type="tel"
                   value={addFormData.phone}
                   placeholder="+65 9123 4567"
-                  onChange={(e) => setAddFormData({...addFormData, phone: e.target.value})}
+                  onChange={(e) => {
+                    const formatted = formatPhoneNumber(e.target.value)
+                    setAddFormData({...addFormData, phone: formatted})
+                  }}
                 />
                 <p className="text-xs text-gray-500">Singapore format: +65 XXXX XXXX</p>
               </div>
