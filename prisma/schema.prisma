@@ -1315,8 +1315,6 @@ model User {
   phone                                                     String?
   whatsappNotifications                                     Boolean                       @default(true)
   whatsappAlertPreferences                                  Json?
-  quietHoursStart                                           String?
-  quietHoursEnd                                             String?
   Account                                                   Account[]
   AuditLog                                                  AuditLog[]
   BcaAuditLog                                               BcaAuditLog[]
