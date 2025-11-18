@@ -186,7 +186,7 @@ export default function UploadQuotationDialog({
               <SelectTrigger>
                 <SelectValue placeholder="Select supplier" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="z-[100]">
                 {suppliers.map((supplier) => (
                   <SelectItem key={supplier.id} value={supplier.id}>
                     {supplier.name}
@@ -203,7 +203,7 @@ export default function UploadQuotationDialog({
               <SelectTrigger>
                 <SelectValue placeholder="Select trade type" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="z-[100]">
                 {tradeTypes.map((type) => (
                   <SelectItem key={type} value={type}>
                     {type}
