@@ -153,7 +153,7 @@ export async function POST(
           taxAmount,
           totalAmount,
           currency: "SGD",
-          status: "PENDING",
+          status: "ISSUED",
           issueDate: new Date(),
           deliveryDate: deliveryDate ? new Date(deliveryDate) : null,
           deliveryAddress: deliveryAddress || project.address || "",
