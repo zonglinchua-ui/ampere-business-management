@@ -1,6 +1,6 @@
 'use client'
 
-import { UnifiedFinanceDashboard } from './finance/unified-finance-dashboard'
+import { SimplifiedFinanceDashboard } from './finance/simplified-finance-dashboard'
 
 interface ProjectFinanceProps {
   projectId: string
@@ -15,5 +15,5 @@ interface ProjectFinanceProps {
 }
 
 export function ProjectFinance({ projectId, project }: ProjectFinanceProps) {
-  return <UnifiedFinanceDashboard projectId={projectId} project={project} />
+  return <SimplifiedFinanceDashboard projectId={projectId} project={project} />
 }
