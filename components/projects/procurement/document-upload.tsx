@@ -1,0 +1,242 @@
+'use client';
+
+import React, { useState, useCallback } from 'react';
+import { useDropzone } from 'react-dropzone';
+import { Upload, FileText, X, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+
+interface DocumentUploadProps {
+  projectId: string;
+  onUploadComplete?: () => void;
+}
+
+const DOCUMENT_TYPES = [
+  { value: 'CUSTOMER_PO', label: 'Customer PO', color: 'bg-blue-100 text-blue-800' },
+  { value: 'SUPPLIER_QUOTATION', label: 'Supplier Quotation', color: 'bg-purple-100 text-purple-800' },
+  { value: 'SUPPLIER_INVOICE', label: 'Supplier Invoice', color: 'bg-green-100 text-green-800' },
+  { value: 'SUPPLIER_PO', label: 'Supplier PO', color: 'bg-orange-100 text-orange-800' },
+  { value: 'CLIENT_INVOICE', label: 'Client Invoice', color: 'bg-teal-100 text-teal-800' },
+  { value: 'VARIATION_ORDER', label: 'Variation Order', color: 'bg-red-100 text-red-800' },
+];
+
+export default function DocumentUpload({ projectId, onUploadComplete }: DocumentUploadProps) {
+  const [selectedType, setSelectedType] = useState<string>('SUPPLIER_QUOTATION');
+  const [notes, setNotes] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState<{
+    type: 'success' | 'error' | null;
+    message: string;
+  }>({ type: null, message: '' });
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  const onDrop = useCallback((acceptedFiles: File[]) => {
+    if (acceptedFiles.length > 0) {
+      setSelectedFile(acceptedFiles[0]);
+      setUploadStatus({ type: null, message: '' });
+    }
+  }, []);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      'application/pdf': ['.pdf'],
+      'image/*': ['.png', '.jpg', '.jpeg'],
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+      'application/msword': ['.doc'],
+    },
+    maxFiles: 1,
+    multiple: false,
+  });
+
+  const handleUpload = async () => {
+    if (!selectedFile) {
+      setUploadStatus({ type: 'error', message: 'Please select a file to upload' });
+      return;
+    }
+
+    setUploading(true);
+    setUploadStatus({ type: null, message: '' });
+
+    try {
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      formData.append('documentType', selectedType);
+      if (notes) {
+        formData.append('notes', notes);
+      }
+
+      const response = await fetch(`/api/projects/${projectId}/procurement/upload`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Upload failed');
+      }
+
+      setUploadStatus({
+        type: 'success',
+        message: `Document uploaded successfully! AI extracted data with ${data.document.extractionConfidence?.toFixed(0)}% confidence.`,
+      });
+
+      // Reset form
+      setSelectedFile(null);
+      setNotes('');
+
+      // Notify parent component
+      if (onUploadComplete) {
+        onUploadComplete();
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      setUploadStatus({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Failed to upload document',
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removeFile = () => {
+    setSelectedFile(null);
+    setUploadStatus({ type: null, message: '' });
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Document Type Selection */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Document Type
+        </label>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+          {DOCUMENT_TYPES.map((type) => (
+            <button
+              key={type.value}
+              onClick={() => setSelectedType(type.value)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                selectedType === type.value
+                  ? type.color + ' ring-2 ring-offset-2 ring-gray-400'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              {type.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* File Upload Area */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Upload Document
+        </label>
+        
+        {!selectedFile ? (
+          <div
+            {...getRootProps()}
+            className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+              isDragActive
+                ? 'border-blue-500 bg-blue-50'
+                : 'border-gray-300 hover:border-gray-400 bg-gray-50'
+            }`}
+          >
+            <input {...getInputProps()} />
+            <Upload className="mx-auto h-12 w-12 text-gray-400 mb-3" />
+            <p className="text-sm text-gray-600 mb-1">
+              {isDragActive ? 'Drop the file here' : 'Drag & drop a file here, or click to select'}
+            </p>
+            <p className="text-xs text-gray-500">
+              Supports PDF, Images, Word documents
+            </p>
+          </div>
+        ) : (
+          <div className="border-2 border-green-300 bg-green-50 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <FileText className="h-8 w-8 text-green-600" />
+                <div>
+                  <p className="text-sm font-medium text-gray-900">{selectedFile.name}</p>
+                  <p className="text-xs text-gray-500">
+                    {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={removeFile}
+                className="text-gray-400 hover:text-gray-600"
+                disabled={uploading}
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Notes */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Notes (Optional)
+        </label>
+        <textarea
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          rows={3}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          placeholder="Add any additional notes about this document..."
+          disabled={uploading}
+        />
+      </div>
+
+      {/* Upload Status */}
+      {uploadStatus.type && (
+        <div
+          className={`flex items-start space-x-2 p-4 rounded-lg ${
+            uploadStatus.type === 'success'
+              ? 'bg-green-50 text-green-800'
+              : 'bg-red-50 text-red-800'
+          }`}
+        >
+          {uploadStatus.type === 'success' ? (
+            <CheckCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+          ) : (
+            <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+          )}
+          <p className="text-sm">{uploadStatus.message}</p>
+        </div>
+      )}
+
+      {/* Upload Button */}
+      <button
+        onClick={handleUpload}
+        disabled={!selectedFile || uploading}
+        className={`w-full py-3 px-4 rounded-lg font-medium transition-colors ${
+          !selectedFile || uploading
+            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            : 'bg-blue-600 text-white hover:bg-blue-700'
+        }`}
+      >
+        {uploading ? (
+          <span className="flex items-center justify-center">
+            <Loader2 className="animate-spin h-5 w-5 mr-2" />
+            Processing with AI...
+          </span>
+        ) : (
+          'Upload & Extract Data'
+        )}
+      </button>
+
+      {/* Info Box */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <p className="text-sm text-blue-800">
+          <strong>AI-Powered Extraction:</strong> The system will automatically extract document
+          details, amounts, line items, and payment terms using AI. You can review and edit the
+          extracted data after upload.
+        </p>
+      </div>
+    </div>
+  );
+}

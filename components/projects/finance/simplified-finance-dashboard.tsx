@@ -421,6 +421,35 @@ export function SimplifiedFinanceDashboard({ projectId, project }: SimplifiedFin
         </CardContent>
       </Card>
 
+      {/* Procurement Documents Link */}
+      <Card className="border-2 border-blue-200 bg-gradient-to-r from-blue-50 to-purple-50">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-base flex items-center">
+                <FileText className="mr-2 h-4 w-4" />
+                Procurement Documents
+              </CardTitle>
+              <CardDescription className="text-xs mt-1">
+                AI-powered document management for quotations, POs, invoices & VOs
+              </CardDescription>
+            </div>
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => router.push(`/projects/${projectId}/procurement`)}
+            >
+              Manage Documents
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-gray-600">
+            Upload and manage supplier quotations, purchase orders, invoices, and variation orders with automated AI extraction and approval workflows.
+          </p>
+        </CardContent>
+      </Card>
+
       {/* Supplier Invoices / POs Section */}
       <Card>
         <CardHeader>
