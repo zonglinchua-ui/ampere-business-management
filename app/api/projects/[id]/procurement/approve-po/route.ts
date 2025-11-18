@@ -262,8 +262,8 @@ export async function POST(
           totalAmount: poRequest.totalAmount,
           currency: poRequest.currency,
           taxAmount: poRequest.taxAmount,
-          subtotalAmount: poRequest.taxAmount
-            ? poRequest.totalAmount - poRequest.taxAmount
+          subtotalAmount: poRequest.taxAmount && poRequest.totalAmount
+            ? (Number(poRequest.totalAmount) - Number(poRequest.taxAmount))
             : null,
           paymentTerms: poRequest.paymentTerms as any,
           customPaymentTerms: poRequest.customPaymentTerms,

@@ -23,6 +23,7 @@ interface ProcurementDocument {
   fileName: string;
   originalFileName: string;
   totalAmount: number | null;
+  taxAmount: number | null;
   currency: string | null;
   extractionConfidence: number | null;
   Supplier: { id: string; name: string } | null;

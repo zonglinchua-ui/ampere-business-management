@@ -16,6 +16,7 @@ interface VO {
   documentNumber: string | null;
   documentDate: string | null;
   totalAmount: number | null;
+  taxAmount: number | null;
   currency: string | null;
   linkedPOId: string | null;
   status: string;

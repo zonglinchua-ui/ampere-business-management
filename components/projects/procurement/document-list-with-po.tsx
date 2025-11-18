@@ -25,6 +25,7 @@ interface ProcurementDocument {
   fileName: string;
   originalFileName: string;
   totalAmount: number | null;
+  taxAmount: number | null;
   currency: string | null;
   extractionConfidence: number | null;
   paymentTerms: string | null;

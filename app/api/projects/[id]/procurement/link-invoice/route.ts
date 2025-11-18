@@ -94,8 +94,8 @@ export async function POST(
     }
 
     // Check amount match (allow 5% variance)
-    const invoiceAmount = invoice.totalAmount || 0;
-    const poAmount = po.totalAmount || 0;
+    const invoiceAmount = Number(invoice.totalAmount) || 0;
+    const poAmount = Number(po.totalAmount) || 0;
     matchingResult.amountVariance = Math.abs(invoiceAmount - poAmount);
     matchingResult.amountVariancePercentage = poAmount > 0 
       ? (matchingResult.amountVariance / poAmount) * 100 
