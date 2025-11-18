@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 import { existsSync } from 'fs';
@@ -26,7 +26,7 @@ async function generatePOPDF(
 
       // PO Details
       doc.fontSize(10);
-      doc.text(`PO Number: ${poRequest.poNumber}`, { bold: true });
+      doc.font('Helvetica-Bold').text(`PO Number: ${poRequest.poNumber}`, ).font('Helvetica');
       doc.text(`Date: ${new Date(poRequest.poDate).toLocaleDateString('en-SG')}`);
       doc.text(`Project: ${project.projectNumber} - ${project.name}`);
       doc.moveDown();
@@ -213,7 +213,7 @@ export async function POST(
       );
     }
 
-    let generatedPO = null;
+    let generatedPO: any = null;
 
     if (action === 'APPROVED') {
       // Generate PO document
