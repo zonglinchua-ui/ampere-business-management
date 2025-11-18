@@ -194,7 +194,7 @@ export function SimplifiedFinanceDashboard({ projectId, project }: SimplifiedFin
     )
   }
 
-  const outstandingClaims = financeData.totalClaimed - financeData.totalPaid
+  const outstandingClaims = (financeData?.totalClaimed || 0) - (financeData?.totalPaid || 0)
 
   return (
     <div className="space-y-6">
@@ -216,19 +216,19 @@ export function SimplifiedFinanceDashboard({ projectId, project }: SimplifiedFin
             <div className="flex justify-between items-center p-2 bg-green-50 rounded border border-green-200">
               <span className="text-xs font-medium">Contract Value</span>
               <span className="text-sm font-bold text-green-700">
-                ${financeData.contractValue.toLocaleString()}
+                ${(financeData?.contractValue || 0).toLocaleString()}
               </span>
             </div>
             <div className="flex justify-between items-center p-2 bg-blue-50 rounded">
               <span className="text-xs">Total Claims</span>
               <span className="text-sm font-semibold text-blue-600">
-                ${financeData.totalClaimed.toLocaleString()}
+                ${(financeData?.totalClaimed || 0).toLocaleString()}
               </span>
             </div>
             <div className="flex justify-between items-center p-2 bg-green-50 rounded">
               <span className="text-xs">Payments Received</span>
               <span className="text-sm font-semibold text-green-600">
-                ${financeData.totalPaid.toLocaleString()}
+                ${(financeData?.totalPaid || 0).toLocaleString()}
               </span>
             </div>
             <div className="flex justify-between items-center p-2 bg-yellow-50 rounded border border-yellow-200">
@@ -253,28 +253,28 @@ export function SimplifiedFinanceDashboard({ projectId, project }: SimplifiedFin
             <div className="flex justify-between items-center p-2 bg-blue-50 rounded border border-blue-200">
               <span className="text-xs font-medium">Total Budget</span>
               <span className="text-sm font-bold text-blue-700">
-                ${financeData.totalBudget.toLocaleString()}
+                ${(financeData?.totalBudget || 0).toLocaleString()}
               </span>
             </div>
             <div className="flex justify-between items-center p-2 bg-orange-50 rounded">
               <span className="text-xs">PO Commitments</span>
               <span className="text-sm font-semibold text-orange-600">
-                ${financeData.totalPOCommitments.toLocaleString()}
+                ${(financeData?.totalPOCommitments || 0).toLocaleString()}
               </span>
             </div>
             <div className="flex justify-between items-center p-2 bg-red-50 rounded">
               <span className="text-xs">Actual Expenses</span>
               <span className="text-sm font-semibold text-red-600">
-                ${financeData.totalExpenses.toLocaleString()}
+                ${(financeData?.totalExpenses || 0).toLocaleString()}
               </span>
             </div>
             <div className="p-3 bg-purple-50 rounded border border-purple-200 text-center mt-2">
               <div className="text-xs text-gray-600">Gross Profit</div>
-              <div className={`text-lg font-bold mt-1 ${financeData.grossProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                ${financeData.grossProfit.toLocaleString()}
+              <div className={`text-lg font-bold mt-1 ${(financeData?.grossProfit || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                ${(financeData?.grossProfit || 0).toLocaleString()}
               </div>
               <div className="text-xs text-gray-500 mt-0.5">
-                Margin: {financeData.grossMargin.toFixed(1)}%
+                Margin: {(financeData?.grossMargin || 0).toFixed(1)}%
               </div>
             </div>
           </CardContent>
