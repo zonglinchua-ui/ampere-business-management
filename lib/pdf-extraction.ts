@@ -3,7 +3,8 @@
  * Extracts text content from PDF files for AI processing
  */
 
-import pdf from 'pdf-parse';
+// @ts-ignore
+const pdf = require('pdf-parse');
 import { readFile } from 'fs/promises';
 
 export interface PDFExtractionResult {
