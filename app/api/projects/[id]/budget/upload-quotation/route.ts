@@ -57,20 +57,15 @@ export async function POST(
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    if (!supplierId) {
-      return NextResponse.json(
-        { error: "Supplier ID is required" },
-        { status: 400 }
-      );
-    }
-
-    // Verify supplier exists
-    const supplier = await prisma.supplier.findUnique({
-      where: { id: supplierId },
-    });
-
-    if (!supplier) {
-      return NextResponse.json({ error: "Supplier not found" }, { status: 404 });
+    // Supplier is optional - will be auto-matched from extracted data
+    let supplier = null;
+    if (supplierId) {
+      supplier = await prisma.supplier.findUnique({
+        where: { id: supplierId },
+      });
+      if (!supplier) {
+        return NextResponse.json({ error: "Supplier not found" }, { status: 404 });
+      }
     }
 
     // Validate file type
@@ -148,14 +143,49 @@ export async function POST(
 
       aiConfidence = extractedData.confidence;
       
-      // Need review if confidence is low or total amount is 0
-      needsReview = aiConfidence < 0.7 || extractedData.totalAmount === 0;
+      // Auto-match supplier if not provided
+      if (!supplier && extractedData.supplierName) {
+        // Try to find supplier by name (case-insensitive partial match)
+        const suppliers = await prisma.supplier.findMany({
+          where: {
+            isActive: true,
+            name: {
+              contains: extractedData.supplierName,
+              mode: 'insensitive',
+            },
+          },
+          take: 1,
+        });
+        
+        if (suppliers.length > 0) {
+          supplier = suppliers[0];
+          console.log(`Auto-matched supplier: ${supplier.name}`);
+        } else {
+          // Create new supplier if no match found
+          supplier = await prisma.supplier.create({
+            data: {
+              id: `sup_${Date.now()}`,
+              name: extractedData.supplierName,
+              email: null,
+              phone: null,
+              isActive: true,
+              isApproved: false,
+              createdById: session.user.id,
+              updatedAt: new Date(),
+            },
+          });
+          console.log(`Created new supplier: ${supplier.name}`);
+        }
+      }
+      
+      // Need review if confidence is low, total amount is 0, or supplier was auto-created
+      needsReview = aiConfidence < 0.7 || extractedData.totalAmount === 0 || !supplier?.isApproved;
 
     } catch (aiError) {
       console.error("AI extraction error:", aiError);
       // Continue without AI extraction
       extractedData = {
-        supplierName: supplier.name,
+        supplierName: supplier?.name || "Unknown Supplier",
         quotationReference: "",
         quotationDate: new Date().toISOString(),
         totalAmount: 0,
@@ -166,11 +196,19 @@ export async function POST(
       needsReview = true;
     }
 
+    // Final check: if supplier is still null, return error
+    if (!supplier) {
+      return NextResponse.json(
+        { error: "Could not identify supplier from quotation. Please select a supplier manually." },
+        { status: 400 }
+      );
+    }
+
     // Create SupplierBudgetItem with extracted data
     const budgetItem = await prisma.supplierBudgetItem.create({
       data: {
         projectId,
-        supplierId,
+        supplierId: supplier.id,
         supplierName: supplier.name,
         tradeType: extractedData?.tradeType || tradeType || "General",
         description: `Quotation from ${supplier.name}`,

@@ -91,8 +91,8 @@ export default function UploadQuotationDialog({
   };
 
   const handleUpload = async () => {
-    if (!file || !selectedSupplierId) {
-      setError("Please select a supplier and file");
+    if (!file) {
+      setError("Please select a file");
       return;
     }
 
@@ -102,7 +102,9 @@ export default function UploadQuotationDialog({
     try {
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("supplierId", selectedSupplierId);
+      if (selectedSupplierId) {
+        formData.append("supplierId", selectedSupplierId);
+      }
       if (tradeType) {
         formData.append("tradeType", tradeType);
       }
@@ -178,7 +180,7 @@ export default function UploadQuotationDialog({
         <div className="space-y-4 py-4">
           {/* Supplier Selection */}
           <div className="space-y-2">
-            <Label htmlFor="supplier">Supplier *</Label>
+            <Label htmlFor="supplier">Supplier (Optional - AI will auto-match)</Label>
             <Select
               value={selectedSupplierId}
               onValueChange={setSelectedSupplierId}
