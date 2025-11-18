@@ -1,34 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/db";
 import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
 import { existsSync } from "fs";
-import OpenAI from "openai";
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
-interface QuotationExtraction {
-  supplierName: string;
-  quotationReference: string;
-  quotationDate: string;
-  totalAmount: number;
-  amountBeforeTax?: number;
-  taxAmount?: number;
-  currency: string;
-  tradeType?: string;
-  lineItems?: Array<{
-    description: string;
-    quantity?: number;
-    unitPrice?: number;
-    amount: number;
-  }>;
-  confidence: number;
-  rawText?: string;
-}
+import { extractTextFromPDF, cleanPDFText, extractQuotationPatterns } from "@/lib/pdf-extraction";
+import { extractQuotationWithOllama, QuotationExtraction } from "@/lib/ollama-quotation-extractor";
 
 export async function POST(
   req: NextRequest,
@@ -116,78 +94,57 @@ export async function POST(
     const buffer = Buffer.from(bytes);
     await writeFile(filePath, buffer);
 
-    // Extract text from PDF/image using OpenAI Vision
+    // Extract text from PDF/image
     let extractedData: QuotationExtraction | null = null;
     let aiConfidence = 0;
     let needsReview = true;
 
     try {
-      // Convert file to base64 for OpenAI
-      const base64File = buffer.toString("base64");
-      const mimeType = file.type;
+      let pdfText = '';
 
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [
-          {
-            role: "system",
-            content: `You are an expert at extracting structured data from quotations and invoices. 
-Extract the following information from the quotation document:
-- Supplier name
-- Quotation reference/number
-- Quotation date
-- Total amount (final total)
-- Amount before tax (if available)
-- Tax amount (if available)
-- Currency
-- Trade type (e.g., Electrical, Plumbing, Aircon, Carpentry, etc.)
-- Line items with descriptions and amounts
-
-Return the data in JSON format with high confidence scores.`,
-          },
-          {
-            role: "user",
-            content: [
-              {
-                type: "text",
-                text: "Extract all quotation details from this document. Be precise with numbers and dates.",
-              },
-              {
-                type: "image_url",
-                image_url: {
-                  url: `data:${mimeType};base64,${base64File}`,
-                },
-              },
-            ],
-          },
-        ],
-        response_format: { type: "json_object" },
-        max_tokens: 2000,
-      });
-
-      const aiResponse = response.choices[0]?.message?.content;
-      if (aiResponse) {
-        const parsed = JSON.parse(aiResponse);
+      if (file.type === 'application/pdf') {
+        // Extract text from PDF
+        const pdfResult = await extractTextFromPDF(filePath);
         
-        extractedData = {
-          supplierName: parsed.supplierName || supplier.name,
-          quotationReference: parsed.quotationReference || parsed.quotationNumber || "",
-          quotationDate: parsed.quotationDate || new Date().toISOString(),
-          totalAmount: parseFloat(parsed.totalAmount || parsed.total || "0"),
-          amountBeforeTax: parsed.amountBeforeTax
-            ? parseFloat(parsed.amountBeforeTax)
-            : undefined,
-          taxAmount: parsed.taxAmount ? parseFloat(parsed.taxAmount) : undefined,
-          currency: parsed.currency || "SGD",
-          tradeType: parsed.tradeType || tradeType || "General",
-          lineItems: parsed.lineItems || [],
-          confidence: parsed.confidence || 0.8,
-          rawText: JSON.stringify(parsed),
-        };
-
-        aiConfidence = extractedData.confidence;
-        needsReview = aiConfidence < 0.9 || extractedData.totalAmount === 0;
+        if (pdfResult.success && pdfResult.text) {
+          pdfText = cleanPDFText(pdfResult.text);
+        } else {
+          throw new Error('Failed to extract text from PDF');
+        }
+      } else {
+        // For images, we'll need OCR - for now, return error
+        return NextResponse.json(
+          { error: "Image quotations not yet supported. Please upload PDF files." },
+          { status: 400 }
+        );
       }
+
+      // First, try pattern-based extraction for quick wins
+      const patterns = extractQuotationPatterns(pdfText);
+
+      // Then use Ollama for structured extraction
+      const ollamaResult = await extractQuotationWithOllama(pdfText, supplier.name);
+
+      // Merge pattern-based and Ollama results (Ollama takes precedence)
+      extractedData = {
+        supplierName: ollamaResult.supplierName || supplier.name,
+        quotationReference: ollamaResult.quotationReference || patterns.quotationNumber || "",
+        quotationDate: ollamaResult.quotationDate || new Date().toISOString(),
+        totalAmount: ollamaResult.totalAmount || parseFloat(patterns.totalAmount) || 0,
+        amountBeforeTax: ollamaResult.amountBeforeTax || parseFloat(patterns.subtotal),
+        taxAmount: ollamaResult.taxAmount || parseFloat(patterns.tax),
+        currency: ollamaResult.currency || "SGD",
+        tradeType: ollamaResult.tradeType || tradeType || "General",
+        lineItems: ollamaResult.lineItems || [],
+        confidence: ollamaResult.confidence,
+        rawText: pdfText.substring(0, 500),
+      };
+
+      aiConfidence = extractedData.confidence;
+      
+      // Need review if confidence is low or total amount is 0
+      needsReview = aiConfidence < 0.7 || extractedData.totalAmount === 0;
+
     } catch (aiError) {
       console.error("AI extraction error:", aiError);
       // Continue without AI extraction
@@ -286,10 +243,10 @@ async function updateProjectBudgetSummary(projectId: string) {
   // Get project contract value
   const project = await prisma.project.findUnique({
     where: { id: projectId },
-    select: { totalBudget: true },
+    select: { contractValue: true },
   });
 
-  const contractValue = Number(project?.totalBudget || 0);
+  const contractValue = Number(project?.contractValue || 0);
   const estimatedProfit = contractValue - totalBudget;
   const estimatedProfitMargin =
     contractValue > 0 ? (estimatedProfit / contractValue) * 100 : 0;
