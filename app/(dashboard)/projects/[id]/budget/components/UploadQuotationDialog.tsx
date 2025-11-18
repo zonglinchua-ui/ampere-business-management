@@ -57,10 +57,11 @@ export default function UploadQuotationDialog({
 
   const fetchSuppliers = async () => {
     try {
-      const response = await fetch(`/api/suppliers`);
+      const response = await fetch(`/api/suppliers?pageSize=1000&includeInactive=false`);
       if (response.ok) {
         const data = await response.json();
-        setSuppliers(data.suppliers || []);
+        // API returns data in legacy format: { data: [...] }
+        setSuppliers(data.data || data.suppliers || []);
       }
     } catch (error) {
       console.error("Failed to fetch suppliers:", error);
