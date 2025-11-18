@@ -467,10 +467,14 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
       <Card>
         <CardContent className="p-0">
           <Tabs defaultValue="finance" className="w-full">
-            <TabsList className="grid w-full grid-cols-6 rounded-none border-b">
+            <TabsList className="grid w-full grid-cols-7 rounded-none border-b">
               <TabsTrigger value="finance">
                 <DollarSign className="h-4 w-4 mr-2" />
                 Finance
+              </TabsTrigger>
+              <TabsTrigger value="budget">
+                <Target className="h-4 w-4 mr-2" />
+                Budget
               </TabsTrigger>
               <TabsTrigger value="variation-orders">
                 <TrendingUp className="h-4 w-4 mr-2" />
@@ -506,6 +510,24 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
                   customerId: project.Customer.id
                 }}
               />
+            </TabsContent>
+            
+            <TabsContent value="budget" className="p-6 m-0">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold">Supplier Budget</h3>
+                    <p className="text-sm text-gray-500">Track supplier quotations, costs, and profit/loss</p>
+                  </div>
+                  <Button onClick={() => router.push(`/projects/${projectId}/budget`)}>
+                    <Target className="h-4 w-4 mr-2" />
+                    Open Budget Module
+                  </Button>
+                </div>
+                <div className="text-sm text-gray-600">
+                  Click "Open Budget Module" to access the full budget management interface.
+                </div>
+              </div>
             </TabsContent>
             
             <TabsContent value="invoices" className="p-6 m-0">
