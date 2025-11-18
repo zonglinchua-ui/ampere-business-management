@@ -467,18 +467,10 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
       <Card>
         <CardContent className="p-0">
           <Tabs defaultValue="finance" className="w-full">
-            <TabsList className="grid w-full grid-cols-6 rounded-none border-b">
+            <TabsList className="grid w-full grid-cols-4 rounded-none border-b">
               <TabsTrigger value="finance">
                 <DollarSign className="h-4 w-4 mr-2" />
                 Finance
-              </TabsTrigger>
-              <TabsTrigger value="variation-orders">
-                <TrendingUp className="h-4 w-4 mr-2" />
-                Variation Orders
-              </TabsTrigger>
-              <TabsTrigger value="invoices">
-                <FileText className="h-4 w-4 mr-2" />
-                Invoices ({project._count.invoices})
               </TabsTrigger>
               <TabsTrigger value="bca-forms">
                 <CheckCircle className="h-4 w-4 mr-2" />
@@ -506,46 +498,6 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
                   customerId: project.Customer.id
                 }}
               />
-            </TabsContent>
-            
-            <TabsContent value="invoices" className="p-6 m-0">
-              {allInvoices.length > 0 ? (
-                <div className="space-y-3">
-                  {allInvoices.map((invoice) => (
-                    <div key={invoice.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
-                      <div className="flex items-center space-x-3">
-                        <FileText className="h-4 w-4 text-blue-600" />
-                        <div>
-                          <div className="font-medium text-sm">{invoice.invoiceNumber}</div>
-                          <div className="text-xs text-gray-500">
-                            {new Date(invoice.issueDate).toLocaleDateString()}
-                            {invoice.dueDate && ` • Due: ${new Date(invoice.dueDate).toLocaleDateString()}`}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-3">
-                        <Badge 
-                          variant="outline" 
-                          className={invoiceStatusConfig[invoice.status as keyof typeof invoiceStatusConfig]?.color || "bg-gray-100 text-gray-800"}
-                        >
-                          {invoiceStatusConfig[invoice.status as keyof typeof invoiceStatusConfig]?.label || invoice.status}
-                        </Badge>
-                        <div className="font-medium text-sm">${invoice.totalAmount.toLocaleString()}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-12">
-                  <FileText className="mx-auto h-10 w-10 text-gray-300" />
-                  <h3 className="mt-3 text-sm font-medium">No invoices yet</h3>
-                  <p className="mt-1 text-xs text-gray-500">Invoices for this project will appear here.</p>
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="variation-orders" className="p-6 m-0">
-              <VariationOrders projectId={projectId} />
             </TabsContent>
 
             <TabsContent value="bca-forms" className="p-6 m-0">

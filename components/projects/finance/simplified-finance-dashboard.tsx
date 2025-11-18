@@ -16,7 +16,7 @@ import {
 import { toast } from 'sonner'
 import { InvoiceReminderAlert } from '../invoice-reminder-alert'
 import { ProgressClaimsManager } from '../progress-claims-manager'
-import { EnhancedSupplierInvoices } from './enhanced-supplier-invoices'
+import ProcurementManagement from '../procurement/procurement-management'
 
 interface SimplifiedFinanceDashboardProps {
   projectId: string
@@ -421,49 +421,21 @@ export function SimplifiedFinanceDashboard({ projectId, project }: SimplifiedFin
         </CardContent>
       </Card>
 
-      {/* Procurement Documents Link */}
-      <Card className="border-2 border-blue-200 bg-gradient-to-r from-blue-50 to-purple-50">
+      {/* Procurement Documents Section - Now Integrated */}
+      <Card className="border-2 border-blue-200">
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-base flex items-center">
-                <FileText className="mr-2 h-4 w-4" />
-                Procurement Documents
-              </CardTitle>
-              <CardDescription className="text-xs mt-1">
-                AI-powered document management for quotations, POs, invoices & VOs
-              </CardDescription>
-            </div>
-            <Button
-              variant="default"
-              size="sm"
-              onClick={() => router.push(`/projects/${projectId}/procurement`)}
-            >
-              Manage Documents
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-gray-600">
-            Upload and manage supplier quotations, purchase orders, invoices, and variation orders with automated AI extraction and approval workflows.
-          </p>
-        </CardContent>
-      </Card>
-
-      {/* Supplier Invoices / POs Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Purchase Orders & Supplier Invoices</CardTitle>
-          <CardDescription className="text-xs">
-            Track POs and supplier payment obligations
+          <CardTitle className="text-base flex items-center">
+            <FileText className="mr-2 h-4 w-4" />
+            Procurement Documents
+          </CardTitle>
+          <CardDescription className="text-xs mt-1">
+            AI-powered document management for quotations, POs, invoices & VOs
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <EnhancedSupplierInvoices projectId={projectId} project={{
-            id: project.id,
-            name: project.name,
-            projectNumber: project.projectNumber
-          }} />
+        <CardContent className="p-0">
+          <div className="border-t">
+            <ProcurementManagement projectId={projectId} />
+          </div>
         </CardContent>
       </Card>
     </div>
