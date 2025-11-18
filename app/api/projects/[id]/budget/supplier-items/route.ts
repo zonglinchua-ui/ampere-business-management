@@ -260,10 +260,10 @@ async function updateProjectBudgetSummary(projectId: string) {
 
   const project = await prisma.project.findUnique({
     where: { id: projectId },
-    select: { totalBudget: true },
+    select: { contractValue: true },
   });
 
-  const contractValue = Number(project?.totalBudget || 0);
+  const contractValue = Number(project?.contractValue || 0);
   const estimatedProfit = contractValue - totalBudget;
   const estimatedProfitMargin =
     contractValue > 0 ? (estimatedProfit / contractValue) * 100 : 0;
