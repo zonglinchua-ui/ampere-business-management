@@ -406,17 +406,13 @@ export function UnifiedFinanceDashboard({ projectId, project }: UnifiedFinanceDa
           </div>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8 text-gray-600">
-            <Target className="h-12 w-12 mx-auto mb-3 text-gray-400" />
-            <p className="text-sm font-medium mb-2">Supplier Budget Management</p>
-            <p className="text-xs text-gray-500 mb-4">
-              Track supplier quotations, upload PDFs with AI extraction, and monitor profit/loss
-            </p>
-            <Button onClick={() => router.push(`/projects/${projectId}/budget`)} variant="default">
-              <Target className="mr-2 h-4 w-4" />
-              Go to Budget Module
-            </Button>
-          </div>
+          {/* Supplier Budget will be embedded here */}
+          <iframe 
+            src={`/projects/${projectId}/budget`}
+            className="w-full border-0"
+            style={{ minHeight: '600px', height: '100vh' }}
+            title="Supplier Budget"
+          />
         </CardContent>
       </Card>
 
