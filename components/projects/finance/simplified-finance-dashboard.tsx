@@ -357,7 +357,7 @@ export function SimplifiedFinanceDashboard({ projectId, project }: SimplifiedFin
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ProgressClaimsManager projectId={projectId} project={project} />
+          <ProgressClaimsManager projectId={projectId} />
         </CardContent>
       </Card>
 
@@ -370,7 +370,7 @@ export function SimplifiedFinanceDashboard({ projectId, project }: SimplifiedFin
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <EnhancedSupplierInvoices projectId={projectId} project={project} />
+          <EnhancedSupplierInvoices projectId={projectId} />
         </CardContent>
       </Card>
     </div>
