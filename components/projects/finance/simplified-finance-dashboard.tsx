@@ -302,19 +302,19 @@ export function SimplifiedFinanceDashboard({ projectId, project }: SimplifiedFin
               <div className="p-3 bg-blue-50 rounded border border-blue-200">
                 <div className="text-xs text-gray-600 mb-1">Total Budget</div>
                 <div className="text-lg font-bold text-blue-700">
-                  ${budgetSummary.totalBudget.toLocaleString()}
+                  ${(budgetSummary?.totalBudget || 0).toLocaleString()}
                 </div>
               </div>
               <div className="p-3 bg-green-50 rounded border border-green-200">
                 <div className="text-xs text-gray-600 mb-1">Actual Cost</div>
                 <div className="text-lg font-bold text-green-700">
-                  ${budgetSummary.totalActualCost.toLocaleString()}
+                  ${(budgetSummary?.totalActualCost || 0).toLocaleString()}
                 </div>
               </div>
               <div className="p-3 bg-purple-50 rounded border border-purple-200">
                 <div className="text-xs text-gray-600 mb-1">Estimated Profit</div>
-                <div className={`text-lg font-bold ${budgetSummary.estimatedProfit >= 0 ? 'text-purple-700' : 'text-red-700'}`}>
-                  ${budgetSummary.estimatedProfit.toLocaleString()}
+                <div className={`text-lg font-bold ${(budgetSummary?.estimatedProfit || 0) >= 0 ? 'text-purple-700' : 'text-red-700'}`}>
+                  ${(budgetSummary?.estimatedProfit || 0).toLocaleString()}
                 </div>
               </div>
               <div className="p-3 bg-orange-50 rounded border border-orange-200">
@@ -356,11 +356,11 @@ export function SimplifiedFinanceDashboard({ projectId, project }: SimplifiedFin
                     </div>
                     <div className="text-right">
                       <div className="text-sm font-semibold">
-                        ${item.quotedAmount.toLocaleString()}
+                        ${(item?.quotedAmount || 0).toLocaleString()}
                       </div>
                       {item.actualCost > 0 && (
                         <div className="text-xs text-gray-500">
-                          Actual: ${item.actualCost.toLocaleString()}
+                          Actual: ${(item?.actualCost || 0).toLocaleString()}
                         </div>
                       )}
                       <div className="flex gap-1 mt-1">
