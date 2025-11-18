@@ -23,10 +23,11 @@ export async function POST(
     // Verify project access
     const project = await prisma.project.findUnique({
       where: { id: projectId },
-      include: {
-        ProjectUser: {
-          where: { userId: session.user.id },
-        },
+      select: {
+        id: true,
+        createdById: true,
+        managerId: true,
+        salespersonId: true,
       },
     });
 
@@ -34,10 +35,15 @@ export async function POST(
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
 
-    if (
-      project.ProjectUser.length === 0 &&
-      session.user.role !== "SUPERADMIN"
-    ) {
+    // Check if user has access
+    const hasAccess =
+      session.user.role === "SUPERADMIN" ||
+      session.user.role === "PROJECT_MANAGER" ||
+      project.createdById === session.user.id ||
+      project.managerId === session.user.id ||
+      project.salespersonId === session.user.id;
+
+    if (!hasAccess) {
       return NextResponse.json({ error: "Access denied" }, { status: 403 });
     }
 
