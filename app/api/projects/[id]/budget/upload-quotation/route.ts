@@ -124,11 +124,11 @@ export async function POST(
       const patterns = extractQuotationPatterns(pdfText);
 
       // Then use Ollama for structured extraction
-      const ollamaResult = await extractQuotationWithOllama(pdfText, supplier.name);
+      const ollamaResult = await extractQuotationWithOllama(pdfText, supplier?.name || '');
 
       // Merge pattern-based and Ollama results (Ollama takes precedence)
       extractedData = {
-        supplierName: ollamaResult.supplierName || supplier.name,
+        supplierName: ollamaResult.supplierName || supplier?.name || 'Unknown',
         quotationReference: ollamaResult.quotationReference || patterns.quotationNumber || "",
         quotationDate: ollamaResult.quotationDate || new Date().toISOString(),
         totalAmount: ollamaResult.totalAmount || parseFloat(patterns.totalAmount) || 0,
