@@ -385,6 +385,9 @@ model Project {
   Task                             Task[]
   VariationOrder                   VariationOrder[]
   ProgressClaim                    ProgressClaim[]
+  SupplierBudgetItem               SupplierBudgetItem[]
+  ProjectBudgetSummary             ProjectBudgetSummary?
+  BudgetAlert                      BudgetAlert[]
 }
 
 model ProjectBudget {
@@ -581,6 +584,7 @@ model PurchaseOrder {
   PurchaseOrderActivity                 PurchaseOrderActivity[]
   PurchaseOrderItem                     PurchaseOrderItem[]
   SupplierInvoice                       SupplierInvoice[]
+  SupplierBudgetItem                    SupplierBudgetItem[]
 }
 
 model PurchaseOrderActivity {
@@ -1007,6 +1011,7 @@ model Supplier {
   SupplierInvoice                 SupplierInvoice[]
   SupplierReport                  SupplierReport[]
   User_User_supplierIdToSupplier  User[]                    @relation("User_supplierIdToSupplier")
+  SupplierBudgetItem              SupplierBudgetItem[]
 }
 
 model SupplierContract {
@@ -1382,6 +1387,9 @@ model User {
   xero_sync_conflicts                                       xero_sync_conflicts[]
   ProgressClaim_ProgressClaimCreatedBy                      ProgressClaim[]               @relation("ProgressClaimCreatedBy")
   ProgressClaim_ProgressClaimApprovedBy                     ProgressClaim[]               @relation("ProgressClaimApprovedBy")
+  SupplierBudgetItem_createdBy                              SupplierBudgetItem[]          @relation("SupplierBudget_createdBy")
+  SupplierBudgetItem_approvedBy                             SupplierBudgetItem[]          @relation("SupplierBudget_approvedBy")
+  ProjectBudgetSummary                                      ProjectBudgetSummary[]
 }
 
 model VerificationToken {
@@ -2441,4 +2449,208 @@ enum WhatsAppNotificationStatus {
   SENT
   FAILED
   SKIPPED
+}
+
+// ============================================
+// Supplier-Based Budget Module
+// ============================================
+
+model SupplierBudgetItem {
+  id                    String                 @id @default(cuid())
+  projectId             String
+  
+  // Supplier information
+  supplierId            String
+  supplierName          String
+  tradeType             String
+  description           String?
+  
+  // Budget amounts
+  quotedAmount          Decimal                @db.Decimal(15, 2)
+  quotedAmountBeforeTax Decimal?               @db.Decimal(15, 2)
+  quotedTaxAmount       Decimal?               @db.Decimal(15, 2)
+  
+  // Actual costs
+  actualCost            Decimal                @default(0) @db.Decimal(15, 2)
+  actualCostBeforeTax   Decimal?               @db.Decimal(15, 2)
+  actualTaxAmount       Decimal?               @db.Decimal(15, 2)
+  
+  // Variance
+  variance              Decimal?               @db.Decimal(15, 2)
+  variancePercentage    Decimal?               @db.Decimal(5, 2)
+  
+  // Quotation details
+  quotationReference    String?
+  quotationDate         DateTime?
+  quotationFilePath     String?
+  quotationFileName     String?
+  
+  // AI extraction metadata
+  extractedByAI         Boolean                @default(false)
+  aiConfidence          Decimal?               @db.Decimal(3, 2)
+  aiExtractedData       Json?
+  needsReview           Boolean                @default(false)
+  
+  // PO linkage
+  purchaseOrderId       String?
+  poIssued              Boolean                @default(false)
+  poIssuedDate          DateTime?
+  
+  // Status
+  status                SupplierBudgetStatus   @default(QUOTED)
+  isApproved            Boolean                @default(false)
+  approvedById          String?
+  approvedAt            DateTime?
+  
+  // Notes
+  notes                 String?
+  internalNotes         String?
+  
+  // Audit
+  createdById           String
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  
+  // Relations
+  Project               Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  Supplier              Supplier               @relation(fields: [supplierId], references: [id])
+  PurchaseOrder         PurchaseOrder?         @relation(fields: [purchaseOrderId], references: [id])
+  CreatedBy             User                   @relation("SupplierBudget_createdBy", fields: [createdById], references: [id])
+  ApprovedBy            User?                  @relation("SupplierBudget_approvedBy", fields: [approvedById], references: [id])
+  BudgetAlert           BudgetAlert[]
+  
+  @@index([projectId])
+  @@index([supplierId])
+  @@index([status])
+  @@index([poIssued])
+}
+
+model ProjectBudgetSummary {
+  id                    String                 @id @default(cuid())
+  projectId             String                 @unique
+  
+  // Revenue
+  contractValue         Decimal                @db.Decimal(15, 2)
+  contractValueBeforeTax Decimal?              @db.Decimal(15, 2)
+  contractTaxAmount     Decimal?               @db.Decimal(15, 2)
+  
+  // Budget
+  totalBudget           Decimal                @db.Decimal(15, 2)
+  totalBudgetBeforeTax  Decimal?               @db.Decimal(15, 2)
+  totalBudgetTaxAmount  Decimal?               @db.Decimal(15, 2)
+  
+  // Actual costs
+  totalActualCost       Decimal                @default(0) @db.Decimal(15, 2)
+  totalActualCostBeforeTax Decimal?            @db.Decimal(15, 2)
+  totalActualTaxAmount  Decimal?               @db.Decimal(15, 2)
+  
+  // Profit calculations
+  estimatedProfit       Decimal                @db.Decimal(15, 2)
+  estimatedProfitMargin Decimal                @db.Decimal(5, 2)
+  actualProfit          Decimal?               @db.Decimal(15, 2)
+  actualProfitMargin    Decimal?               @db.Decimal(5, 2)
+  
+  // Budget utilization
+  budgetUtilization     Decimal                @db.Decimal(5, 2)
+  costUtilization       Decimal?               @db.Decimal(5, 2)
+  
+  // Supplier counts
+  totalSuppliers        Int                    @default(0)
+  suppliersWithPO       Int                    @default(0)
+  suppliersWithQuotation Int                   @default(0)
+  
+  // Warnings
+  hasWarnings           Boolean                @default(false)
+  warningCount          Int                    @default(0)
+  criticalWarningCount  Int                    @default(0)
+  
+  // Last calculation
+  lastCalculatedAt      DateTime               @default(now())
+  lastCalculatedById    String?
+  
+  // Audit
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  
+  // Relations
+  Project               Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  LastCalculatedBy      User?                  @relation(fields: [lastCalculatedById], references: [id])
+  
+  @@index([projectId])
+}
+
+model BudgetAlert {
+  id                    String                 @id @default(cuid())
+  projectId             String
+  
+  // Alert details
+  alertType             BudgetAlertType
+  severity              AlertSeverity          @default(WARNING)
+  title                 String
+  message               String
+  
+  // Context
+  supplierBudgetItemId  String?
+  supplierName          String?
+  
+  // Thresholds
+  threshold             Decimal?               @db.Decimal(5, 2)
+  currentValue          Decimal?               @db.Decimal(15, 2)
+  limitValue            Decimal?               @db.Decimal(15, 2)
+  
+  // Status
+  isRead                Boolean                @default(false)
+  isDismissed           Boolean                @default(false)
+  isResolved            Boolean                @default(false)
+  readAt                DateTime?
+  dismissedAt           DateTime?
+  resolvedAt            DateTime?
+  
+  // Notifications
+  notifiedUsers         Json?
+  notifiedAt            DateTime?
+  
+  // Audit
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  
+  // Relations
+  Project               Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  SupplierBudgetItem    SupplierBudgetItem?    @relation(fields: [supplierBudgetItemId], references: [id])
+  
+  @@index([projectId])
+  @@index([isRead])
+  @@index([severity])
+  @@index([isResolved])
+}
+
+// Budget Enums
+
+enum SupplierBudgetStatus {
+  QUOTED
+  PENDING_APPROVAL
+  APPROVED
+  PO_ISSUED
+  IN_PROGRESS
+  COMPLETED
+  INVOICED
+  PAID
+  CANCELLED
+}
+
+enum BudgetAlertType {
+  BUDGET_EXCEEDED
+  BUDGET_WARNING
+  COST_EXCEEDED
+  COST_WARNING
+  PROFIT_LOSS
+  PROFIT_WARNING
+  SUPPLIER_OVER_BUDGET
+  MISSING_QUOTATION
+}
+
+enum AlertSeverity {
+  INFO
+  WARNING
+  CRITICAL
 }
