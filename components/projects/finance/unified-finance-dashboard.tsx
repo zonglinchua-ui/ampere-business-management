@@ -386,33 +386,49 @@ export function UnifiedFinanceDashboard({ projectId, project }: UnifiedFinanceDa
         </Card>
       </div>
 
-      {/* Budget Categories section removed - use Budget tab instead */}
+      {/* Supplier Budget embedded directly */}
       <Card>
         <CardHeader className="pb-3">
-          <div className="flex justify-between items-center">
-            <div>
-              <CardTitle className="flex items-center text-base">
-                <Target className="mr-2 h-4 w-4" />
-                Supplier Budget
-              </CardTitle>
-              <CardDescription className="text-xs mt-1">
-                Track supplier quotations, costs, and profit/loss
-              </CardDescription>
-            </div>
-            <Button onClick={() => router.push(`/projects/${projectId}/budget`)} size="sm">
-              <Target className="mr-1 h-3 w-3" />
-              Open Budget Module
-            </Button>
-          </div>
+          <CardTitle className="flex items-center text-base">
+            <Target className="mr-2 h-4 w-4" />
+            Supplier Budget
+          </CardTitle>
+          <CardDescription className="text-xs mt-1">
+            Track supplier quotations, costs, and profit/loss
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          {/* Supplier Budget will be embedded here */}
-          <iframe 
-            src={`/projects/${projectId}/budget`}
-            className="w-full border-0"
-            style={{ minHeight: '600px', height: '100vh' }}
-            title="Supplier Budget"
-          />
+          <div className="text-sm text-gray-600 mb-4">
+            View detailed supplier budget tracking including quotations, costs, and profit/loss analysis.
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+            <div className="p-3 bg-blue-50 rounded border border-blue-200">
+              <div className="text-xs text-gray-600 mb-1">Total Budget</div>
+              <div className="text-lg font-bold text-blue-700">$0</div>
+            </div>
+            <div className="p-3 bg-green-50 rounded border border-green-200">
+              <div className="text-xs text-gray-600 mb-1">Actual Cost</div>
+              <div className="text-lg font-bold text-green-700">$0</div>
+            </div>
+            <div className="p-3 bg-purple-50 rounded border border-purple-200">
+              <div className="text-xs text-gray-600 mb-1">Estimated Profit</div>
+              <div className="text-lg font-bold text-purple-700">$0</div>
+            </div>
+            <div className="p-3 bg-orange-50 rounded border border-orange-200">
+              <div className="text-xs text-gray-600 mb-1">Suppliers</div>
+              <div className="text-lg font-bold text-orange-700">0</div>
+            </div>
+          </div>
+          <div className="text-center pt-2">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => window.open(`/projects/${projectId}/budget`, '_blank')}
+            >
+              <Target className="mr-2 h-4 w-4" />
+              Open Full Budget Module
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
