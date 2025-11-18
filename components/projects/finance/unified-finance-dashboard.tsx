@@ -351,43 +351,6 @@ export function UnifiedFinanceDashboard({ projectId, project }: UnifiedFinanceDa
           </CardContent>
         </Card>
 
-        {/* BUDGET & EXPENSES */}
-        <Card className="border-2 border-blue-200">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center text-sm font-semibold text-blue-700">
-              <Wallet className="mr-2 h-4 w-4" />
-              BUDGET & EXPENSES
-            </CardTitle>
-            <CardDescription className="text-xs">Internal spending limits</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="flex justify-between items-center p-2 bg-blue-50 rounded border border-blue-200">
-              <span className="text-xs font-medium">Total Budget</span>
-              <span className="text-sm font-bold text-blue-700">
-                ${financeData.totalBudget.toLocaleString()}
-              </span>
-            </div>
-            <div className="flex justify-between items-center p-2 bg-orange-50 rounded">
-              <span className="text-xs">PO Issued</span>
-              <span className="text-sm font-semibold text-orange-600">
-                ${financeData.totalPOCommitments.toLocaleString()}
-              </span>
-            </div>
-            <div className="flex justify-between items-center p-2 bg-red-50 rounded">
-              <span className="text-xs">Actual Spend</span>
-              <span className="text-sm font-semibold text-red-600">
-                ${financeData.totalExpenses.toLocaleString()}
-              </span>
-            </div>
-            <div className="flex justify-between items-center p-2 bg-blue-50 rounded border border-blue-200">
-              <span className="text-xs">Remaining</span>
-              <span className={`text-sm font-semibold ${remainingBudget >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
-                ${remainingBudget.toLocaleString()}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-
         {/* PROFITABILITY */}
         <Card className="border-2 border-purple-200">
           <CardHeader className="pb-3">
@@ -423,99 +386,37 @@ export function UnifiedFinanceDashboard({ projectId, project }: UnifiedFinanceDa
         </Card>
       </div>
 
-      {/* Budget Categories - Updated Layout */}
+      {/* Budget Categories section removed - use Budget tab instead */}
       <Card>
         <CardHeader className="pb-3">
           <div className="flex justify-between items-center">
             <div>
               <CardTitle className="flex items-center text-base">
-                <DollarSign className="mr-2 h-4 w-4" />
-                Budget Categories
+                <Target className="mr-2 h-4 w-4" />
+                Supplier Budget
               </CardTitle>
               <CardDescription className="text-xs mt-1">
-                Budget: ${financeData.totalBudget.toLocaleString()} | Spent: ${financeData.totalExpenses.toLocaleString()} | Remaining: ${remainingBudget.toLocaleString()}
+                Track supplier quotations, costs, and profit/loss
               </CardDescription>
             </div>
-            {canEdit && (
-              <Button onClick={() => setShowBudgetDialog(true)} size="sm">
-                <Plus className="mr-1 h-3 w-3" />
-                Add Category
-              </Button>
-            )}
+            <Button onClick={() => router.push(`/projects/${projectId}/budget`)} size="sm">
+              <Target className="mr-1 h-3 w-3" />
+              Open Budget Module
+            </Button>
           </div>
         </CardHeader>
         <CardContent>
-          {financeData.budgets.length === 0 ? (
-            <div className="text-center py-6 text-gray-500">
-              <DollarSign className="h-8 w-8 mx-auto mb-1 opacity-50" />
-              <p className="text-xs">No budget categories defined</p>
-              {canEdit && (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="mt-3"
-                  onClick={() => setShowBudgetDialog(true)}
-                >
-                  <Plus className="mr-1 h-3 w-3" />
-                  Add First Category
-                </Button>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {financeData.budgets.map((budget) => {
-                const spent = parseFloat(budget.actualAmount.toString())
-                const budgeted = parseFloat(budget.budgetedAmount.toString())
-                const remaining = budgeted - spent
-                const percentage = budgeted > 0 ? (spent / budgeted) * 100 : 0
-                const isOverBudget = spent > budgeted
-                const isExpanded = expandedCategories.has(budget.id)
-
-                return (
-                  <div key={budget.id} className="border rounded-lg p-3 hover:shadow-sm transition-shadow bg-white">
-                    <div 
-                      className="flex justify-between items-center cursor-pointer"
-                      onClick={() => toggleCategory(budget.id)}
-                    >
-                      <div className="flex items-center space-x-2">
-                        {isExpanded ? (
-                          <ChevronDown className="h-3 w-3 text-gray-500" />
-                        ) : (
-                          <ChevronRight className="h-3 w-3 text-gray-500" />
-                        )}
-                        <span className="text-sm font-medium">
-                          {getCategoryLabel(budget.category, budget.customCategory)}
-                        </span>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-xs font-medium text-gray-700">
-                          Budget: ${budgeted.toLocaleString()}
-                        </div>
-                        <div className="text-xs text-gray-600">
-                          Spent: ${spent.toLocaleString()} | Remaining: <span className={isOverBudget ? 'text-red-600 font-semibold' : 'text-green-600 font-semibold'}>${Math.abs(remaining).toLocaleString()}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="mt-2">
-                      <Progress 
-                        value={Math.min(percentage, 100)}
-                        className={`h-2 ${isOverBudget ? '[&>div]:bg-red-500' : '[&>div]:bg-blue-500'}`}
-                      />
-                      <div className="flex justify-between text-xs text-gray-500 mt-1">
-                        <span>{percentage.toFixed(0)}% used</span>
-                        {isOverBudget && <span className="text-red-600 font-semibold">Over budget!</span>}
-                      </div>
-                    </div>
-                    {isExpanded && budget.description && (
-                      <div className="mt-2 pt-2 border-t text-xs text-gray-600 bg-gray-50 p-2 rounded">
-                        <span className="font-medium">Notes: </span>{budget.description}
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          )}
+          <div className="text-center py-8 text-gray-600">
+            <Target className="h-12 w-12 mx-auto mb-3 text-gray-400" />
+            <p className="text-sm font-medium mb-2">Supplier Budget Management</p>
+            <p className="text-xs text-gray-500 mb-4">
+              Track supplier quotations, upload PDFs with AI extraction, and monitor profit/loss
+            </p>
+            <Button onClick={() => router.push(`/projects/${projectId}/budget`)} variant="default">
+              <Target className="mr-2 h-4 w-4" />
+              Go to Budget Module
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
@@ -549,9 +450,8 @@ export function UnifiedFinanceDashboard({ projectId, project }: UnifiedFinanceDa
 
       {/* Detailed Tabs - Compact */}
       <Tabs defaultValue="overview" className="space-y-3">
-        <TabsList className="grid w-full grid-cols-6 h-9">
+        <TabsList className="grid w-full grid-cols-5 h-9">
           <TabsTrigger value="overview" className="text-xs">Overview</TabsTrigger>
-          <TabsTrigger value="budget" className="text-xs">Budget</TabsTrigger>
           <TabsTrigger value="claims" className="text-xs">Claims</TabsTrigger>
           <TabsTrigger value="pos" className="text-xs">POs</TabsTrigger>
           <TabsTrigger value="expenses" className="text-xs">Expenses</TabsTrigger>
@@ -712,10 +612,6 @@ export function UnifiedFinanceDashboard({ projectId, project }: UnifiedFinanceDa
 
         <TabsContent value="expenses" className="m-0">
           <EnhancedSupplierInvoices projectId={projectId} project={project} />
-        </TabsContent>
-
-        <TabsContent value="budget" className="m-0">
-          <BudgetDetailsView projectId={projectId} project={project} />
         </TabsContent>
 
         <TabsContent value="reports" className="m-0">
