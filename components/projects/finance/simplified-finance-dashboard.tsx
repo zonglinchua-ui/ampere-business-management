@@ -90,13 +90,73 @@ export function SimplifiedFinanceDashboard({ projectId, project }: SimplifiedFin
 
   const fetchFinanceData = async () => {
     try {
-      const response = await fetch(`/api/projects/${projectId}/finance`)
-      if (response.ok) {
-        const data = await response.json()
-        setFinanceData(data)
-      }
+      setLoading(true)
+      
+      // Fetch budget data
+      const budgetResponse = await fetch(`/api/projects/${projectId}/budget`)
+      const budgetData = budgetResponse.ok ? await budgetResponse.json() : {}
+
+      // Fetch customer invoices (claims/revenue)
+      const invoicesResponse = await fetch(`/api/projects/${projectId}/invoices`)
+      const invoicesData = invoicesResponse.ok ? await invoicesResponse.json() : { invoices: [] }
+
+      // Fetch purchase orders (commitments)
+      const poResponse = await fetch(`/api/projects/${projectId}/purchase-orders`)
+      const poData = poResponse.ok ? await poResponse.json() : { purchaseOrders: [] }
+
+      // Fetch supplier invoices (actual expenses)
+      const supplierInvoicesResponse = await fetch(`/api/projects/${projectId}/supplier-invoices`)
+      const supplierInvoicesData = supplierInvoicesResponse.ok ? await supplierInvoicesResponse.json() : { supplierInvoices: [] }
+
+      // Calculate totals
+      const contractValue = project.contractValue ? parseFloat(project.contractValue.toString()) : 0
+      const totalBudget = project.estimatedBudget ? parseFloat(project.estimatedBudget.toString()) : budgetData.summary?.totalBudget || 0
+      
+      // Revenue calculations (from customer invoices)
+      const totalClaimed = invoicesData.invoices?.reduce((sum: number, inv: any) => sum + parseFloat(inv.totalAmount.toString()), 0) || 0
+      const totalPaid = invoicesData.invoices?.reduce((sum: number, inv: any) => sum + parseFloat(inv.amountPaid?.toString() || '0'), 0) || 0
+      
+      // Expense calculations (from supplier invoices)
+      const totalExpenses = supplierInvoicesData.supplierInvoices?.reduce((sum: number, inv: any) => {
+        // Only count PAID or PARTIALLY_PAID supplier invoices as actual expenses
+        if (['PAID', 'PARTIALLY_PAID'].includes(inv.status)) {
+          return sum + parseFloat(inv.totalAmount.toString())
+        }
+        return sum
+      }, 0) || 0
+      
+      // PO commitments (not yet invoiced)
+      const totalPOCommitments = poData.purchaseOrders?.reduce((sum: number, po: any) => {
+        // Only count APPROVED or SENT POs as commitments
+        if (['APPROVED', 'SENT'].includes(po.status)) {
+          return sum + parseFloat(po.totalAmount.toString())
+        }
+        return sum
+      }, 0) || 0
+      
+      // Profit calculations
+      // Gross Profit = Contract Value - Total Expenses (project-level)
+      const grossProfit = contractValue - totalExpenses
+      const grossMargin = contractValue > 0 ? (grossProfit / contractValue) * 100 : 0
+      
+      // Net Profit = Amount Received - Expenses Paid (cash flow)
+      const netProfit = totalPaid - totalExpenses
+      const profitMargin = totalPaid > 0 ? (netProfit / totalPaid) * 100 : 0
+
+      setFinanceData({
+        contractValue,
+        totalBudget,
+        totalClaimed,
+        totalPaid,
+        totalExpenses,
+        totalPOCommitments,
+        netProfit,
+        profitMargin,
+        grossProfit,
+        grossMargin
+      })
     } catch (error) {
-      console.error('Failed to fetch finance data:', error)
+      console.error('Error fetching finance data:', error)
     } finally {
       setLoading(false)
     }
