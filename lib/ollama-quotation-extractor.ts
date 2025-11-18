@@ -12,8 +12,8 @@ interface OllamaResponse {
 
 export interface QuotationExtraction {
   supplierName: string;
-  quotationReference: string;
-  quotationDate: string;
+  quotationReference?: string;
+  quotationDate?: string;
   totalAmount: number;
   amountBeforeTax?: number;
   taxAmount?: number;
@@ -72,9 +72,17 @@ export async function extractQuotationWithOllama(
     const confidence = calculateConfidence(extracted, pdfText);
     
     return {
-      ...extracted,
+      supplierName: extracted.supplierName || supplierName || 'Unknown',
+      quotationReference: extracted.quotationReference || '',
+      quotationDate: extracted.quotationDate || new Date().toISOString(),
+      totalAmount: extracted.totalAmount || 0,
+      amountBeforeTax: extracted.amountBeforeTax,
+      taxAmount: extracted.taxAmount,
+      currency: extracted.currency || 'SGD',
+      tradeType: extracted.tradeType,
+      lineItems: extracted.lineItems,
       confidence,
-      rawText: pdfText.substring(0, 500), // Store first 500 chars for reference
+      rawText: pdfText.substring(0, 500),
     };
   } catch (error) {
     console.error('Ollama extraction error:', error);
