@@ -124,7 +124,7 @@ export async function GET(request: NextRequest) {
     })
 
     // Normalize the response to match frontend expectations
-    const normalizedJobs = jobs.map(job => ({
+    const normalizedJobs = jobs.map((job: any) => ({
       ...job,
       contract: job.ServiceContract,
       customer: job.Customer,

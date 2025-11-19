@@ -41,7 +41,7 @@ export async function GET() {
     })
 
     // Format the response with display names
-    const formattedSalesPersonnel = salesPersonnel.map(person => ({
+    const formattedSalesPersonnel = salesPersonnel.map((person: any) => ({
       id: person.id,
       firstName: person.firstName,
       lastName: person.lastName,

@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
       success: true,
       message: 'Background sync status retrieved',
       schedules,
-      totalActive: schedules.filter(s => s.active).length
+      totalActive: schedules.filter((s: any) => s.active).length
     })
 
   } catch (error: any) {

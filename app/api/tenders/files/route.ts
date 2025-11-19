@@ -130,8 +130,8 @@ export async function GET(request: NextRequest) {
       files: fileList,
       currentPath: subPath,
       breadcrumbs: breadcrumbs,
-      totalFiles: fileList.filter(f => !f.isDirectory).length,
-      totalFolders: fileList.filter(f => f.isDirectory).length
+      totalFiles: fileList.filter((f: any) => !f.isDirectory).length,
+      totalFolders: fileList.filter((f: any) => f.isDirectory).length
     })
 
   } catch (error) {

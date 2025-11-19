@@ -152,7 +152,7 @@ export async function GET(request: NextRequest) {
     })
 
     // Convert to array format for charts
-    const chartData = years.map(year => ({
+    const chartData = years.map((year: any) => ({
       year: year.toString(),
       revenue: parseFloat(yearlyData[year].revenue.toFixed(2)),
       expenses: parseFloat(yearlyData[year].expenses.toFixed(2)),

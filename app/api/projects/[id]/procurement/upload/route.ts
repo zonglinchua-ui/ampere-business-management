@@ -230,7 +230,7 @@ Only return valid JSON, no additional text.`;
     
     // Calculate confidence based on how many required fields were extracted
     const requiredFields = ['documentNumber', 'totalAmount', 'supplierName'];
-    const extractedFields = requiredFields.filter(field => 
+    const extractedFields = requiredFields.filter((field: any) => 
       extractedData[field as keyof ExtractedDocumentData] !== undefined && 
       extractedData[field as keyof ExtractedDocumentData] !== null &&
       extractedData[field as keyof ExtractedDocumentData] !== ''

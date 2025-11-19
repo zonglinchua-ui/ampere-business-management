@@ -256,7 +256,7 @@ export async function PUT(
         { 
           error: "Invalid input", 
           details: error.issues,
-          message: error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join(', ')
+          message: error.issues.map((i: any) => `${i.path.join('.')}: ${i.message}`).join(', ')
         },
         { status: 400 }
       )

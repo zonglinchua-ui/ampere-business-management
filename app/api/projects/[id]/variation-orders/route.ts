@@ -67,7 +67,7 @@ export async function GET(
     })
 
     // Calculate total impact
-    const approvedVOs = variationOrders.filter(vo => vo.status === 'APPROVED')
+    const approvedVOs = variationOrders.filter((vo: any) => vo.status === 'APPROVED')
     const totalImpact = approvedVOs.reduce((sum, vo) => {
       const amount = parseFloat(vo.approvedAmount?.toString() || vo.amount.toString())
       return vo.type === 'ADDITION' ? sum + amount : sum - amount
@@ -78,7 +78,7 @@ export async function GET(
       summary: {
         total: variationOrders.length,
         approved: approvedVOs.length,
-        pending: variationOrders.filter(vo => vo.status === 'SUBMITTED' || vo.status === 'UNDER_REVIEW').length,
+        pending: variationOrders.filter((vo: any) => vo.status === 'SUBMITTED' || vo.status === 'UNDER_REVIEW').length,
         totalImpact
       }
     })

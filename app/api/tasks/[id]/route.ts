@@ -118,7 +118,7 @@ export async function GET(
       assignee: task.User_Task_assigneeIdToUser,
       project: task.Project,
       client: task.Customer,
-      comments: task.TaskComment.map(comment => ({
+      comments: task.TaskComment.map((comment: any) => ({
         id: comment.id,
         comment: comment.comment,
         isInternal: comment.isInternal,
@@ -126,7 +126,7 @@ export async function GET(
         createdAt: comment.createdAt.toISOString(),
         updatedAt: comment.updatedAt.toISOString()
       })),
-      attachments: task.TaskAttachment.map(attachment => ({
+      attachments: task.TaskAttachment.map((attachment: any) => ({
         id: attachment.id,
         filename: attachment.filename,
         originalName: attachment.originalName,

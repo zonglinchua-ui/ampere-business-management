@@ -116,7 +116,7 @@ export async function POST(
     const createdJobs = await prisma.serviceJob.findMany({
       where: {
         contractId: contractId,
-        id: { in: jobs.map(job => job.id) }
+        id: { in: jobs.map((job: any) => job.id) }
       },
       include: {
         ServiceContract: {
@@ -165,7 +165,7 @@ export async function POST(
     return NextResponse.json({
       message: `${jobs.length} jobs generated successfully`,
       jobsGenerated: jobs.length,
-      jobs: createdJobs.map(job => ({
+      jobs: createdJobs.map((job: any) => ({
         ...job,
         contract: job.ServiceContract,
         customer: job.Customer,

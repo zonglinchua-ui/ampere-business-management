@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
         })
 
         const totalRevenue = revenueData.reduce((sum, inv) => sum + Number(inv.totalAmount || 0), 0)
-        const paidRevenue = revenueData.filter(inv => inv.status === 'PAID').reduce((sum, inv) => sum + Number(inv.totalAmount || 0), 0)
+        const paidRevenue = revenueData.filter((inv: any) => inv.status === 'PAID').reduce((sum, inv) => sum + Number(inv.totalAmount || 0), 0)
         const unpaidRevenue = totalRevenue - paidRevenue
 
         reportData = revenueData.map((invoice: any) => ({
@@ -155,11 +155,11 @@ export async function POST(req: NextRequest) {
         })
 
         const agingTotals = {
-          current: reportData.filter(r => r["Age Group"] === "Current").reduce((sum, r) => sum + r.Amount, 0),
-          '1-30': reportData.filter(r => r["Age Group"] === "1-30 days").reduce((sum, r) => sum + r.Amount, 0),
-          '31-60': reportData.filter(r => r["Age Group"] === "31-60 days").reduce((sum, r) => sum + r.Amount, 0),
-          '61-90': reportData.filter(r => r["Age Group"] === "61-90 days").reduce((sum, r) => sum + r.Amount, 0),
-          '90+': reportData.filter(r => r["Age Group"] === "90+ days").reduce((sum, r) => sum + r.Amount, 0)
+          current: reportData.filter((r: any) => r["Age Group"] === "Current").reduce((sum, r) => sum + r.Amount, 0),
+          '1-30': reportData.filter((r: any) => r["Age Group"] === "1-30 days").reduce((sum, r) => sum + r.Amount, 0),
+          '31-60': reportData.filter((r: any) => r["Age Group"] === "31-60 days").reduce((sum, r) => sum + r.Amount, 0),
+          '61-90': reportData.filter((r: any) => r["Age Group"] === "61-90 days").reduce((sum, r) => sum + r.Amount, 0),
+          '90+': reportData.filter((r: any) => r["Age Group"] === "90+ days").reduce((sum, r) => sum + r.Amount, 0)
         }
 
         summary = {
@@ -269,7 +269,7 @@ export async function POST(req: NextRequest) {
           orderBy: { paymentDate: 'asc' }
         })
 
-        const cashFlowData = allPayments.map(p => {
+        const cashFlowData = allPayments.map((p: any) => {
           const isInflow = !!p.customerInvoiceId
           return {
             date: new Date(p.paymentDate),
@@ -357,8 +357,8 @@ export async function POST(req: NextRequest) {
         }))
 
         const avgProgress = reportData.reduce((sum, p) => sum + (p["Progress %"] || 0), 0) / Math.max(reportData.length, 1)
-        const completedProjects = reportData.filter(p => p.Status === 'COMPLETED').length
-        const inProgressProjects = reportData.filter(p => p.Status === 'IN_PROGRESS').length
+        const completedProjects = reportData.filter((p: any) => p.Status === 'COMPLETED').length
+        const inProgressProjects = reportData.filter((p: any) => p.Status === 'IN_PROGRESS').length
 
         summary = {
           title: 'Project Summary',
@@ -495,7 +495,7 @@ export async function POST(req: NextRequest) {
 
         chartData = {
           title: `Top ${Math.min(10, reportData.length)} Customers by Revenue`,
-          data: reportData.slice(0, 10).map(c => ({ label: c["Customer Name"], value: c["Total Revenue"] }))
+          data: reportData.slice(0, 10).map((c: any) => ({ label: c["Customer Name"], value: c["Total Revenue"] }))
         }
         break
 
@@ -526,7 +526,7 @@ export async function POST(req: NextRequest) {
           }
         })
 
-        reportData = quotationData.map(quotation => {
+        reportData = quotationData.map((quotation: any) => {
           const hasProject = !!quotation.Project
           const conversionDate = hasProject ? quotation.Project?.createdAt : null
           const daysToConvert = hasProject && conversionDate 
@@ -545,10 +545,10 @@ export async function POST(req: NextRequest) {
           }
         })
 
-        const convertedCount = reportData.filter(q => q["Converted to Project"] === 'Yes').length
+        const convertedCount = reportData.filter((q: any) => q["Converted to Project"] === 'Yes').length
         const conversionRate = reportData.length > 0 ? (convertedCount / reportData.length) * 100 : 0
         const totalQuotationValue = reportData.reduce((sum, q) => sum + q["Total Amount"], 0)
-        const convertedValue = reportData.filter(q => q["Converted to Project"] === 'Yes').reduce((sum, q) => sum + q["Total Amount"], 0)
+        const convertedValue = reportData.filter((q: any) => q["Converted to Project"] === 'Yes').reduce((sum, q) => sum + q["Total Amount"], 0)
 
         summary = {
           title: 'Quotation Conversion Summary',
@@ -584,8 +584,8 @@ export async function POST(req: NextRequest) {
         })
 
         reportData = vendorData
-          .filter(vendor => vendor.SupplierInvoice && vendor.SupplierInvoice.length > 0)
-          .map(vendor => {
+          .filter((vendor: any) => vendor.SupplierInvoice && vendor.SupplierInvoice.length > 0)
+          .map((vendor: any) => {
             const totalOrders = vendor.SupplierInvoice?.length || 0
             const totalValue = vendor.SupplierInvoice?.reduce((sum: number, inv: any) => sum + Number(inv.totalAmount || 0), 0) || 0
             const avgOrderValue = totalOrders > 0 ? totalValue / totalOrders : 0
@@ -619,7 +619,7 @@ export async function POST(req: NextRequest) {
 
         chartData = {
           title: `Top ${Math.min(10, reportData.length)} Vendors by Value`,
-          data: reportData.slice(0, 10).map(v => ({ label: v["Vendor Name"], value: v["Total Value"] }))
+          data: reportData.slice(0, 10).map((v: any) => ({ label: v["Vendor Name"], value: v["Total Value"] }))
         }
         break
 

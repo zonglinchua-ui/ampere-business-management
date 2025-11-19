@@ -96,15 +96,15 @@ export async function GET(request: NextRequest) {
     const now = new Date()
     const summary = {
       totalJobs: jobs.length,
-      completedJobs: jobs.filter(j => ['Completed', 'Endorsed'].includes(j.status)).length,
-      scheduledJobs: jobs.filter(j => j.status === 'Scheduled').length,
-      inProgressJobs: jobs.filter(j => j.status === 'InProgress').length,
-      overdueJobs: jobs.filter(j => 
+      completedJobs: jobs.filter((j: any) => ['Completed', 'Endorsed'].includes(j.status)).length,
+      scheduledJobs: jobs.filter((j: any) => j.status === 'Scheduled').length,
+      inProgressJobs: jobs.filter((j: any) => j.status === 'InProgress').length,
+      overdueJobs: jobs.filter((j: any) => 
         new Date(j.scheduledDate) < now && 
         !['Completed', 'Endorsed'].includes(j.status)
       ).length,
       totalContracts: contracts.length,
-      activeContracts: contracts.filter(c => c.status === 'Active').length
+      activeContracts: contracts.filter((c: any) => c.status === 'Active').length
     }
 
     // Jobs by service type
@@ -172,7 +172,7 @@ export async function GET(request: NextRequest) {
       assigneeMap.set(key, current)
     })
 
-    const jobsByAssignee = Array.from(assigneeMap.values()).map(assignee => ({
+    const jobsByAssignee = Array.from(assigneeMap.values()).map((assignee: any) => ({
       ...assignee,
       averageCompletionTime: assignee.completedJobs > 0
         ? assignee.totalCompletionTime / assignee.completedJobs

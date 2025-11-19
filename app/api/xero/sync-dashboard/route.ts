@@ -128,10 +128,10 @@ export async function GET(request: NextRequest) {
     ])
 
     // Extract counts from grouped results
-    const successCount = statusCounts.find(s => s.status === 'SUCCESS')?._count.id || 0
-    const errorCount = statusCounts.find(s => s.status === 'ERROR')?._count.id || 0
-    const warningCount = statusCounts.find(s => s.status === 'WARNING')?._count.id || 0
-    const inProgressCount = statusCounts.find(s => s.status === 'IN_PROGRESS')?._count.id || 0
+    const successCount = statusCounts.find((s: any) => s.status === 'SUCCESS')?._count.id || 0
+    const errorCount = statusCounts.find((s: any) => s.status === 'ERROR')?._count.id || 0
+    const warningCount = statusCounts.find((s: any) => s.status === 'WARNING')?._count.id || 0
+    const inProgressCount = statusCounts.find((s: any) => s.status === 'IN_PROGRESS')?._count.id || 0
 
     // Calculate summary statistics
     const summary = {

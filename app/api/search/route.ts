@@ -102,7 +102,7 @@ async function searchCustomers(query: string, limit: number): Promise<SearchResu
     orderBy: { name: "asc" }
   })
 
-  return customers.map(c => ({
+  return customers.map((c: any) => ({
     id: c.id,
     value: c.id,
     label: `${c.name} ${c.customerNumber ? `(${c.customerNumber})` : ''}`,
@@ -140,7 +140,7 @@ async function searchSuppliers(query: string, limit: number): Promise<SearchResu
     orderBy: { name: "asc" }
   })
 
-  return suppliers.map(s => ({
+  return suppliers.map((s: any) => ({
     id: s.id,
     value: s.id,
     label: `${s.name} ${s.supplierNumber ? `(${s.supplierNumber})` : ''}`,
@@ -180,7 +180,7 @@ async function searchProjects(query: string, limit: number): Promise<SearchResul
     orderBy: { createdAt: "desc" }
   })
 
-  return projects.map(p => ({
+  return projects.map((p: any) => ({
     id: p.id,
     value: p.id,
     label: `${p.name} (${p.projectNumber})`,
@@ -212,7 +212,7 @@ async function searchUsers(query: string, limit: number): Promise<SearchResult[]
     orderBy: { name: "asc" }
   })
 
-  return users.map(u => ({
+  return users.map((u: any) => ({
     id: u.id,
     value: u.id,
     label: u.name || u.email,

@@ -94,8 +94,8 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const xeroCustomerInvoices = allXeroInvoices.filter(inv => inv.type === 'ACCREC')
-    const xeroSupplierInvoices = allXeroInvoices.filter(inv => inv.type === 'ACCPAY')
+    const xeroCustomerInvoices = allXeroInvoices.filter((inv: any) => inv.type === 'ACCREC')
+    const xeroSupplierInvoices = allXeroInvoices.filter((inv: any) => inv.type === 'ACCPAY')
 
     // 3. Check local database
     console.log('💾 Checking local database...')
@@ -125,8 +125,8 @@ export async function GET(request: NextRequest) {
     })
     const localCustomerXeroIds = new Set(
       localCustomerInvoiceIds
-        .filter(inv => inv.xeroInvoiceId)
-        .map(inv => inv.xeroInvoiceId!)
+        .filter((inv: any) => inv.xeroInvoiceId)
+        .map((inv: any) => inv.xeroInvoiceId!)
     )
 
     const localSupplierInvoiceIds = await prisma.supplierInvoice.findMany({
@@ -135,14 +135,14 @@ export async function GET(request: NextRequest) {
     })
     const localSupplierXeroIds = new Set(
       localSupplierInvoiceIds
-        .filter(inv => inv.xeroInvoiceId)
-        .map(inv => inv.xeroInvoiceId!)
+        .filter((inv: any) => inv.xeroInvoiceId)
+        .map((inv: any) => inv.xeroInvoiceId!)
     )
 
     const missingCustomerInvoices = xeroCustomerInvoices
       .filter(xInv => !localCustomerXeroIds.has(xInv.invoiceID))
       .slice(0, 10)
-      .map(inv => ({
+      .map((inv: any) => ({
         invoiceNumber: inv.invoiceNumber,
         contactName: inv.contact?.name,
         total: inv.total,
@@ -153,7 +153,7 @@ export async function GET(request: NextRequest) {
     const missingSupplierInvoices = xeroSupplierInvoices
       .filter(xInv => !localSupplierXeroIds.has(xInv.invoiceID))
       .slice(0, 10)
-      .map(inv => ({
+      .map((inv: any) => ({
         invoiceNumber: inv.invoiceNumber,
         contactName: inv.contact?.name,
         total: inv.total,
@@ -177,10 +177,10 @@ export async function GET(request: NextRequest) {
     ])
 
     const localCustomerXeroContactIds = new Set(
-      localCustomerContactIds.filter(c => c.xeroContactId).map(c => c.xeroContactId!)
+      localCustomerContactIds.filter((c: any) => c.xeroContactId).map((c: any) => c.xeroContactId!)
     )
     const localSupplierXeroContactIds = new Set(
-      localSupplierContactIds.filter(s => s.xeroContactId).map(s => s.xeroContactId!)
+      localSupplierContactIds.filter((s: any) => s.xeroContactId).map((s: any) => s.xeroContactId!)
     )
 
     xeroCustomerInvoices.slice(0, 100).forEach(inv => {

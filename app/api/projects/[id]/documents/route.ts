@@ -153,7 +153,7 @@ export async function GET(
     })
 
     // Group by document type and only return latest versions
-    const latestDocuments = documents.filter(doc => doc.isLatestVersion)
+    const latestDocuments = documents.filter((doc: any) => doc.isLatestVersion)
 
     return NextResponse.json(latestDocuments)
   } catch (error) {
@@ -361,7 +361,7 @@ export async function POST(
       }
 
       // Update photo descriptions with S3 paths
-      parsedPhotoDescriptions = uploadedPhotos.map(photo => ({
+      parsedPhotoDescriptions = uploadedPhotos.map((photo: any) => ({
         ...photo.description,
         cloudStoragePath: photo.cloudStoragePath,
         filename: photo.filename,

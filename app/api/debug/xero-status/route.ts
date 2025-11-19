@@ -55,8 +55,8 @@ export async function GET(request: NextRequest) {
       })
     })
 
-    const activeIntegrations = integrations.filter(i => i.isActive)
-    const expiredIntegrations = integrations.filter(i => new Date(i.expiresAt) < new Date())
+    const activeIntegrations = integrations.filter((i: any) => i.isActive)
+    const expiredIntegrations = integrations.filter((i: any) => new Date(i.expiresAt) < new Date())
 
     return NextResponse.json({
       session: session ? {

@@ -86,7 +86,7 @@ export async function GET(request: NextRequest) {
     })
 
     // Transform to match frontend expectations (camelCase)
-    const transformedContracts = contracts.map(contract => ({
+    const transformedContracts = contracts.map((contract: any) => ({
       ...contract,
       customer: contract.Customer,
       project: contract.Project,

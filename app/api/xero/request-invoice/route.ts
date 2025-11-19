@@ -205,7 +205,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      requests: requests.map(req => {
+      requests: requests.map((req: any) => {
         let parsedDetails: any = {}
         try {
           parsedDetails = req.details ? JSON.parse(req.details) : {}

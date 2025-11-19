@@ -56,7 +56,7 @@ export async function GET() {
     })
 
     // Transform the data to match the frontend interface
-    const transformedTenders = ensureArray(tenders).map(tender => ({
+    const transformedTenders = ensureArray(tenders).map((tender: any) => ({
       id: tender.id,
       title: tender.title,
       tenderNumber: tender.tenderNumber,

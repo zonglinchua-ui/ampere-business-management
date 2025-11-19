@@ -97,7 +97,7 @@ export async function GET(req: NextRequest) {
     const totalInvoices = customerInvoices.length + supplierInvoices.length
 
     // Map customer invoices to a unified format
-    const formattedCustomerInvoices = customerInvoices.map(inv => ({
+    const formattedCustomerInvoices = customerInvoices.map((inv: any) => ({
       id: inv.id,
       invoiceNumber: inv.invoiceNumber,
       type: 'CUSTOMER' as const,
@@ -125,7 +125,7 @@ export async function GET(req: NextRequest) {
     }))
 
     // Map supplier invoices to a unified format
-    const formattedSupplierInvoices = supplierInvoices.map(inv => ({
+    const formattedSupplierInvoices = supplierInvoices.map((inv: any) => ({
       id: inv.id,
       invoiceNumber: inv.invoiceNumber,
       type: 'SUPPLIER' as const,
