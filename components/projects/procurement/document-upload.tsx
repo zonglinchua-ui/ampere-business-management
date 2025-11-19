@@ -10,6 +10,7 @@ interface DocumentUploadProps {
 }
 
 const DOCUMENT_TYPES = [
+  { value: 'AUTO', label: '🤖 Auto-Detect (Recommended)', color: 'bg-indigo-100 text-indigo-800' },
   { value: 'CUSTOMER_PO', label: 'Customer PO', color: 'bg-blue-100 text-blue-800' },
   { value: 'SUPPLIER_QUOTATION', label: 'Supplier Quotation', color: 'bg-purple-100 text-purple-800' },
   { value: 'SUPPLIER_INVOICE', label: 'Supplier Invoice', color: 'bg-green-100 text-green-800' },
@@ -19,7 +20,7 @@ const DOCUMENT_TYPES = [
 ];
 
 export default function DocumentUpload({ projectId, onUploadComplete }: DocumentUploadProps) {
-  const [selectedType, setSelectedType] = useState<string>('SUPPLIER_QUOTATION');
+  const [selectedType, setSelectedType] = useState<string>('AUTO');
   const [notes, setNotes] = useState('');
   const [uploading, setUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<{

@@ -159,10 +159,11 @@ export default function DocumentListEnhanced({ projectId, refreshTrigger }: Docu
 
   const canGeneratePO = (doc: ProcurementDocument) => {
     return (
-      doc.documentType === 'SUPPLIER_QUOTATION' &&
+      (doc.documentType === 'SUPPLIER_QUOTATION' || doc.documentType === 'SUPPLIER_INVOICE') &&
       doc.status !== 'PENDING_APPROVAL' &&
       doc.status !== 'APPROVED' &&
-      !doc.LinkedPO
+      !doc.LinkedPO &&
+      !doc.linkedPOId
     );
   };
 

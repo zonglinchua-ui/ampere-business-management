@@ -143,24 +143,87 @@ Return the data in JSON format with these exact keys: documentNumber, documentDa
     }
     
     const result = await response.json();
-    const extractedData = JSON.parse(result.response);
+    console.log('Ollama raw response:', JSON.stringify(result, null, 2));
+    
+    let extractedData: any = {};
+    try {
+      // Ollama returns response in 'response' field
+      if (result.response) {
+        // Try to parse as JSON
+        extractedData = JSON.parse(result.response);
+      } else {
+        console.error('No response field in Ollama result');
+        return { data: {}, confidence: 0 };
+      }
+    } catch (parseError) {
+      console.error('Failed to parse Ollama response as JSON:', parseError);
+      console.error('Raw response:', result.response);
+      return { data: {}, confidence: 0 };
+    }
+    
+    console.log('Extracted data:', JSON.stringify(extractedData, null, 2));
     
     // Calculate confidence based on completeness of extracted data
     const requiredFields = ['documentNumber', 'documentDate', 'totalAmount'];
-    const extractedFields = Object.keys(extractedData).filter(key => extractedData[key]);
-    const confidence = (extractedFields.length / requiredFields.length) * 100;
+    const extractedFields = Object.keys(extractedData).filter(key => {
+      const value = extractedData[key];
+      return value !== null && value !== undefined && value !== '';
+    });
+    const confidence = Math.min((extractedFields.length / requiredFields.length) * 100, 100);
+    
+    console.log(`Extraction confidence: ${confidence}% (${extractedFields.length}/${requiredFields.length} required fields)`);
     
     return {
       data: extractedData,
-      confidence: Math.min(confidence, 100),
+      confidence,
     };
   } catch (error) {
     console.error('Error extracting document data:', error);
+    if (error instanceof Error) {
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+    }
     return {
       data: {},
       confidence: 0,
     };
   }
+}
+
+async function detectDocumentType(documentText: string): Promise<string> {
+  // Use simple keyword matching to detect document type
+  const textLower = documentText.toLowerCase();
+  
+  // Check for invoice indicators
+  if (textLower.includes('invoice') || textLower.includes('inv no') || textLower.includes('invoice no')) {
+    // Distinguish between supplier and client invoice
+    if (textLower.includes('bill to:') || textLower.includes('customer:')) {
+      return 'CLIENT_INVOICE';
+    }
+    return 'SUPPLIER_INVOICE';
+  }
+  
+  // Check for quotation indicators
+  if (textLower.includes('quotation') || textLower.includes('quote') || textLower.includes('proposal')) {
+    return 'SUPPLIER_QUOTATION';
+  }
+  
+  // Check for PO indicators
+  if (textLower.includes('purchase order') || textLower.includes('p.o.') || textLower.includes('po no')) {
+    // Distinguish between customer and supplier PO
+    if (textLower.includes('vendor:') || textLower.includes('supplier:')) {
+      return 'SUPPLIER_PO';
+    }
+    return 'CUSTOMER_PO';
+  }
+  
+  // Check for variation order indicators
+  if (textLower.includes('variation order') || textLower.includes('vo no') || textLower.includes('change order')) {
+    return 'VARIATION_ORDER';
+  }
+  
+  // Default to supplier invoice if can't determine
+  return 'SUPPLIER_INVOICE';
 }
 
 async function findOrCreateSupplier(supplierName: string, userId: string) {
@@ -272,6 +335,7 @@ export async function POST(
 
     // Validate document type
     const validTypes = [
+      'AUTO',
       'CUSTOMER_PO',
       'SUPPLIER_QUOTATION',
       'SUPPLIER_INVOICE',
@@ -287,6 +351,21 @@ export async function POST(
     // Convert file to buffer
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
+    
+    // Auto-detect document type if needed
+    let finalDocumentType = documentType;
+    if (documentType === 'AUTO') {
+      try {
+        const pdf = require('pdf-parse');
+        const pdfData = await pdf(buffer);
+        finalDocumentType = await detectDocumentType(pdfData.text);
+        console.log(`Auto-detected document type: ${finalDocumentType}`);
+      } catch (error) {
+        console.error('Error auto-detecting document type:', error);
+        // Default to SUPPLIER_INVOICE if detection fails
+        finalDocumentType = 'SUPPLIER_INVOICE';
+      }
+    }
 
     // Determine NAS path based on document type
     let nasBasePath = process.env.NAS_BASE_PATH || 'C:/ampere/nas';
@@ -302,7 +381,7 @@ export async function POST(
     const projectFolder = `${project.projectNumber}-${project.name}`;
     
     let documentSubfolder = '';
-    switch (documentType) {
+    switch (finalDocumentType) {
       case 'CUSTOMER_PO':
         documentSubfolder = 'POs from customer';
         break;
@@ -341,7 +420,7 @@ export async function POST(
     // Extract document data using AI
     const { data: extractedData, confidence } = await extractDocumentData(
       filePath,
-      documentType
+      finalDocumentType
     );
 
     // Find or create supplier/customer based on extracted data
@@ -376,7 +455,7 @@ export async function POST(
     const procurementDocument = await prisma.procurementDocument.create({
       data: {
         projectId,
-        documentType: documentType as any,
+        documentType: finalDocumentType as any,
         documentNumber: extractedData.documentNumber || null,
         documentDate: extractedData.documentDate ? new Date(extractedData.documentDate) : null,
         status: 'EXTRACTED',
