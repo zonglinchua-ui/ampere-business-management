@@ -6,6 +6,10 @@ import { writeFile, mkdir, readFile } from 'fs/promises';
 import { join } from 'path';
 import { existsSync } from 'fs';
 import sharp from 'sharp';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+
+const execAsync = promisify(exec);
 
 const prisma = new PrismaClient();
 
@@ -31,6 +35,37 @@ interface ExtractedDocumentData {
     unit?: string;
     amount: number;
   }>;
+}
+
+async function convertPDFToPNG(pdfPath: string): Promise<string> {
+  try {
+    console.log('Converting PDF to PNG using pdftoppm...');
+    const outputBasePath = pdfPath.replace('.pdf', '');
+    const pngPath = `${outputBasePath}-1.png`;
+    
+    // Use pdftoppm (from poppler-utils) to convert PDF to PNG
+    // -png: output format
+    // -f 1 -l 1: only first page
+    // -scale-to 2000: scale to max 2000px
+    const command = `pdftoppm -png -f 1 -l 1 -scale-to 2000 "${pdfPath}" "${outputBasePath}"`;
+    
+    console.log('Running command:', command);
+    await execAsync(command);
+    
+    // Check if the output file exists
+    if (!existsSync(pngPath)) {
+      throw new Error(`PDF conversion failed: output file not found at ${pngPath}`);
+    }
+    
+    console.log('PDF converted to PNG:', pngPath);
+    return pngPath;
+  } catch (error) {
+    console.error('Error converting PDF to PNG:', error);
+    console.error('Make sure poppler-utils is installed on your system');
+    console.error('Windows: Download from https://github.com/oschwartz10612/poppler-windows/releases/');
+    console.error('Linux: sudo apt-get install poppler-utils');
+    throw error;
+  }
 }
 
 async function convertImageToPNG(filePath: string, mimeType: string): Promise<string> {
@@ -66,14 +101,14 @@ async function extractDocumentData(
     let processedPath = filePath;
     let isImage = false;
     
-    // Convert images to PNG, but leave PDFs as-is
+    // Convert images to PNG
     if (mimeType.startsWith('image/')) {
       processedPath = await convertImageToPNG(filePath, mimeType);
       isImage = true;
     } else if (mimeType === 'application/pdf') {
-      console.log('Processing PDF directly (no conversion)');
-      // Some Ollama vision models can handle PDFs directly
-      // If this fails, we'll need to install PDF conversion tools
+      console.log('Converting PDF to PNG for vision model...');
+      processedPath = await convertPDFToPNG(filePath);
+      isImage = true;
     }
     
     // Read file as base64
