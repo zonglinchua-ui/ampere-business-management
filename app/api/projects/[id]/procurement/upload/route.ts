@@ -38,7 +38,7 @@ async function extractDocumentData(
   try {
     // Convert PDF to text using pdf-parse
     const fs = require('fs');
-    const pdf = require('pdf-parse');
+    const pdf = require('pdf-parse').default || require('pdf-parse');
     const fileBuffer = fs.readFileSync(filePath);
     
     let documentText = '';
@@ -356,7 +356,7 @@ export async function POST(
     let finalDocumentType = documentType;
     if (documentType === 'AUTO') {
       try {
-        const pdf = require('pdf-parse');
+        const pdf = require('pdf-parse').default || require('pdf-parse');
         const pdfData = await pdf(buffer);
         finalDocumentType = await detectDocumentType(pdfData.text);
         console.log(`Auto-detected document type: ${finalDocumentType}`);
