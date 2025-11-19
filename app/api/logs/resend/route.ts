@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
       success: true,
       message: `Successfully resent ${successCount} log notifications`,
       count: successCount,
-      byModule: Object.entries(logsByModule).map(([module, logs]) => ({
+      byModule: Object.entries(logsByModule).map(([module, logs]: [string, any]) => ({
         module,
         count: logs.length,
       })),
