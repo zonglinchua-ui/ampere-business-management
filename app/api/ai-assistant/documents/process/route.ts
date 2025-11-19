@@ -244,7 +244,7 @@ function getCategoryFromType(documentType: string): string {
   }
   
   const lowerType = documentType.toLowerCase()
-  for (const [key, value] of Object.entries(typeMapping)) {
+  for (const [key, value] of Object.entries(typeMapping) as [string, any][]) {
     if (lowerType.includes(key)) {
       return value
     }

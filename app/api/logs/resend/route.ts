@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
 
     // Send grouped notifications
     let successCount = 0
-    for (const [module, logs] of Object.entries(logsByModule)) {
+    for (const [module, logs] of Object.entries(logsByModule) as [string, any][]) {
       try {
         await notifySuperAdmins({
           title: `📨 ${logs.length} ${module} Error${logs.length > 1 ? 's' : ''} Resent`,
