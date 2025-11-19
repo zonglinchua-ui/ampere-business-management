@@ -268,14 +268,38 @@ export default function DocumentListEnhanced({ projectId, refreshTrigger }: Docu
                     {/* Action Required Badges */}
                     <div className="flex items-center space-x-2 mb-2">
                       {needsInvoiceMatching(doc) && (
-                        <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs font-medium">
-                          ⚠️ Needs PO Linking
-                        </span>
+                        <>
+                          <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs font-medium">
+                            ⚠️ Needs PO Linking
+                          </span>
+                          <button
+                            onClick={() => {
+                              setSelectedDocument(doc);
+                              setShowModal('invoice-matching');
+                            }}
+                            className="px-3 py-1 bg-blue-600 text-white rounded text-xs font-medium hover:bg-blue-700 flex items-center gap-1"
+                          >
+                            <LinkIcon className="h-3 w-3" />
+                            Link to PO
+                          </button>
+                        </>
                       )}
                       {needsVOHandling(doc) && (
-                        <span className="px-2 py-1 bg-red-100 text-red-800 rounded text-xs font-medium">
-                          ⚠️ Needs Revised PO
-                        </span>
+                        <>
+                          <span className="px-2 py-1 bg-red-100 text-red-800 rounded text-xs font-medium">
+                            ⚠️ Needs Revised PO
+                          </span>
+                          <button
+                            onClick={() => {
+                              setSelectedDocument(doc);
+                              setShowModal('vo-handler');
+                            }}
+                            className="px-3 py-1 bg-red-600 text-white rounded text-xs font-medium hover:bg-red-700 flex items-center gap-1"
+                          >
+                            <RefreshCw className="h-3 w-3" />
+                            Handle VO
+                          </button>
+                        </>
                       )}
                     </div>
 
