@@ -267,6 +267,20 @@ export default function DocumentListEnhanced({ projectId, refreshTrigger }: Docu
 
                     {/* Action Required Badges */}
                     <div className="flex items-center space-x-2 mb-2">
+                      {canGeneratePO(doc) && (
+                        <>
+                          <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">
+                            📝 Ready for PO
+                          </span>
+                          <button
+                            onClick={() => handleAction(doc, 'generate-po')}
+                            className="px-3 py-1 bg-blue-600 text-white rounded text-xs font-medium hover:bg-blue-700 flex items-center gap-1"
+                          >
+                            <FileCheck className="h-3 w-3" />
+                            Generate PO
+                          </button>
+                        </>
+                      )}
                       {needsInvoiceMatching(doc) && (
                         <>
                           <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs font-medium">
@@ -496,7 +510,7 @@ export default function DocumentListEnhanced({ projectId, refreshTrigger }: Docu
                                   {item.description}
                                 </td>
                                 <td className="px-4 py-2 text-sm text-gray-900 text-right">
-                                  {item.quantity?.toFixed(2) || '-'}
+                                  {item.quantity !== null && item.quantity !== undefined ? Number(item.quantity).toFixed(2) : '-'}
                                 </td>
                                 <td className="px-4 py-2 text-sm text-gray-900 text-right">
                                   {item.unitPrice

@@ -36,10 +36,20 @@ async function extractDocumentData(
   documentType: string
 ): Promise<{ data: ExtractedDocumentData; confidence: number }> {
   try {
-    // Read file as base64 for Ollama vision
+    // Convert PDF to text using pdf-parse
     const fs = require('fs');
+    const pdf = require('pdf-parse');
     const fileBuffer = fs.readFileSync(filePath);
-    const base64File = fileBuffer.toString('base64');
+    
+    let documentText = '';
+    try {
+      const pdfData = await pdf(fileBuffer);
+      documentText = pdfData.text;
+    } catch (pdfError) {
+      console.error('Error parsing PDF:', pdfError);
+      // If PDF parsing fails, return 0 confidence
+      return { data: {}, confidence: 0 };
+    }
     
     // Create extraction prompt based on document type
     let prompt = '';
@@ -112,7 +122,9 @@ Return the data in JSON format with these exact keys: documentNumber, documentDa
         prompt = `Extract key information from this document including document number, date, amounts, and line items. Return as JSON.`;
     }
     
-    // Call Ollama API for extraction
+    // Call Ollama API for extraction with document text
+    const fullPrompt = `${prompt}\n\nDocument text:\n${documentText}\n\nExtract the information and return ONLY valid JSON, no additional text.`;
+    
     const response = await fetch(`${OLLAMA_BASE_URL}/api/generate`, {
       method: 'POST',
       headers: {
@@ -120,7 +132,7 @@ Return the data in JSON format with these exact keys: documentNumber, documentDa
       },
       body: JSON.stringify({
         model: OLLAMA_MODEL,
-        prompt: prompt,
+        prompt: fullPrompt,
         stream: false,
         format: 'json',
       }),
