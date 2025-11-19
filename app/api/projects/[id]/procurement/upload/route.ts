@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';  // ✅ CORRECT IMPORT PATH
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, ProcurementDocumentType } from '@prisma/client';
 import { writeFile, mkdir, readFile } from 'fs/promises';
 import { join } from 'path';
 import { existsSync } from 'fs';
@@ -355,7 +355,7 @@ export async function POST(
     const document = await prisma.procurementDocument.create({
       data: {
         projectId,
-        documentType: finalDocumentType,
+        documentType: finalDocumentType as ProcurementDocumentType,
         fileName: fileName,
         originalFileName: file.name,
         filePath: filePath,
