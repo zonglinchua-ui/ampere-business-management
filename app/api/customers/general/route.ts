@@ -146,7 +146,7 @@ export async function GET(req: NextRequest) {
     })
 
     // Add isXeroSynced flag for frontend display
-    const contactsWithXeroFlag = contacts.map(contact => ({
+    const contactsWithXeroFlag = contacts.map((contact: any) => ({
       ...contact,
       isXeroSynced: !!contact.xeroContactId,
     }))

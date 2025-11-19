@@ -108,7 +108,7 @@ export async function GET(request: NextRequest) {
         invoices: { total: 0, synced: 0, percentage: 0 },
         payments: { total: 0, synced: 0, percentage: 0 }
       },
-      recentLogs: recentLogs.map(log => ({
+      recentLogs: recentLogs.map((log: any) => ({
         id: log.id,
         entity: log.entity,
         entityId: '',

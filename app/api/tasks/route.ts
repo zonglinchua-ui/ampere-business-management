@@ -72,7 +72,7 @@ export async function GET() {
       maxWait: TX_MAX_WAIT 
     })
 
-    const formattedTasks = tasks.map(task => {
+    const formattedTasks = tasks.map((task: any) => {
       const now = new Date()
       const dueDate = task.dueDate ? new Date(task.dueDate) : null
       const isOverdue = dueDate && task.status !== 'COMPLETED' && task.status !== 'CANCELLED' && 

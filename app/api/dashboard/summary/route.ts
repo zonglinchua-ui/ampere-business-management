@@ -230,7 +230,7 @@ export async function GET(request: NextRequest) {
           isArchived: false
         }
       })
-      myTasks = ensureArray(tasks).map(task => ({
+      myTasks = ensureArray(tasks).map((task: any) => ({
         id: task.id,
         title: task.title,
         dueDate: task.dueDate?.toISOString() || null,
@@ -337,7 +337,7 @@ export async function GET(request: NextRequest) {
         }
       })
 
-      recentActivities = ensureArray(recentAuditLogs).map(log => {
+      recentActivities = ensureArray(recentAuditLogs).map((log: any) => {
         const userName = log.User 
           ? `${log.User.firstName || ''} ${log.User.lastName || ''}`.trim() || log.userEmail 
           : log.userEmail

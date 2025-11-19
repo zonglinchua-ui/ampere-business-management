@@ -238,7 +238,7 @@ export async function PUT(
       console.error("PUT /api/customers/[id] validation error:", {
         customerId: params.id,
         issues: error.issues,
-        formattedIssues: error.issues.map(issue => ({
+        formattedIssues: error.issues.map((issue: any) => ({
           field: issue.path.join('.'),
           message: issue.message,
           code: issue.code
