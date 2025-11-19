@@ -248,7 +248,7 @@ export async function POST(request: NextRequest) {
       const currentClaimAmount = totalQty > 0 ? (currentClaimQty / totalQty) * totalAmount : 0;
 
       // Find previous claims for this item (matching by description)
-      const previousItemClaims = previousClaims.flatMap((claim) =>
+      const previousItemClaims = previousClaims.flatMap((claim: any) =>
         claim.items.filter((i) => i.description === item.description)
       );
 

@@ -234,7 +234,7 @@ export async function GET(req: NextRequest) {
       // Paginate the sorted results
       customers = customersWithTotal
         .slice(skip, skip + pageSize)
-        .map(({ Project, ...customer }) => customer) // Remove Project array but keep totalProjectValue
+        .map(({ Project, ...customer }: any) => customer) // Remove Project array but keep totalProjectValue
     } else {
       // Regular sorting - also need to calculate and include total project value
       const customersData = await prisma.customer.findMany({

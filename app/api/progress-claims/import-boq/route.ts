@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
 
       // Update BOQ items with previous claims
       boqItems = boqItems.map((boqItem) => {
-        const previousItemClaims = previousClaims.flatMap((claim) =>
+        const previousItemClaims = previousClaims.flatMap((claim: any) =>
           claim.items.filter((i) => i.description === boqItem.description)
         );
 

@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
           title: `📨 ${logs.length} ${module} Error${logs.length > 1 ? 's' : ''} Resent`,
           message: `Recent errors:\n${logs.slice(0, 3).map((l) => `• ${l.action}: ${l.message.slice(0, 100)}`).join('\n')}`,
           link: '/settings/system-logs',
-          severity: logs.some((l) => l.status === 'CRITICAL') ? 'critical' : 'error',
+          severity: logs.some((l: any) => l.status === 'CRITICAL') ? 'critical' : 'error',
         })
 
         successCount += logs.length

@@ -155,7 +155,7 @@ export async function GET(req: NextRequest) {
       // Paginate the sorted results
       suppliers = suppliersWithTotal
         .slice(skip, skip + pageSize)
-        .map(({ SupplierInvoice, ...supplier }) => supplier) // Remove SupplierInvoice array but keep totalPurchaseValue
+        .map(({ SupplierInvoice, ...supplier }: any) => supplier) // Remove SupplierInvoice array but keep totalPurchaseValue
     } else {
       // Regular sorting - also need to calculate and include total purchase value
       const suppliersData = await prisma.supplier.findMany({
