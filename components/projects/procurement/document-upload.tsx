@@ -45,6 +45,9 @@ export default function DocumentUpload({ projectId, onUploadComplete }: Document
     },
     maxFiles: 1,
     multiple: false,
+    noClick: false,
+    noKeyboard: false,
+    disabled: uploading,
   });
 
   const handleUpload = async () => {
@@ -137,20 +140,32 @@ export default function DocumentUpload({ projectId, onUploadComplete }: Document
         {!selectedFile ? (
           <div
             {...getRootProps()}
-            className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+            className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
               isDragActive
-                ? 'border-blue-500 bg-blue-50'
-                : 'border-gray-300 hover:border-gray-400 bg-gray-50'
+                ? 'border-blue-500 bg-blue-50 cursor-copy'
+                : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50 bg-white cursor-pointer'
             }`}
+            style={{ cursor: 'pointer' }}
           >
             <input {...getInputProps()} />
             <Upload className="mx-auto h-12 w-12 text-gray-400 mb-3" />
-            <p className="text-sm text-gray-600 mb-1">
-              {isDragActive ? 'Drop the file here' : 'Drag & drop a file here, or click to select'}
+            <p className="text-sm font-medium text-gray-700 mb-1">
+              {isDragActive ? 'Drop the file here' : 'Drag & drop a file here'}
             </p>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-gray-500 mb-3">
               Supports PDF, Images, Word documents
             </p>
+            <button
+              type="button"
+              className="mt-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+                input?.click();
+              }}
+            >
+              Browse Files
+            </button>
           </div>
         ) : (
           <div className="border-2 border-green-300 bg-green-50 rounded-lg p-4">
