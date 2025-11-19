@@ -273,10 +273,7 @@ export default function DocumentListEnhanced({ projectId, refreshTrigger }: Docu
                             ⚠️ Needs PO Linking
                           </span>
                           <button
-                            onClick={() => {
-                              setSelectedDocument(doc);
-                              setShowModal('invoice-matching');
-                            }}
+                            onClick={() => handleAction(doc, 'match-invoice')}
                             className="px-3 py-1 bg-blue-600 text-white rounded text-xs font-medium hover:bg-blue-700 flex items-center gap-1"
                           >
                             <LinkIcon className="h-3 w-3" />
@@ -290,10 +287,7 @@ export default function DocumentListEnhanced({ projectId, refreshTrigger }: Docu
                             ⚠️ Needs Revised PO
                           </span>
                           <button
-                            onClick={() => {
-                              setSelectedDocument(doc);
-                              setShowModal('vo-handler');
-                            }}
+                            onClick={() => handleAction(doc, 'handle-vo')}
                             className="px-3 py-1 bg-red-600 text-white rounded text-xs font-medium hover:bg-red-700 flex items-center gap-1"
                           >
                             <RefreshCw className="h-3 w-3" />
