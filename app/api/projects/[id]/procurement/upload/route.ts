@@ -37,13 +37,13 @@ async function extractDocumentData(
 ): Promise<{ data: ExtractedDocumentData; confidence: number }> {
   try {
     // Convert PDF to text using pdf-parse
-    const fs = require('fs');
-    const pdf = require('pdf-parse').default || require('pdf-parse');
+    const fs = await import('fs');
+    const pdfParse = (await import('pdf-parse')).default;
     const fileBuffer = fs.readFileSync(filePath);
     
     let documentText = '';
     try {
-      const pdfData = await pdf(fileBuffer);
+      const pdfData = await pdfParse(fileBuffer);
       documentText = pdfData.text;
     } catch (pdfError) {
       console.error('Error parsing PDF:', pdfError);
@@ -356,8 +356,8 @@ export async function POST(
     let finalDocumentType = documentType;
     if (documentType === 'AUTO') {
       try {
-        const pdf = require('pdf-parse').default || require('pdf-parse');
-        const pdfData = await pdf(buffer);
+        const pdfParse = (await import('pdf-parse')).default;
+        const pdfData = await pdfParse(buffer);
         finalDocumentType = await detectDocumentType(pdfData.text);
         console.log(`Auto-detected document type: ${finalDocumentType}`);
       } catch (error) {
