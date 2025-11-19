@@ -147,7 +147,7 @@ export async function GET(req: NextRequest) {
       })
       
       // Sort by total purchase value
-      suppliersWithTotal.sort((a, b) => {
+      suppliersWithTotal.sort((a: any, b: any) => {
         const diff = a.totalPurchaseValue - b.totalPurchaseValue
         return purchaseValueDirection === 'asc' ? diff : -diff
       })

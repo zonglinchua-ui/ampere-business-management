@@ -224,7 +224,7 @@ export async function GET(request: NextRequest) {
     })
 
     const customerActivity = Array.from(customerMap.values())
-      .sort((a, b) => b.totalJobs - a.totalJobs)
+      .sort((a: any, b: any) => b.totalJobs - a.totalJobs)
 
     // Monthly trends (simplified for now)
     const monthlyTrends: any[] = []

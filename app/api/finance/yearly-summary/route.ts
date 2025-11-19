@@ -135,8 +135,8 @@ export async function GET(request: NextRequest) {
     })
 
     // Calculate net profit and growth rates for each year
-    const years = Object.keys(yearlyData).map(Number).sort((a, b) => a - b)
-    years.forEach((year, index) => {
+    const years = Object.keys(yearlyData).map(Number).sort((a: any, b: any) => a - b)
+    years.forEach((year: any, index: any) => {
       yearlyData[year].netProfit = yearlyData[year].revenue - yearlyData[year].expenses
       
       // Calculate Y-o-Y growth rate

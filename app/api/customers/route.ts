@@ -226,7 +226,7 @@ export async function GET(req: NextRequest) {
       })
       
       // Sort by total project value
-      customersWithTotal.sort((a, b) => {
+      customersWithTotal.sort((a: any, b: any) => {
         const diff = a.totalProjectValue - b.totalProjectValue
         return projectValueDirection === 'asc' ? diff : -diff
       })

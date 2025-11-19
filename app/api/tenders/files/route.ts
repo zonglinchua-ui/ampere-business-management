@@ -110,7 +110,7 @@ export async function GET(request: NextRequest) {
     )
 
     // Sort: directories first, then by name
-    fileList.sort((a, b) => {
+    fileList.sort((a: any, b: any) => {
       if (a.isDirectory && !b.isDirectory) return -1
       if (!a.isDirectory && b.isDirectory) return 1
       return a.name.localeCompare(b.name)

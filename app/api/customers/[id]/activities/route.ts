@@ -199,7 +199,7 @@ export async function GET(
     })
 
     // Sort all activities by date (newest first)
-    activities.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    activities.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
     // Take only the most recent 100 activities
     const recentActivities = activities.slice(0, 100)

@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
     })
 
     console.log('Found integrations:', integrations.length)
-    integrations.forEach((integration, index) => {
+    integrations.forEach((integration: any, index: any) => {
       console.log(`${index + 1}.`, {
         id: integration.id,
         tenantId: integration.tenantId.substring(0, 8) + '...',

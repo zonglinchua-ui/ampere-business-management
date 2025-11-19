@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
           title: 'Revenue by Client (Top 10)',
           data: Object.entries(revenueByClient)
             .map(([label, value]) => ({ label, value: value as number }))
-            .sort((a, b) => b.value - a.value)
+            .sort((a: any, b: any) => b.value - a.value)
             .slice(0, 10)
         }
         break
@@ -279,7 +279,7 @@ export async function POST(req: NextRequest) {
             inflow: isInflow ? Number(p.amount || 0) : 0,
             outflow: !isInflow ? Number(p.amount || 0) : 0
           }
-        }).sort((a, b) => a.date.getTime() - b.date.getTime())
+        }).sort((a: any, b: any) => a.date.getTime() - b.date.getTime())
 
         let runningBalance = 0
         reportData = cashFlowData.map(item => {
@@ -603,7 +603,7 @@ export async function POST(req: NextRequest) {
               "Performance Rating": `${performanceRating.toFixed(1)}%`
             }
           })
-          .sort((a, b) => b["Total Value"] - a["Total Value"])
+          .sort((a: any, b: any) => b["Total Value"] - a["Total Value"])
           .slice(0, filters.topN || 20)
 
         const totalVendorValue = reportData.reduce((sum, v) => sum + v["Total Value"], 0)
