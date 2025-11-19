@@ -73,7 +73,7 @@ export async function POST(request: Request) {
         orderBy: { startDate: 'desc' }
       })
 
-      const projectList = projects.map(p => ({
+      const projectList = projects.map((p: any) => ({
         projectNumber: p.projectNumber,
         projectName: p.name,
         customer: p.Customer.name,
@@ -108,13 +108,13 @@ export async function POST(request: Request) {
         orderBy: { name: 'asc' }
       })
 
-      const customerList = customers.map(c => ({
+      const customerList = customers.map((c: any) => ({
         name: c.name,
         contactPerson: c.contactPerson,
         email: c.email,
         phone: c.phone,
         totalProjects: c.Project.length,
-        totalContractValue: c.Project.reduce((sum, p) => {
+        totalContractValue: c.Project.reduce((sum: number, p: any) => {
           return sum + (p.contractValue ? Number(p.contractValue) : 0)
         }, 0)
       }))
@@ -140,7 +140,7 @@ export async function POST(request: Request) {
         orderBy: { startDate: 'desc' }
       })
 
-      const projectList = ongoingProjects.map(p => ({
+      const projectList = ongoingProjects.map((p: any) => ({
         projectNumber: p.projectNumber,
         projectName: p.name,
         customer: p.Customer.name,

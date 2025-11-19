@@ -214,8 +214,8 @@ export async function GET(req: NextRequest) {
       })
       
       // Calculate total project value for each customer
-      const customersWithTotal = allCustomers.map(customer => {
-        const totalProjectValue = customer.Project?.reduce((sum, project) => {
+      const customersWithTotal = allCustomers.map((customer: any) => {
+        const totalProjectValue = customer.Project?.reduce((sum: number, project: any) => {
           return sum + (project.estimatedBudget ? Number(project.estimatedBudget) : 0)
         }, 0) || 0
         
@@ -259,8 +259,8 @@ export async function GET(req: NextRequest) {
       })
       
       // Calculate and attach total project value for each customer
-      customers = customersData.map(customer => {
-        const totalProjectValue = customer.Project?.reduce((sum, project) => {
+      customers = customersData.map((customer: any) => {
+        const totalProjectValue = customer.Project?.reduce((sum: number, project: any) => {
           return sum + (project.estimatedBudget ? Number(project.estimatedBudget) : 0)
         }, 0) || 0
         

@@ -36,7 +36,7 @@ export async function GET(
 
     // Calculate compliance score
     const totalChecks = results.length
-    const passedChecks = results.filter((r) => r.status === "PASS").length
+    const passedChecks = results.filter((r: any) => r.status === "PASS").length
     const complianceScore = Math.round((passedChecks / totalChecks) * 100)
 
     // Update application with compliance score
@@ -46,7 +46,7 @@ export async function GET(
     })
 
     // Determine if ready for submission
-    const hasFailures = results.some((r) => r.status === "FAIL")
+    const hasFailures = results.some((r: any) => r.status === "FAIL")
     const isReady = !hasFailures && complianceScore >= 80
 
     // Log the action
@@ -67,8 +67,8 @@ export async function GET(
       summary: {
         total: totalChecks,
         passed: passedChecks,
-        failed: results.filter((r) => r.status === "FAIL").length,
-        warnings: results.filter((r) => r.status === "WARNING").length,
+        failed: results.filter((r: any) => r.status === "FAIL").length,
+        warnings: results.filter((r: any) => r.status === "WARNING").length,
       },
     }, { status: 200 })
   } catch (error) {

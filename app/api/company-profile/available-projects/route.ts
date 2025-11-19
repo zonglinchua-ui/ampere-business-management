@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Mark projects that are already added to the company profile
-    const availableProjects = projects.map((project) => ({
+    const availableProjects = projects.map((project: any) => ({
       id: project.id,
       projectNumber: project.projectNumber,
       name: project.name,
