@@ -85,10 +85,10 @@ export async function GET(request: NextRequest) {
 
     const statistics = {
       total,
-      sent: stats.find(s => s.status === 'SENT')?._count.id || 0,
-      failed: stats.find(s => s.status === 'FAILED')?._count.id || 0,
-      queued: stats.find(s => s.status === 'QUEUED')?._count.id || 0,
-      skipped: stats.find(s => s.status === 'SKIPPED')?._count.id || 0
+      sent: stats.find((s: any) => s.status === 'SENT')?._count.id || 0,
+      failed: stats.find((s: any) => s.status === 'FAILED')?._count.id || 0,
+      queued: stats.find((s: any) => s.status === 'QUEUED')?._count.id || 0,
+      skipped: stats.find((s: any) => s.status === 'SKIPPED')?._count.id || 0
     }
 
     return NextResponse.json({
