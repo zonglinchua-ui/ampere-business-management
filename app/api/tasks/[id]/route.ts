@@ -193,7 +193,7 @@ export async function PATCH(
       )
     }
 
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx: any) => {
       // Check if task exists and user has permission to update
       const existingTask = await tx.task.findUnique({
         where: { id: taskId }
@@ -398,7 +398,7 @@ export async function DELETE(
     }
 
     // Hard delete the task and related records
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: any) => {
       // Delete task comments first
       await tx.taskComment.deleteMany({
         where: { taskId: taskId }

@@ -180,7 +180,7 @@ export async function POST(request: NextRequest) {
 
     console.log('[Create Contract API] Generated contract number:', contractNo)
 
-    const contract = await prisma.$transaction(async (tx) => {
+    const contract = await prisma.$transaction(async (tx: any) => {
       // Create the contract
       const newContract = await tx.serviceContract.create({
         data: {

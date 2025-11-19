@@ -261,7 +261,7 @@ export async function POST(
     if (validatedBudgetCategoryId) {
       try {
         console.log('Updating project budget for category:', validatedBudgetCategoryId)
-        await prisma.$transaction(async (tx) => {
+        await prisma.$transaction(async (tx: any) => {
           // Check if project budget for this category exists
           const existingBudget = await tx.projectBudget.findFirst({
             where: {

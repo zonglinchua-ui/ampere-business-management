@@ -68,7 +68,7 @@ export async function POST(
       return NextResponse.json({ error: 'You have already provided approval for this quotation' }, { status: 400 })
     }
 
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx: any) => {
       // Create approval record
       const approval = await tx.quotationApproval.create({
         data: {

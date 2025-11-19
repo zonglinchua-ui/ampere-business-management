@@ -280,7 +280,7 @@ export async function POST(request: NextRequest) {
     const lineItems = Array.isArray(quotationData.lineItems) ? quotationData.lineItems : []
     
     // Create quotation with line items in a transaction
-    const quotation = await prisma.$transaction(async (tx) => {
+    const quotation = await prisma.$transaction(async (tx: any) => {
       // Create the quotation first with safer defaults
       const newQuotation = await tx.quotation.create({
         data: {

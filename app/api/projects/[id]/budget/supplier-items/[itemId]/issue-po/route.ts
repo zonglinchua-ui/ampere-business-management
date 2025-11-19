@@ -139,7 +139,7 @@ export async function POST(
     const totalAmount = Number(budgetItem.quotedAmount);
 
     // Create PO in transaction
-    const purchaseOrder = await prisma.$transaction(async (tx) => {
+    const purchaseOrder = await prisma.$transaction(async (tx: any) => {
       // Create the purchase order
       const po = await tx.purchaseOrder.create({
         data: {

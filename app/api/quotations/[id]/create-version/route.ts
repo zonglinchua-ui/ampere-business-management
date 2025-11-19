@@ -76,7 +76,7 @@ export async function POST(
     const newVersion = (highestVersion?.version || originalQuotation.version) + 1
 
     // Create new version
-    const newVersionQuotation = await prisma.$transaction(async (tx) => {
+    const newVersionQuotation = await prisma.$transaction(async (tx: any) => {
       // Mark the original quotation as superseded
       await tx.quotation.update({
         where: { id: params.id },

@@ -361,7 +361,7 @@ export async function PUT(
     let updatedQuotation
     try {
       console.log(`[${requestId}] Starting database transaction...`)
-      updatedQuotation = await prisma.$transaction(async (tx) => {
+      updatedQuotation = await prisma.$transaction(async (tx: any) => {
         // Prepare update data - only include provided fields
         const updateData: any = {
           updatedAt: new Date()
@@ -679,7 +679,7 @@ export async function DELETE(
         console.error('[DELETE Quotation] ❌ Quotation archival error:', error)
       })
 
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: any) => {
       // Delete related records first
       await tx.quotationActivity.deleteMany({
         where: { quotationId: params.id }

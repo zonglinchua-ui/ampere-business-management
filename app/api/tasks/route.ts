@@ -19,7 +19,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const tasks = await prisma.$transaction(async (tx) => {
+    const tasks = await prisma.$transaction(async (tx: any) => {
       return await tx.task.findMany({
       include: {
         User_Task_assignerIdToUser: {
@@ -167,7 +167,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx: any) => {
       const task = await tx.task.create({
       data: {
         id: uuidv4(),

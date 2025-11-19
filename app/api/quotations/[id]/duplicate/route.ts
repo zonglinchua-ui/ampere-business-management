@@ -95,7 +95,7 @@ export async function POST(
     const newQuotationNumber = await generateQuotationNumber(originalQuotation.customerId)
 
     // Create duplicate quotation
-    const duplicateQuotation = await prisma.$transaction(async (tx) => {
+    const duplicateQuotation = await prisma.$transaction(async (tx: any) => {
       // Create the new quotation
       const newQuotation = await tx.quotation.create({
         data: {

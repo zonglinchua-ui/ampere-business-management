@@ -212,7 +212,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Customer is required for incoming POs' }, { status: 400 })
     }
 
-    const purchaseOrder = await prisma.$transaction(async (tx) => {
+    const purchaseOrder = await prisma.$transaction(async (tx: any) => {
       // Create the purchase order
       const po = await tx.purchaseOrder.create({
         data: {
