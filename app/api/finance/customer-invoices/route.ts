@@ -136,7 +136,7 @@ export async function GET(request: NextRequest) {
     console.log(`📊 Fetched ${invoices.length} customer invoices (page ${page}, total: ${total})`)
 
     // Transform invoices to include calculated fields
-    const transformedInvoices = invoices.map(invoice => {
+    const transformedInvoices = invoices.map((invoice: any) => {
       const dueDate = new Date(invoice.dueDate)
       const today = new Date()
       const isOverdue = dueDate < today && invoice.status !== 'PAID' && invoice.status !== 'CANCELLED'
@@ -154,7 +154,7 @@ export async function GET(request: NextRequest) {
         totalAmount: parseFloat(invoice.totalAmount.toString()),
         amountDue: invoice.amountDue ? parseFloat(invoice.amountDue.toString()) : parseFloat(invoice.totalAmount.toString()),
         amountPaid: invoice.amountPaid ? parseFloat(invoice.amountPaid.toString()) : 0,
-        CustomerInvoiceItem: invoice.CustomerInvoiceItem?.map(item => ({
+        CustomerInvoiceItem: invoice.CustomerInvoiceItem?.map((item: any) => ({
           ...item,
           quantity: parseFloat(item.quantity.toString()),
           unitPrice: parseFloat(item.unitPrice.toString()),

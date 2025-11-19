@@ -297,7 +297,7 @@ export async function GET(request: NextRequest) {
         }
       })
 
-      upcomingDeadlines = ensureArray(projects).map(project => ({
+      upcomingDeadlines = ensureArray(projects).map((project: any) => ({
         id: project.id,
         project: project.name,
         dueDate: project.endDate?.toISOString() || '',

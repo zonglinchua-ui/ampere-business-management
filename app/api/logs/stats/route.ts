@@ -69,11 +69,11 @@ export async function GET(req: NextRequest) {
         last24h: last24hLogs,
         last7d: last7dLogs,
       },
-      byModule: logsByModule.map(item => ({
+      byModule: logsByModule.map((item: any) => ({
         module: item.module,
         count: item._count.id,
       })),
-      byStatus: logsByStatus.map(item => ({
+      byStatus: logsByStatus.map((item: any) => ({
         status: item.status,
         count: item._count.id,
       })),

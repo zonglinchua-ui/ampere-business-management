@@ -282,7 +282,7 @@ export async function POST(req: NextRequest) {
         }).sort((a: any, b: any) => a.date.getTime() - b.date.getTime())
 
         let runningBalance = 0
-        reportData = cashFlowData.map(item => {
+        reportData = cashFlowData.map((item: any) => {
           const netFlow = item.inflow - item.outflow
           runningBalance += netFlow
           return {
@@ -401,7 +401,7 @@ export async function POST(req: NextRequest) {
           }
         })
 
-        reportData = budgetProjects.map(project => {
+        reportData = budgetProjects.map((project: any) => {
           const budgeted = Number(project.estimatedBudget || 0)
           const actual = project.SupplierInvoice?.reduce((sum, inv) => sum + Number(inv.totalAmount || 0), 0) || 0
           const variance = budgeted - actual
@@ -459,7 +459,7 @@ export async function POST(req: NextRequest) {
         })
 
         reportData = clientRevenueData
-          .map(customer => {
+          .map((customer: any) => {
             const totalRevenue = customer.CustomerInvoice.reduce((sum: number, inv: any) => sum + Number(inv.totalAmount || 0), 0)
             const projectCount = customer.Project.length
             const avgProjectValue = projectCount > 0 ? totalRevenue / projectCount : 0
