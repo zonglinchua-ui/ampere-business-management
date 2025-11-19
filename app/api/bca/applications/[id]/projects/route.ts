@@ -11,7 +11,6 @@ import { prisma } from "@/lib/db"
 import { z } from "zod"
 import { generateFormData } from "@/lib/bca-services/form-generator"
 import { logBcaAction } from "@/lib/bca-services/audit-logger"
-import { BcaFormType } from "@prisma/client"
 
 const addProjectSchema = z.object({
   projectId: z.string().min(1),
@@ -79,7 +78,7 @@ export async function POST(
       data: {
         applicationId: params.id,
         projectId: validatedData.projectId,
-        formType: validatedData.formType as BcaFormType,
+        formType: validatedData.formType as any,
         formNumber,
         isOngoing: validatedData.formType === "D2_ONGOING",
         contractValue: formData.projectInfo.contractSum,
