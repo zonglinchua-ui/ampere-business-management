@@ -277,7 +277,16 @@ export async function POST(
     const buffer = Buffer.from(bytes);
 
     // Determine NAS path based on document type
-    const nasBasePath = process.env.NAS_BASE_PATH || 'C:/ampere/nas';
+    let nasBasePath = process.env.NAS_BASE_PATH || 'C:/ampere/nas';
+    
+    // Convert forward slashes to backslashes for Windows UNC paths
+    // UNC paths must use backslashes: \\server\share
+    if (nasBasePath.startsWith('//')) {
+      nasBasePath = '\\\\' + nasBasePath.substring(2).replace(/\//g, '\\');
+    } else {
+      nasBasePath = nasBasePath.replace(/\//g, '\\');
+    }
+    
     const projectFolder = `${project.projectNumber}-${project.name}`;
     
     let documentSubfolder = '';
@@ -301,8 +310,8 @@ export async function POST(
         documentSubfolder = 'documents';
     }
 
-    // Create project folder structure
-    const projectPath = join(nasBasePath, 'PROJECT', projectFolder, documentSubfolder);
+    // Create project folder structure using backslashes for Windows
+    const projectPath = `${nasBasePath}\\PROJECT\\${projectFolder}\\${documentSubfolder}`;
     if (!existsSync(projectPath)) {
       await mkdir(projectPath, { recursive: true });
     }
@@ -312,7 +321,7 @@ export async function POST(
     const originalName = file.name;
     const extension = originalName.substring(originalName.lastIndexOf('.'));
     const fileName = `${timestamp}_${originalName}`;
-    const filePath = join(projectPath, fileName);
+    const filePath = `${projectPath}\\${fileName}`;
 
     // Save file to NAS
     await writeFile(filePath, buffer);
