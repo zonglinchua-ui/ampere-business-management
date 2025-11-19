@@ -97,7 +97,7 @@ export async function POST(
 
     // Update application totals
     const totalContractValue = application.ProjectForms.reduce(
-      (sum, f) => sum + Number(f.contractValue),
+      (sum: number, f: any) => sum + Number(f.contractValue),
       Number(projectForm.contractValue)
     )
 
