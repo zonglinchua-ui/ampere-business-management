@@ -28,7 +28,8 @@ import {
   MoreHorizontal,
   Settings,
   Activity,
-  FolderOpen
+  FolderOpen,
+  Receipt
 } from "lucide-react"
 import { 
   Table,
@@ -53,6 +54,7 @@ import { ProgressEditDialog } from "@/components/projects/progress-edit-dialog"
 import { VariationOrders } from "@/components/projects/variation-orders"
 import { ProjectFormsManager } from "@/components/bca/project-forms-manager"
 import { InvoiceReminderAlert } from "@/components/projects/invoice-reminder-alert"
+import { ProgressClaimsManager } from "@/components/projects/progress-claims-manager"
 
 interface ProjectDetail {
   id: string
@@ -467,10 +469,14 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
       <Card>
         <CardContent className="p-0">
           <Tabs defaultValue="finance" className="w-full">
-            <TabsList className="grid w-full grid-cols-4 rounded-none border-b">
+            <TabsList className="grid w-full grid-cols-5 rounded-none border-b">
               <TabsTrigger value="finance">
                 <DollarSign className="h-4 w-4 mr-2" />
                 Finance
+              </TabsTrigger>
+              <TabsTrigger value="progress-claims">
+                <Receipt className="h-4 w-4 mr-2" />
+                Progress Claims
               </TabsTrigger>
               <TabsTrigger value="bca-forms">
                 <CheckCircle className="h-4 w-4 mr-2" />
@@ -498,6 +504,10 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
                   customerId: project.Customer.id
                 }}
               />
+            </TabsContent>
+
+            <TabsContent value="progress-claims" className="p-6 m-0">
+              <ProgressClaimsManager projectId={projectId} customerId={project.Customer.id} />
             </TabsContent>
 
             <TabsContent value="bca-forms" className="p-6 m-0">

@@ -11,11 +11,12 @@ import {
   FileText,
   PackageCheck,
   DollarSign,
-  Target
+  Target,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { InvoiceReminderAlert } from '../invoice-reminder-alert'
-import { ProgressClaimsManager } from '../progress-claims-manager'
 import ProcurementManagement from '../procurement/procurement-management'
 
 interface SimplifiedFinanceDashboardProps {
@@ -80,6 +81,7 @@ export function SimplifiedFinanceDashboard({ projectId, project }: SimplifiedFin
   const [financeData, setFinanceData] = useState<FinanceData | null>(null)
   const [budgetSummary, setBudgetSummary] = useState<BudgetSummary | null>(null)
   const [budgetItems, setBudgetItems] = useState<SupplierBudgetItem[]>([])
+  const [showProcurement, setShowProcurement] = useState(false)
 
   const canEdit = session?.user?.role === 'ADMIN' || session?.user?.role === 'PROJECT_MANAGER'
 
@@ -92,20 +94,17 @@ export function SimplifiedFinanceDashboard({ projectId, project }: SimplifiedFin
     try {
       setLoading(true)
       
-      // Fetch budget data
-      const budgetResponse = await fetch(`/api/projects/${projectId}/budget`)
+      // Fetch all data in parallel for better performance
+      const [budgetResponse, invoicesResponse, poResponse, supplierInvoicesResponse] = await Promise.all([
+        fetch(`/api/projects/${projectId}/budget`),
+        fetch(`/api/projects/${projectId}/invoices`),
+        fetch(`/api/projects/${projectId}/purchase-orders`),
+        fetch(`/api/projects/${projectId}/supplier-invoices`)
+      ])
+
       const budgetData = budgetResponse.ok ? await budgetResponse.json() : {}
-
-      // Fetch customer invoices (claims/revenue)
-      const invoicesResponse = await fetch(`/api/projects/${projectId}/invoices`)
       const invoicesData = invoicesResponse.ok ? await invoicesResponse.json() : { invoices: [] }
-
-      // Fetch purchase orders (commitments)
-      const poResponse = await fetch(`/api/projects/${projectId}/purchase-orders`)
       const poData = poResponse.ok ? await poResponse.json() : { purchaseOrders: [] }
-
-      // Fetch supplier invoices (actual expenses)
-      const supplierInvoicesResponse = await fetch(`/api/projects/${projectId}/supplier-invoices`)
       const supplierInvoicesData = supplierInvoicesResponse.ok ? await supplierInvoicesResponse.json() : { supplierInvoices: [] }
 
       // Calculate totals
@@ -408,35 +407,31 @@ export function SimplifiedFinanceDashboard({ projectId, project }: SimplifiedFin
         )}
       </div>
 
-      {/* Claims Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Progress Claims</CardTitle>
-          <CardDescription className="text-xs">
-            Track customer invoices and payment progress
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ProgressClaimsManager projectId={projectId} customerId={project.customerId || ''} />
-        </CardContent>
-      </Card>
-
-      {/* Procurement Documents Section - Now Integrated */}
+      {/* Procurement Documents Section - Collapsible for Performance */}
       <Card className="border-2 border-blue-200">
-        <CardHeader>
-          <CardTitle className="text-base flex items-center">
-            <FileText className="mr-2 h-4 w-4" />
-            Procurement Documents
-          </CardTitle>
-          <CardDescription className="text-xs mt-1">
-            AI-powered document management for quotations, POs, invoices & VOs
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="border-t">
-            <ProcurementManagement projectId={projectId} />
+        <CardHeader className="cursor-pointer" onClick={() => setShowProcurement(!showProcurement)}>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-base flex items-center">
+                <FileText className="mr-2 h-4 w-4" />
+                Procurement Documents
+              </CardTitle>
+              <CardDescription className="text-xs mt-1">
+                AI-powered document management for quotations, POs, invoices & VOs
+              </CardDescription>
+            </div>
+            <Button variant="ghost" size="sm">
+              {showProcurement ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </Button>
           </div>
-        </CardContent>
+        </CardHeader>
+        {showProcurement && (
+          <CardContent className="p-0">
+            <div className="border-t">
+              <ProcurementManagement projectId={projectId} />
+            </div>
+          </CardContent>
+        )}
       </Card>
     </div>
   )
