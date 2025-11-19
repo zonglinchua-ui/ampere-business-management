@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
       try {
         await notifySuperAdmins({
           title: `📨 ${logs.length} ${module} Error${logs.length > 1 ? 's' : ''} Resent`,
-          message: `Recent errors:\n${logs.slice(0, 3).map((l) => `• ${l.action}: ${l.message.slice(0, 100)}`).join('\n')}`,
+          message: `Recent errors:\n${logs.slice(0, 3).map((l: any) => `• ${l.action}: ${l.message.slice(0, 100)}`).join('\n')}`,
           link: '/settings/system-logs',
           severity: logs.some((l: any) => l.status === 'CRITICAL') ? 'critical' : 'error',
         })
