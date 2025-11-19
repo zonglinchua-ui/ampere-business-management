@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Aggregate customer invoices by month (revenue)
-    customerInvoices.forEach(invoice => {
+    customerInvoices.forEach((invoice: any) => {
       if (invoice.issueDate) {
         const monthKey = format(new Date(invoice.issueDate), 'MMM yyyy')
         if (monthlyData[monthKey]) {
@@ -104,7 +104,7 @@ export async function GET(request: NextRequest) {
     })
 
     // Aggregate supplier invoices by month (expenses)
-    supplierInvoices.forEach(invoice => {
+    supplierInvoices.forEach((invoice: any) => {
       if (invoice.invoiceDate) {
         const monthKey = format(new Date(invoice.invoiceDate), 'MMM yyyy')
         if (monthlyData[monthKey]) {
@@ -115,7 +115,7 @@ export async function GET(request: NextRequest) {
     })
 
     // Calculate net profit for each month
-    Object.keys(monthlyData).forEach(month => {
+    Object.keys(monthlyData).forEach((month: any) => {
       monthlyData[month].netProfit = monthlyData[month].revenue - monthlyData[month].expenses
     })
 

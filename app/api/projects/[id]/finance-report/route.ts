@@ -124,7 +124,7 @@ export async function GET(
     metrics.budgetVariance = metrics.totalBudget > 0 ? ((metrics.totalExpenses - metrics.totalBudget) / metrics.totalBudget) * 100 : 0
 
     // Calculate variance for each category
-    Object.keys(metrics.categoryBreakdown).forEach(category => {
+    Object.keys(metrics.categoryBreakdown).forEach((category: any) => {
       const breakdown = metrics.categoryBreakdown[category]
       breakdown.variance = breakdown.budgeted > 0 ? 
         ((breakdown.expenses - breakdown.budgeted) / breakdown.budgeted) * 100 : 

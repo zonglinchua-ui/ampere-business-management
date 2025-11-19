@@ -113,7 +113,7 @@ export async function GET(request: NextRequest) {
     })
 
     // Aggregate customer invoices by year (revenue)
-    customerInvoices.forEach(invoice => {
+    customerInvoices.forEach((invoice: any) => {
       if (invoice.issueDate) {
         const year = new Date(invoice.issueDate).getFullYear()
         if (yearlyData[year]) {
@@ -124,7 +124,7 @@ export async function GET(request: NextRequest) {
     })
 
     // Aggregate supplier invoices by year (expenses)
-    supplierInvoices.forEach(invoice => {
+    supplierInvoices.forEach((invoice: any) => {
       if (invoice.invoiceDate) {
         const year = new Date(invoice.invoiceDate).getFullYear()
         if (yearlyData[year]) {

@@ -183,14 +183,14 @@ export async function GET(request: NextRequest) {
       localSupplierContactIds.filter((s: any) => s.xeroContactId).map((s: any) => s.xeroContactId!)
     )
 
-    xeroCustomerInvoices.slice(0, 100).forEach(inv => {
+    xeroCustomerInvoices.slice(0, 100).forEach((inv: any) => {
       const contactId = inv.contact?.contactID
       if (contactId && !localCustomerXeroContactIds.has(contactId)) {
         missingCustomerContacts.add(contactId)
       }
     })
 
-    xeroSupplierInvoices.slice(0, 100).forEach(inv => {
+    xeroSupplierInvoices.slice(0, 100).forEach((inv: any) => {
       const contactId = inv.contact?.contactID
       if (contactId && !localSupplierXeroContactIds.has(contactId)) {
         missingSupplierContacts.add(contactId)

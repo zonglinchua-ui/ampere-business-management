@@ -109,7 +109,7 @@ export async function GET(request: NextRequest) {
 
     // Jobs by service type
     const serviceTypeMap = new Map<string, { count: number; completed: number; scheduled: number }>()
-    jobs.forEach(job => {
+    jobs.forEach((job: any) => {
       const serviceType = job.ServiceContract?.serviceType || 'Other'
       const current = serviceTypeMap.get(serviceType) || { count: 0, completed: 0, scheduled: 0 }
       current.count++
@@ -132,7 +132,7 @@ export async function GET(request: NextRequest) {
       totalCompletionTime: number;
     }>()
 
-    jobs.forEach(job => {
+    jobs.forEach((job: any) => {
       let key: string
       let type: string
       let name: string
@@ -188,7 +188,7 @@ export async function GET(request: NextRequest) {
       activeContracts: number;
     }>()
 
-    jobs.forEach(job => {
+    jobs.forEach((job: any) => {
       const key = job.customerId
       const current = customerMap.get(key) || {
         customerName: job.Customer?.name || 'Unknown',
@@ -207,7 +207,7 @@ export async function GET(request: NextRequest) {
     })
 
     // Add contract counts
-    contracts.forEach(contract => {
+    contracts.forEach((contract: any) => {
       const key = contract.customerId
       const current = customerMap.get(key)
       if (current) {
