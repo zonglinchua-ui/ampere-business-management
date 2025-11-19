@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      boqItems = quotation.QuotationItem.map((item, index) => ({
+      boqItems = quotation.QuotationItem.map((item: any, index: any) => ({
         itemNumber: index + 1,
         description: item.description,
         unit: item.unit || 'pcs',
@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
 
         if (previousItemClaims.length > 0) {
           const previousClaimedQty = previousItemClaims.reduce(
-            (sum, i) => sum + parseFloat(i.currentClaimQty.toString()),
+            (sum: any, i: any) => sum + parseFloat(i.currentClaimQty.toString()),
             0
           );
           const previousClaimedPct = (previousClaimedQty / boqItem.totalQuantity) * 100;

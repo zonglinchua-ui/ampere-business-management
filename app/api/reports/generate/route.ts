@@ -62,8 +62,8 @@ export async function POST(req: NextRequest) {
           }
         })
 
-        const totalRevenue = revenueData.reduce((sum, inv) => sum + Number(inv.totalAmount || 0), 0)
-        const paidRevenue = revenueData.filter((inv: any) => inv.status === 'PAID').reduce((sum, inv) => sum + Number(inv.totalAmount || 0), 0)
+        const totalRevenue = revenueData.reduce((sum: any, inv: any) => sum + Number(inv.totalAmount || 0), 0)
+        const paidRevenue = revenueData.filter((inv: any) => inv.status === 'PAID').reduce((sum: any, inv: any) => sum + Number(inv.totalAmount || 0), 0)
         const unpaidRevenue = totalRevenue - paidRevenue
 
         reportData = revenueData.map((invoice: any) => ({
@@ -155,11 +155,11 @@ export async function POST(req: NextRequest) {
         })
 
         const agingTotals = {
-          current: reportData.filter((r: any) => r["Age Group"] === "Current").reduce((sum, r) => sum + r.Amount, 0),
-          '1-30': reportData.filter((r: any) => r["Age Group"] === "1-30 days").reduce((sum, r) => sum + r.Amount, 0),
-          '31-60': reportData.filter((r: any) => r["Age Group"] === "31-60 days").reduce((sum, r) => sum + r.Amount, 0),
-          '61-90': reportData.filter((r: any) => r["Age Group"] === "61-90 days").reduce((sum, r) => sum + r.Amount, 0),
-          '90+': reportData.filter((r: any) => r["Age Group"] === "90+ days").reduce((sum, r) => sum + r.Amount, 0)
+          current: reportData.filter((r: any) => r["Age Group"] === "Current").reduce((sum: any, r: any) => sum + r.Amount, 0),
+          '1-30': reportData.filter((r: any) => r["Age Group"] === "1-30 days").reduce((sum: any, r: any) => sum + r.Amount, 0),
+          '31-60': reportData.filter((r: any) => r["Age Group"] === "31-60 days").reduce((sum: any, r: any) => sum + r.Amount, 0),
+          '61-90': reportData.filter((r: any) => r["Age Group"] === "61-90 days").reduce((sum: any, r: any) => sum + r.Amount, 0),
+          '90+': reportData.filter((r: any) => r["Age Group"] === "90+ days").reduce((sum: any, r: any) => sum + r.Amount, 0)
         }
 
         summary = {
@@ -170,7 +170,7 @@ export async function POST(req: NextRequest) {
             { label: '31-60 Days', value: agingTotals['31-60'], format: 'currency' },
             { label: '61-90 Days', value: agingTotals['61-90'], format: 'currency' },
             { label: '90+ Days', value: agingTotals['90+'], format: 'currency' },
-            { label: 'Total Outstanding', value: Object.values(agingTotals).reduce((a, b) => a + b, 0), format: 'currency' }
+            { label: 'Total Outstanding', value: Object.values(agingTotals).reduce((a: any, b: any) => a + b, 0), format: 'currency' }
           ]
         }
 
@@ -294,8 +294,8 @@ export async function POST(req: NextRequest) {
           }
         })
 
-        const totalInflow = cashFlowData.reduce((sum, item) => sum + item.inflow, 0)
-        const totalOutflow = cashFlowData.reduce((sum, item) => sum + item.outflow, 0)
+        const totalInflow = cashFlowData.reduce((sum: any, item: any) => sum + item.inflow, 0)
+        const totalOutflow = cashFlowData.reduce((sum: any, item: any) => sum + item.outflow, 0)
         const netCashFlow = totalInflow - totalOutflow
 
         summary = {
@@ -356,7 +356,7 @@ export async function POST(req: NextRequest) {
           Budget: project.estimatedBudget ? Number(project.estimatedBudget) : 0
         }))
 
-        const avgProgress = reportData.reduce((sum, p) => sum + (p["Progress %"] || 0), 0) / Math.max(reportData.length, 1)
+        const avgProgress = reportData.reduce((sum: any, p: any) => sum + (p["Progress %"] || 0), 0) / Math.max(reportData.length, 1)
         const completedProjects = reportData.filter((p: any) => p.Status === 'COMPLETED').length
         const inProgressProjects = reportData.filter((p: any) => p.Status === 'IN_PROGRESS').length
 
@@ -403,7 +403,7 @@ export async function POST(req: NextRequest) {
 
         reportData = budgetProjects.map((project: any) => {
           const budgeted = Number(project.estimatedBudget || 0)
-          const actual = project.SupplierInvoice?.reduce((sum, inv) => sum + Number(inv.totalAmount || 0), 0) || 0
+          const actual = project.SupplierInvoice?.reduce((sum: any, inv: any) => sum + Number(inv.totalAmount || 0), 0) || 0
           const variance = budgeted - actual
           const variancePercent = budgeted > 0 ? (variance / budgeted) * 100 : 0
 
@@ -417,8 +417,8 @@ export async function POST(req: NextRequest) {
           }
         })
 
-        const totalBudgeted = reportData.reduce((sum, p) => sum + p["Budgeted Amount"], 0)
-        const totalActual = reportData.reduce((sum, p) => sum + p["Actual Cost"], 0)
+        const totalBudgeted = reportData.reduce((sum: any, p: any) => sum + p["Budgeted Amount"], 0)
+        const totalActual = reportData.reduce((sum: any, p: any) => sum + p["Actual Cost"], 0)
         const totalVariance = totalBudgeted - totalActual
 
         summary = {
@@ -480,8 +480,8 @@ export async function POST(req: NextRequest) {
           .sort((a: any, b: any) => b["Total Revenue"] - a["Total Revenue"])
           .slice(0, filters.topN || 10)
 
-        const totalClientRevenue = reportData.reduce((sum, c) => sum + c["Total Revenue"], 0)
-        const totalProjects = reportData.reduce((sum, c) => sum + c["Project Count"], 0)
+        const totalClientRevenue = reportData.reduce((sum: any, c: any) => sum + c["Total Revenue"], 0)
+        const totalProjects = reportData.reduce((sum: any, c: any) => sum + c["Project Count"], 0)
 
         summary = {
           title: 'Customer Revenue Summary',
@@ -547,8 +547,8 @@ export async function POST(req: NextRequest) {
 
         const convertedCount = reportData.filter((q: any) => q["Converted to Project"] === 'Yes').length
         const conversionRate = reportData.length > 0 ? (convertedCount / reportData.length) * 100 : 0
-        const totalQuotationValue = reportData.reduce((sum, q) => sum + q["Total Amount"], 0)
-        const convertedValue = reportData.filter((q: any) => q["Converted to Project"] === 'Yes').reduce((sum, q) => sum + q["Total Amount"], 0)
+        const totalQuotationValue = reportData.reduce((sum: any, q: any) => sum + q["Total Amount"], 0)
+        const convertedValue = reportData.filter((q: any) => q["Converted to Project"] === 'Yes').reduce((sum: any, q: any) => sum + q["Total Amount"], 0)
 
         summary = {
           title: 'Quotation Conversion Summary',
@@ -606,7 +606,7 @@ export async function POST(req: NextRequest) {
           .sort((a: any, b: any) => b["Total Value"] - a["Total Value"])
           .slice(0, filters.topN || 20)
 
-        const totalVendorValue = reportData.reduce((sum, v) => sum + v["Total Value"], 0)
+        const totalVendorValue = reportData.reduce((sum: any, v: any) => sum + v["Total Value"], 0)
 
         summary = {
           title: 'Vendor Performance Summary',

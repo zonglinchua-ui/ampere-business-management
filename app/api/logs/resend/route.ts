@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Group logs by module
-    const logsByModule = failedLogs.reduce((acc, log) => {
+    const logsByModule = failedLogs.reduce((acc: any, log: any) => {
       if (!acc[log.module]) {
         acc[log.module] = []
       }

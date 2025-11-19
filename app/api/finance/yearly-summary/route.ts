@@ -161,8 +161,8 @@ export async function GET(request: NextRequest) {
     }))
 
     // Calculate summary statistics
-    const totalRevenue = chartData.reduce((sum, item) => sum + item.revenue, 0)
-    const totalExpenses = chartData.reduce((sum, item) => sum + item.expenses, 0)
+    const totalRevenue = chartData.reduce((sum: any, item: any) => sum + item.revenue, 0)
+    const totalExpenses = chartData.reduce((sum: any, item: any) => sum + item.expenses, 0)
     const totalNetProfit = totalRevenue - totalExpenses
     const yearCount = chartData.length
 

@@ -253,7 +253,7 @@ export async function POST(request: NextRequest) {
       );
 
       const previousClaimedQty = previousItemClaims.reduce(
-        (sum, i) => sum + parseFloat(i.currentClaimQty.toString()),
+        (sum: any, i: any) => sum + parseFloat(i.currentClaimQty.toString()),
         0
       );
       const previousClaimedPct = totalQty > 0 ? (previousClaimedQty / totalQty) * 100 : 0;

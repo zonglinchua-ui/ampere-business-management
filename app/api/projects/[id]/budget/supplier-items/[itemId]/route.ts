@@ -351,11 +351,11 @@ async function updateProjectBudgetSummary(projectId: string) {
   });
 
   const totalBudget = budgetItems.reduce(
-    (sum, item) => sum + Number(item.quotedAmount),
+    (sum: any, item: any) => sum + Number(item.quotedAmount),
     0
   );
   const totalActualCost = budgetItems.reduce(
-    (sum, item) => sum + Number(item.actualCost),
+    (sum: any, item: any) => sum + Number(item.actualCost),
     0
   );
   const suppliersWithQuotation = budgetItems.filter(

@@ -91,8 +91,8 @@ export async function GET(req: NextRequest) {
     })
 
     // Calculate totals
-    const totalCustomerAmount = customerInvoices.reduce((sum, inv) => sum + parseFloat(inv.totalAmount.toString()), 0)
-    const totalSupplierAmount = supplierInvoices.reduce((sum, inv) => sum + parseFloat(inv.totalAmount.toString()), 0)
+    const totalCustomerAmount = customerInvoices.reduce((sum: any, inv: any) => sum + parseFloat(inv.totalAmount.toString()), 0)
+    const totalSupplierAmount = supplierInvoices.reduce((sum: any, inv: any) => sum + parseFloat(inv.totalAmount.toString()), 0)
     const totalAmount = totalCustomerAmount + totalSupplierAmount
     const totalInvoices = customerInvoices.length + supplierInvoices.length
 

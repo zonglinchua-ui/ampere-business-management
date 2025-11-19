@@ -13,7 +13,7 @@ async function generatePOPDF(
   project: any,
   outputPath: string
 ): Promise<void> {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve: any, reject: any) => {
     try {
       const doc = new PDFDocument({ margin: 50, size: 'A4' });
       const stream = createWriteStream(outputPath);

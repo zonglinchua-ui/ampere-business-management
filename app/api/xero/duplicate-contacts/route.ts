@@ -45,7 +45,7 @@ export async function GET(request: Request) {
       success: true,
       duplicates,
       total: duplicates.length,
-      totalContacts: duplicates.reduce((sum, group) => sum + group.contacts.length, 0),
+      totalContacts: duplicates.reduce((sum: any, group: any) => sum + group.contacts.length, 0),
     })
   } catch (error: any) {
     console.error('[Duplicate Contacts API] Error scanning for duplicates:', error)

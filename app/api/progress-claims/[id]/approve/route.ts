@@ -114,7 +114,7 @@ export async function POST(
       const invoiceNumber = await generateInvoiceNumber('CUSTOMER');
 
       // Create invoice items from claim items
-      const invoiceItems = updatedClaim.items.map((item, index) => ({
+      const invoiceItems = updatedClaim.items.map((item: any, index: any) => ({
         id: `ci_item_${Date.now()}_${index}_${Math.random().toString(36).substr(2, 9)}`,
         description: `${item.description} (${item.currentClaimPct.toFixed(2)}% claimed)`,
         category: 'SERVICES' as const,

@@ -54,7 +54,7 @@ export async function GET(req: NextRequest) {
     })
 
     // Calculate totals
-    const totalAmount = invoices.reduce((sum, inv) => sum + parseFloat(inv.totalAmount.toString()), 0)
+    const totalAmount = invoices.reduce((sum: any, inv: any) => sum + parseFloat(inv.totalAmount.toString()), 0)
     const totalInvoices = invoices.length
 
     return NextResponse.json({

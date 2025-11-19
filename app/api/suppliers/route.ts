@@ -136,7 +136,7 @@ export async function GET(req: NextRequest) {
       
       // Calculate total purchase value for each supplier
       const suppliersWithTotal = allSuppliers.map((supplier: any) => {
-        const totalPurchaseValue = supplier.SupplierInvoice?.reduce((sum, invoice) => {
+        const totalPurchaseValue = supplier.SupplierInvoice?.reduce((sum: any, invoice: any) => {
           return sum + (invoice.totalAmount ? Number(invoice.totalAmount) : 0)
         }, 0) || 0
         
@@ -187,7 +187,7 @@ export async function GET(req: NextRequest) {
       
       // Calculate and attach total purchase value for each supplier
       suppliers = suppliersData.map((supplier: any) => {
-        const totalPurchaseValue = supplier.SupplierInvoice?.reduce((sum, invoice) => {
+        const totalPurchaseValue = supplier.SupplierInvoice?.reduce((sum: any, invoice: any) => {
           return sum + (invoice.totalAmount ? Number(invoice.totalAmount) : 0)
         }, 0) || 0
         
