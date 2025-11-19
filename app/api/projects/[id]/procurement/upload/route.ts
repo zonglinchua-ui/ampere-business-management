@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth';  // ✅ CORRECT IMPORT PATH
 import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
-import { writeFile, mkdir } from 'fs/promises';
+import { writeFile, mkdir, readFile } from 'fs/promises';
 import { join } from 'path';
 import { existsSync } from 'fs';
+import sharp from 'sharp';
+
+const prisma = new PrismaClient();
 
 const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
-const OLLAMA_MODEL = 'llama3.1:8b';
 const OLLAMA_VISION_MODEL = 'llama3.2-vision';
 
 interface ExtractedDocumentData {
@@ -33,166 +33,149 @@ interface ExtractedDocumentData {
   }>;
 }
 
-async function extractDocumentData(
-  filePath: string,
-  documentType: string
-): Promise<{ data: ExtractedDocumentData; confidence: number }> {
+async function convertImageToPNG(filePath: string, mimeType: string): Promise<string> {
   try {
-    // Read PDF as base64 for vision model
-    const fs = await import('fs');
-    const fileBuffer = fs.readFileSync(filePath);
-    const base64Pdf = fileBuffer.toString('base64');
-    
-    // Create extraction prompt based on document type
-    let prompt = '';
-    
-    switch (documentType) {
-      case 'SUPPLIER_QUOTATION':
-        prompt = `You are analyzing a supplier quotation document image. Extract the following information:
-- Document/Quotation Number
-- Document Date
-- Supplier Name
-- Total Amount (number only, no currency symbols)
-- Tax Amount (GST/VAT, number only)
-- Subtotal Amount (number only)
-- Currency (e.g., SGD, USD)
-- Payment Terms (e.g., NET 30)
-- Terms and Conditions
-- Line Items: for each item extract description, quantity (number), unitPrice (number), unit (e.g., pcs, kg), amount (number)
-
-Return ONLY valid JSON with these exact keys: documentNumber, documentDate, supplierName, totalAmount, taxAmount, subtotalAmount, currency, paymentTerms, termsAndConditions, lineItems (array).`;
-        break;
-        
-      case 'SUPPLIER_INVOICE':
-        prompt = `You are analyzing a supplier invoice document image. Extract the following information:
-- Invoice Number
-- Invoice Date
-- Supplier Name
-- Total Amount (number only, no currency symbols)
-- Tax Amount (GST/VAT, number only)
-- Subtotal Amount (number only)
-- Currency (e.g., SGD, USD)
-- Payment Terms
-- Due Date
-- Line Items: for each item extract description, quantity (number), unitPrice (number), unit (e.g., pcs, kg), amount (number)
-
-Return ONLY valid JSON with these exact keys: documentNumber, documentDate, supplierName, totalAmount, taxAmount, subtotalAmount, currency, paymentTerms, dueDate, lineItems (array).`;
-        break;
-        
-      case 'CUSTOMER_PO':
-        prompt = `You are analyzing a customer purchase order document image. Extract the following information:
-- PO Number
-- PO Date
-- Customer Name
-- Total Amount (number only, no currency symbols)
-- Tax Amount (GST/VAT, number only)
-- Subtotal Amount (number only)
-- Currency (e.g., SGD, USD)
-- Payment Terms
-- Terms and Conditions
-- Line Items: for each item extract description, quantity (number), unitPrice (number), unit (e.g., pcs, kg), amount (number)
-
-Return ONLY valid JSON with these exact keys: documentNumber, documentDate, customerName, totalAmount, taxAmount, subtotalAmount, currency, paymentTerms, termsAndConditions, lineItems (array).`;
-        break;
-        
-      case 'VARIATION_ORDER':
-        prompt = `You are analyzing a variation order document image. Extract the following information:
-- VO Number
-- VO Date
-- Supplier/Customer Name
-- Total Amount (number only, no currency symbols)
-- Tax Amount (GST/VAT, number only)
-- Subtotal Amount (number only)
-- Currency (e.g., SGD, USD)
-- Description of variations
-- Line Items: for each item extract description, quantity (number), unitPrice (number), unit (e.g., pcs, kg), amount (number)
-
-Return ONLY valid JSON with these exact keys: documentNumber, documentDate, supplierName, totalAmount, taxAmount, subtotalAmount, currency, termsAndConditions, lineItems (array).`;
-        break;
-        
-      default:
-        prompt = `Extract key information from this document image including document number, date, amounts, and line items. Return ONLY valid JSON.`;
+    // If already PNG, just return the path
+    if (mimeType === 'image/png') {
+      console.log('Image is already PNG, using as-is');
+      return filePath;
     }
     
-    // Call Ollama vision API
-    console.log(`Using vision model ${OLLAMA_VISION_MODEL} for extraction`);
+    console.log('Converting image to PNG using sharp...');
+    const pngPath = filePath.replace(/\.(jpg|jpeg|webp|gif|bmp)$/i, '.png');
     
-    const response = await fetch(`${OLLAMA_BASE_URL}/api/generate`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: OLLAMA_VISION_MODEL,
-        prompt: prompt,
-        images: [base64Pdf],
-        stream: false,
-        format: 'json',
-      }),
-    });
+    await sharp(filePath)
+      .png()
+      .resize(2000, 2000, { fit: 'inside', withoutEnlargement: true })
+      .toFile(pngPath);
     
-    if (!response.ok) {
-      throw new Error(`Ollama API error: ${response.statusText}`);
-    }
-    
-    const result = await response.json();
-    console.log('Ollama raw response:', JSON.stringify(result, null, 2));
-    
-    let extractedData: any = {};
-    try {
-      if (result.response) {
-        extractedData = JSON.parse(result.response);
-      } else {
-        console.error('No response field in Ollama result');
-        return { data: {}, confidence: 0 };
-      }
-    } catch (parseError) {
-      console.error('Failed to parse Ollama response as JSON:', parseError);
-      console.error('Raw response:', result.response);
-      return { data: {}, confidence: 0 };
-    }
-    
-    console.log('Extracted data:', JSON.stringify(extractedData, null, 2));
-    
-    // Calculate confidence based on completeness
-    const requiredFields = ['documentNumber', 'documentDate', 'totalAmount'];
-    const extractedFields = Object.keys(extractedData).filter(key => {
-      const value = extractedData[key];
-      return value !== null && value !== undefined && value !== '';
-    });
-    const confidence = Math.min((extractedFields.length / requiredFields.length) * 100, 100);
-    
-    console.log(`Extraction confidence: ${confidence}% (${extractedFields.length}/${requiredFields.length} required fields)`);
-    
-    return {
-      data: extractedData,
-      confidence,
-    };
+    console.log('Image converted to PNG:', pngPath);
+    return pngPath;
   } catch (error) {
-    console.error('Error extracting document data:', error);
-    if (error instanceof Error) {
-      console.error('Error message:', error.message);
-      console.error('Error stack:', error.stack);
-    }
-    return {
-      data: {},
-      confidence: 0,
-    };
+    console.error('Error converting image to PNG:', error);
+    throw error;
   }
 }
 
-async function detectDocumentType(base64Data: string): Promise<string> {
+async function extractDocumentData(
+  filePath: string,
+  mimeType: string,
+  documentType: string
+): Promise<{ data: ExtractedDocumentData; confidence: number }> {
   try {
-    const prompt = `You are analyzing a document image. Determine if this is a:
-- SUPPLIER_QUOTATION (quotation from supplier to us)
-- SUPPLIER_INVOICE (invoice from supplier to us)
-- SUPPLIER_PO (purchase order to supplier)
-- CUSTOMER_PO (purchase order from customer to us)
-- CLIENT_INVOICE (invoice from us to client)
-- VARIATION_ORDER (variation order/change order)
+    let processedPath = filePath;
+    let isImage = false;
+    
+    // Convert images to PNG, but leave PDFs as-is
+    if (mimeType.startsWith('image/')) {
+      processedPath = await convertImageToPNG(filePath, mimeType);
+      isImage = true;
+    } else if (mimeType === 'application/pdf') {
+      console.log('Processing PDF directly (no conversion)');
+      // Some Ollama vision models can handle PDFs directly
+      // If this fails, we'll need to install PDF conversion tools
+    }
+    
+    // Read file as base64
+    const fileBuffer = await readFile(processedPath);
+    const base64Data = fileBuffer.toString('base64');
+    
+    // Create extraction prompt based on document type
+    let prompt = '';
+    const docTypeStr = isImage ? 'image' : 'document';
+    
+    switch (documentType) {
+      case 'SUPPLIER_QUOTATION':
+        prompt = `Analyze this quotation ${docTypeStr} and extract the following information in JSON format:
+{
+  "documentNumber": "quotation number",
+  "documentDate": "date in YYYY-MM-DD format",
+  "supplierName": "supplier company name",
+  "totalAmount": numeric value only,
+  "currency": "currency code (SGD, USD, etc.)",
+  "lineItems": [
+    {
+      "description": "item description",
+      "quantity": numeric value,
+      "unitPrice": numeric value,
+      "unit": "unit of measurement",
+      "amount": numeric value
+    }
+  ],
+  "paymentTerms": "payment terms",
+  "termsAndConditions": "terms and conditions"
+}
 
-Return ONLY the document type as one of the exact strings above, nothing else.`;
+Only return valid JSON, no additional text.`;
+        break;
+        
+      case 'SUPPLIER_INVOICE':
+        prompt = `Analyze this invoice ${docTypeStr} and extract the following information in JSON format:
+{
+  "documentNumber": "invoice number",
+  "documentDate": "date in YYYY-MM-DD format",
+  "supplierName": "supplier company name",
+  "totalAmount": numeric value only,
+  "taxAmount": numeric value only,
+  "subtotalAmount": numeric value only,
+  "currency": "currency code (SGD, USD, etc.)",
+  "lineItems": [
+    {
+      "description": "item description",
+      "quantity": numeric value,
+      "unitPrice": numeric value,
+      "unit": "unit of measurement",
+      "amount": numeric value
+    }
+  ],
+  "paymentTerms": "payment terms",
+  "dueDate": "due date in YYYY-MM-DD format"
+}
 
+Only return valid JSON, no additional text.`;
+        break;
+        
+      case 'SUPPLIER_PO':
+        prompt = `Analyze this purchase order ${docTypeStr} and extract the following information in JSON format:
+{
+  "documentNumber": "PO number",
+  "documentDate": "date in YYYY-MM-DD format",
+  "supplierName": "supplier company name",
+  "totalAmount": numeric value only,
+  "currency": "currency code (SGD, USD, etc.)",
+  "lineItems": [
+    {
+      "description": "item description",
+      "quantity": numeric value,
+      "unitPrice": numeric value,
+      "unit": "unit of measurement",
+      "amount": numeric value
+    }
+  ],
+  "paymentTerms": "payment terms",
+  "termsAndConditions": "terms and conditions"
+}
+
+Only return valid JSON, no additional text.`;
+        break;
+        
+      default:
+        prompt = `Analyze this ${docTypeStr} and extract key information in JSON format:
+{
+  "documentNumber": "document number if present",
+  "documentDate": "date in YYYY-MM-DD format if present",
+  "supplierName": "company name if present",
+  "totalAmount": numeric value if present,
+  "currency": "currency code if present"
+}
+
+Only return valid JSON, no additional text.`;
+    }
+    
+    console.log(`Using vision model ${OLLAMA_VISION_MODEL} for extraction`);
+    console.log(`Sending ${isImage ? 'PNG image' : 'PDF'} (${(base64Data.length / 1024).toFixed(2)} KB base64) to Ollama...`);
+    
+    // Call Ollama vision API
     const response = await fetch(`${OLLAMA_BASE_URL}/api/generate`, {
       method: 'POST',
       headers: {
@@ -203,28 +186,90 @@ Return ONLY the document type as one of the exact strings above, nothing else.`;
         prompt: prompt,
         images: [base64Data],
         stream: false,
+        options: {
+          temperature: 0.1,
+          top_p: 0.9,
+        }
       }),
     });
-
+    
     if (!response.ok) {
-      console.error('Ollama API error during type detection:', response.statusText);
-      return 'SUPPLIER_INVOICE'; // Default fallback
+      const errorText = await response.text();
+      console.error('Ollama API error:', response.status, errorText);
+      
+      // If PDF failed, suggest conversion
+      if (mimeType === 'application/pdf') {
+        console.error('PDF processing failed. The llama3.2-vision model may not support PDFs directly.');
+        console.error('Please install Poppler and pdf2image for PDF-to-PNG conversion.');
+      }
+      
+      throw new Error(`Ollama API error: ${response.statusText}`);
     }
-
+    
     const result = await response.json();
-    const detectedType = result.response?.trim().toUpperCase();
+    console.log('Ollama response received, length:', JSON.stringify(result).length);
     
-    // Validate the detected type
-    const validTypes = ['SUPPLIER_QUOTATION', 'SUPPLIER_INVOICE', 'SUPPLIER_PO', 'CUSTOMER_PO', 'CLIENT_INVOICE', 'VARIATION_ORDER'];
-    if (validTypes.includes(detectedType)) {
-      return detectedType;
+    // Parse the response
+    let extractedData: ExtractedDocumentData = {};
+    let responseText = result.response || '';
+    
+    // Try to extract JSON from the response
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      try {
+        extractedData = JSON.parse(jsonMatch[0]);
+        console.log('Extracted data:', JSON.stringify(extractedData, null, 2));
+      } catch (parseError) {
+        console.error('Failed to parse JSON from Ollama response:', parseError);
+        console.error('Raw response:', responseText.substring(0, 500));
+      }
+    } else {
+      console.warn('No JSON found in Ollama response');
+      console.warn('Raw response:', responseText.substring(0, 500));
     }
     
-    return 'SUPPLIER_INVOICE'; // Default fallback
+    // Calculate confidence based on how many required fields were extracted
+    const requiredFields = ['documentNumber', 'totalAmount', 'supplierName'];
+    const extractedFields = requiredFields.filter(field => 
+      extractedData[field as keyof ExtractedDocumentData] !== undefined && 
+      extractedData[field as keyof ExtractedDocumentData] !== null &&
+      extractedData[field as keyof ExtractedDocumentData] !== ''
+    );
+    
+    const confidence = (extractedFields.length / requiredFields.length) * 100;
+    console.log(`Extraction confidence: ${confidence}% (${extractedFields.length}/${requiredFields.length} required fields)`);
+    
+    return {
+      data: extractedData,
+      confidence: confidence
+    };
   } catch (error) {
-    console.error('Error detecting document type:', error);
-    return 'SUPPLIER_INVOICE'; // Default fallback
+    console.error('Error extracting document data:', error);
+    console.error('Error message:', (error as Error).message);
+    console.error('Error stack:', (error as Error).stack);
+    return {
+      data: {},
+      confidence: 0
+    };
   }
+}
+
+async function detectDocumentType(fileName: string, mimeType: string): Promise<string> {
+  const lowerFileName = fileName.toLowerCase();
+  
+  // Simple keyword-based detection
+  if (lowerFileName.includes('quotation') || lowerFileName.includes('quote')) {
+    return 'SUPPLIER_QUOTATION';
+  } else if (lowerFileName.includes('invoice') || lowerFileName.includes('inv')) {
+    return 'SUPPLIER_INVOICE';
+  } else if (lowerFileName.includes('po') || lowerFileName.includes('purchase order')) {
+    return 'SUPPLIER_PO';
+  } else if (lowerFileName.includes('vo') || lowerFileName.includes('variation')) {
+    return 'VARIATION_ORDER';
+  }
+  
+  // Default to invoice if uncertain
+  return 'SUPPLIER_INVOICE';
 }
 
 export async function POST(
@@ -232,113 +277,120 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
+    console.log('=== Document Upload Started ===');
+    
     const session = await getServerSession(authOptions);
-    if (!session) {
+    
+    if (!session || !session.user) {
+      console.error('Unauthorized: No session or user');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
-    const projectId = params.id;
+    
+    console.log('User authenticated:', (session.user as any).email);
+    
     const formData = await request.formData();
     const file = formData.get('file') as File;
     const documentType = formData.get('documentType') as string;
     const notes = formData.get('notes') as string || '';
-
+    
     if (!file) {
+      console.error('No file provided in form data');
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
-
-    // Verify project exists
-    const project = await prisma.project.findUnique({
-      where: { id: projectId },
-    });
-
-    if (!project) {
-      return NextResponse.json({ error: 'Project not found' }, { status: 404 });
-    }
-
-    // Read file as buffer
+    
+    console.log(`File received: ${file.name} (${file.type}, ${file.size} bytes)`);
+    
+    const projectId = params.id;
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
     
-    // Auto-detect document type if needed
+    // Determine final document type
     let finalDocumentType = documentType;
     if (documentType === 'AUTO') {
-      try {
-        const base64Data = buffer.toString('base64');
-        finalDocumentType = await detectDocumentType(base64Data);
-        console.log(`Auto-detected document type: ${finalDocumentType}`);
-      } catch (error) {
-        console.error('Error auto-detecting document type:', error);
-        finalDocumentType = 'SUPPLIER_INVOICE';
-      }
+      finalDocumentType = await detectDocumentType(file.name, file.type);
+      console.log(`Auto-detected document type: ${finalDocumentType}`);
     }
-
-    // Determine NAS path based on document type
-    const nasBasePath = process.env.NAS_BASE_PATH || '//192.168.1.100/ampere_data';
-    let documentFolder = '';
     
-    switch (finalDocumentType) {
-      case 'SUPPLIER_QUOTATION':
-        documentFolder = 'quotations';
-        break;
-      case 'SUPPLIER_INVOICE':
-        documentFolder = 'supplier_invoices';
-        break;
-      case 'SUPPLIER_PO':
-        documentFolder = 'supplier_pos';
-        break;
-      case 'CUSTOMER_PO':
-        documentFolder = 'customer_pos';
-        break;
-      case 'CLIENT_INVOICE':
-        documentFolder = 'client_invoices';
-        break;
-      case 'VARIATION_ORDER':
-        documentFolder = 'variation_orders';
-        break;
-      default:
-        documentFolder = 'other';
-    }
-
-    const projectFolder = join(nasBasePath, 'projects', projectId, 'procurement', documentFolder);
+    // Determine storage path based on document type
+    const typeFolder = {
+      'SUPPLIER_QUOTATION': 'supplier_quotations',
+      'SUPPLIER_INVOICE': 'supplier_invoices',
+      'SUPPLIER_PO': 'supplier_pos',
+      'CUSTOMER_PO': 'customer_pos',
+      'CLIENT_INVOICE': 'client_invoices',
+      'VARIATION_ORDER': 'variation_orders'
+    }[finalDocumentType] || 'other';
     
-    // Create directory if it doesn't exist
-    if (!existsSync(projectFolder)) {
-      await mkdir(projectFolder, { recursive: true });
+    // Save to NAS
+    const nasBasePath = process.env.NAS_BASE_PATH || '\\\\Czl-home\\ampere\\AMPERE WEB SERVER';
+    const projectPath = join(nasBasePath, 'projects', projectId, 'procurement', typeFolder);
+    
+    console.log(`Target path: ${projectPath}`);
+    
+    if (!existsSync(projectPath)) {
+      console.log('Creating directory...');
+      await mkdir(projectPath, { recursive: true });
     }
-
-    // Save file to NAS
-    const fileName = `${Date.now()}_${file.name}`;
-    const filePath = join(projectFolder, fileName);
+    
+    const timestamp = Date.now();
+    const fileName = `${timestamp}_${file.name}`;
+    const filePath = join(projectPath, fileName);
+    
+    console.log(`Saving file to: ${filePath}`);
     await writeFile(filePath, buffer);
-
-    // Extract data using AI
-    const { data: extractedData, confidence } = await extractDocumentData(filePath, finalDocumentType);
-
-    // Save to database
+    console.log('File saved successfully');
+    
+    // Extract data using vision model
+    console.log('Starting AI extraction...');
+    const { data: extractedData, confidence } = await extractDocumentData(
+      filePath,
+      file.type,
+      finalDocumentType
+    );
+    
+    console.log(`Extraction completed with ${confidence}% confidence`);
+    
+    // Create database record
+    console.log('Creating database record...');
     const document = await prisma.procurementDocument.create({
       data: {
         projectId,
         documentType: finalDocumentType,
-        fileName: file.name,
-        filePath,
+        fileName: fileName,
+        originalFileName: file.name,
+        filePath: filePath,
         fileSize: file.size,
+        mimeType: file.type,
         status: 'EXTRACTED',
         extractedData: extractedData as any,
-        aiConfidence: confidence,
-        notes,
-        uploadedById: session.user.id,
+        extractionConfidence: confidence,
+        notes: notes,
+        uploadedById: (session.user as any).id || null,
       },
     });
-
+    
+    console.log(`Document record created: ${document.id}`);
+    console.log('=== Document Upload Completed Successfully ===');
+    
     return NextResponse.json({
       success: true,
-      document,
+      document: document,
+      extractedData: extractedData,
+      confidence: confidence
     });
+    
   } catch (error) {
-    console.error('Error uploading document:', error);
+    console.error('=== Document Upload Failed ===');
+    console.error('Error:', error);
+    console.error('Error message:', (error as Error).message);
+    console.error('Error stack:', (error as Error).stack);
+    
     return NextResponse.json(
-      { error: 'Failed to upload document' },
+      { 
+        error: 'Failed to upload document', 
+        details: (error as Error).message,
+        stack: process.env.NODE_ENV === 'development' ? (error as Error).stack : undefined
+      },
       { status: 500 }
     );
   }
