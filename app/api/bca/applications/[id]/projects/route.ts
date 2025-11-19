@@ -44,7 +44,7 @@ export async function POST(
 
     // Check if project is already added
     const existingForm = application.ProjectForms.find(
-      (f) => f.projectId === validatedData.projectId
+      (f: any) => f.projectId === validatedData.projectId
     )
     if (existingForm) {
       return NextResponse.json(
