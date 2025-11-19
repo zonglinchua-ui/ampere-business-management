@@ -361,7 +361,7 @@ async function updateProjectBudgetSummary(projectId: string) {
   const suppliersWithQuotation = budgetItems.filter(
     (item) => item.quotationFilePath
   ).length;
-  const suppliersWithPO = budgetItems.filter((item) => item.poIssued).length;
+  const suppliersWithPO = budgetItems.filter((item: any) => item.poIssued).length;
 
   const project = await prisma.project.findUnique({
     where: { id: projectId },
@@ -483,8 +483,8 @@ async function checkBudgetWarnings(projectId: string) {
     where: { projectId },
     data: {
       hasWarnings: warnings.length > 0,
-      warningCount: warnings.filter((w) => w.severity === "WARNING").length,
-      criticalWarningCount: warnings.filter((w) => w.severity === "CRITICAL")
+      warningCount: warnings.filter((w: any) => w.severity === "WARNING").length,
+      criticalWarningCount: warnings.filter((w: any) => w.severity === "CRITICAL")
         .length,
     },
   });

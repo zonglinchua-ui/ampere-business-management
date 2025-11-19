@@ -291,7 +291,7 @@ async function updateProjectBudgetSummary(projectId: string) {
   const suppliersWithQuotation = budgetItems.filter(
     (item) => item.quotationFilePath
   ).length;
-  const suppliersWithPO = budgetItems.filter((item) => item.poIssued).length;
+  const suppliersWithPO = budgetItems.filter((item: any) => item.poIssued).length;
 
   const project = await prisma.project.findUnique({
     where: { id: projectId },

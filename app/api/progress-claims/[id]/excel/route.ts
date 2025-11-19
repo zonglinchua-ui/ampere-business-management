@@ -72,7 +72,7 @@ export async function GET(
         city: progressClaim.Project.Customer.city,
         postalCode: progressClaim.Project.Customer.postalCode,
       },
-      items: progressClaim.items.map((item) => ({
+      items: progressClaim.items.map((item: any) => ({
         itemNumber: item.itemNumber,
         description: item.description,
         unit: item.unit,

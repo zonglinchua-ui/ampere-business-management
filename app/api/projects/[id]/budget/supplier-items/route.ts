@@ -104,9 +104,9 @@ export async function GET(
         totalBudget: totalQuoted,
         totalActualCost: totalActual,
         totalSuppliers: budgetItems.length,
-        suppliersWithQuotation: budgetItems.filter((i) => i.quotationFilePath)
+        suppliersWithQuotation: budgetItems.filter((i: any) => i.quotationFilePath)
           .length,
-        suppliersWithPO: budgetItems.filter((i) => i.poIssued).length,
+        suppliersWithPO: budgetItems.filter((i: any) => i.poIssued).length,
       },
     });
   } catch (error) {
@@ -256,7 +256,7 @@ async function updateProjectBudgetSummary(projectId: string) {
   const suppliersWithQuotation = budgetItems.filter(
     (item) => item.quotationFilePath
   ).length;
-  const suppliersWithPO = budgetItems.filter((item) => item.poIssued).length;
+  const suppliersWithPO = budgetItems.filter((item: any) => item.poIssued).length;
 
   const project = await prisma.project.findUnique({
     where: { id: projectId },
@@ -378,8 +378,8 @@ async function checkBudgetWarnings(projectId: string) {
     where: { projectId },
     data: {
       hasWarnings: warnings.length > 0,
-      warningCount: warnings.filter((w) => w.severity === "WARNING").length,
-      criticalWarningCount: warnings.filter((w) => w.severity === "CRITICAL")
+      warningCount: warnings.filter((w: any) => w.severity === "WARNING").length,
+      criticalWarningCount: warnings.filter((w: any) => w.severity === "CRITICAL")
         .length,
     },
   });

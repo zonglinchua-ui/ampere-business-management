@@ -249,7 +249,7 @@ export async function POST(request: NextRequest) {
 
       // Find previous claims for this item (matching by description)
       const previousItemClaims = previousClaims.flatMap((claim: any) =>
-        claim.items.filter((i) => i.description === item.description)
+        claim.items.filter((i: any) => i.description === item.description)
       );
 
       const previousClaimedQty = previousItemClaims.reduce(

@@ -142,7 +142,7 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    const formattedQuotations = ensureArray(quotations).map((quotation) => {
+    const formattedQuotations = ensureArray(quotations).map((quotation: any) => {
       try {
         return {
           id: quotation.id,

@@ -51,7 +51,7 @@ export async function GET(req: NextRequest) {
     })
 
     // Transform the data to match the expected format
-    const transformedProjects = projects.map((project) => ({
+    const transformedProjects = projects.map((project: any) => ({
       id: project.id,
       projectNumber: project.projectNumber,
       name: project.name,
