@@ -10,7 +10,6 @@ import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/db"
 import { z } from "zod"
 import { logBcaAction } from "@/lib/bca-services/audit-logger"
-import { BcaApplicationStatus } from "@prisma/client"
 
 const updateApplicationSchema = z.object({
   status: z.enum(["DRAFT", "READY", "SUBMITTED", "APPROVED", "REJECTED", "EXPIRED"]).optional(),

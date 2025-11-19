@@ -11,7 +11,6 @@ import { prisma } from "@/lib/db"
 import { z } from "zod"
 import { generateApplicationNumber } from "@/lib/bca-services/application-generator"
 import { logBcaAction } from "@/lib/bca-services/audit-logger"
-import { BcaApplicationType, BcaApplicationStatus } from "@prisma/client"
 
 // Validation schema
 const createApplicationSchema = z.object({
@@ -38,7 +37,7 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get("status")
 
     const applications = await prisma.bcaWorkheadApplication.findMany({
-      where: status ? { status: status as BcaApplicationStatus } : {},
+      where: status ? { status: status as any } : {},
       include: {
         User_createdBy: {
           select: {
@@ -87,7 +86,7 @@ export async function POST(request: NextRequest) {
 
     // Generate application number
     const applicationNumber = await generateApplicationNumber(
-      validatedData.applicationType as BcaApplicationType
+      validatedData.applicationType as any
     )
 
     // Create application
@@ -96,7 +95,7 @@ export async function POST(request: NextRequest) {
         applicationNumber,
         workheadCode: validatedData.workheadCode,
         workheadName: validatedData.workheadName,
-        applicationType: validatedData.applicationType as BcaApplicationType,
+        applicationType: validatedData.applicationType as any,
         totalContractValue: 0,
         projectCount: 0,
         notes: validatedData.notes,

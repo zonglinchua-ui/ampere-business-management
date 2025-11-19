@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/db"
-import { BcaFormType, BcaFormStatus } from "@prisma/client"
 
 /**
  * GET /api/bca/project-forms - Get all project forms with filters
@@ -175,7 +174,7 @@ export async function POST(request: NextRequest) {
         clientName: clientName || project.Customer.name,
         clientRepresentative: clientRepresentative || project.Customer.contactPerson,
         remarks: remarks || "",
-        status: BcaFormStatus.INCOMPLETE,
+        status: "INCOMPLETE" as any,
         generatedData,
       },
       include: {
