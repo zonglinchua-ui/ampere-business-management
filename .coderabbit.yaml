@@ -121,14 +121,7 @@ knowledge_base:
   
   # Code guidelines specific to this project
   code_guidelines:
-    - "This is a Next.js 14 application using the App Router"
-    - "Use TypeScript for all new files with strict type checking"
-    - "Follow React Server Components patterns where applicable"
-    - "Use Prisma ORM for all database operations"
-    - "Authentication is handled via NextAuth.js"
-    - "UI components use Radix UI and Tailwind CSS"
-    - "Follow the existing file structure in /app and /components directories"
-    - "API routes should include proper error handling and validation"
-    - "Database queries should be optimized and use proper indexing"
-    - "Ensure all user inputs are validated and sanitized"
-    - "Follow accessibility best practices (WCAG 2.1 AA)"
+    enabled: true
+    filePatterns:
+      - ".cursorrules"
+      - ".github/copilot-instructions.md"
