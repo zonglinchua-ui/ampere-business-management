@@ -26,3 +26,12 @@ core
 # IDE
 .vscode/
 .idea/
+
+# Backup files (SECURITY: Never commit backup files)
+*.backup
+*.bak
+*.old
+*.tmp
+*~
+.env.backup
+.env.bak

@@ -777,10 +777,9 @@ export default function SystemLogsPage() {
                   <CardDescription>This is how your digest email will look</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div
-                    className="border rounded-lg p-4 max-h-96 overflow-y-auto bg-white"
-                    dangerouslySetInnerHTML={{ __html: digestPreview }}
-                  />
+                  <pre className="border rounded-lg p-4 max-h-96 overflow-y-auto bg-white whitespace-pre-wrap font-sans text-sm">
+                    {digestPreview}
+                  </pre>
                 </CardContent>
               </Card>
             )}
