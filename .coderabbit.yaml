@@ -1,0 +1,134 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+
+# CodeRabbit Configuration for ampere-business-management
+# Next.js + TypeScript + Prisma Business Management Application
+
+reviews:
+  # Use assertive profile for more thorough feedback on business-critical application
+  profile: assertive
+  
+  # Enable high-level summary for better PR understanding
+  high_level_summary: true
+  
+  # Auto review configuration
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches:
+      - main
+      - master
+      - develop
+  
+  # Enable various helpful features
+  collapse_walkthrough: false
+  changed_files_summary: true
+  sequence_diagrams: true
+  estimate_code_review_effort: true
+  assess_linked_issues: true
+  related_issues: true
+  related_prs: true
+  suggested_labels: true
+  suggested_reviewers: true
+  
+  # Path filters - exclude generated files and dependencies
+  path_filters:
+    - "!node_modules/**"
+    - "!.next/**"
+    - "!dist/**"
+    - "!build/**"
+    - "!coverage/**"
+    - "!*.lock"
+    - "!package-lock.json"
+    - "!pnpm-lock.yaml"
+    - "!yarn.lock"
+  
+  # Path-specific instructions for different file types
+  path_instructions:
+    - path: "app/**/*.tsx"
+      instructions: |
+        - Review Next.js App Router patterns and best practices
+        - Check for proper use of Server Components vs Client Components
+        - Verify proper error handling and loading states
+        - Ensure accessibility standards are met
+        - Check for proper TypeScript types
+    
+    - path: "components/**/*.tsx"
+      instructions: |
+        - Verify component reusability and composition
+        - Check for proper prop types and validation
+        - Ensure components follow React best practices
+        - Review accessibility (ARIA labels, keyboard navigation)
+        - Check for performance optimizations (memo, useMemo, useCallback)
+    
+    - path: "prisma/**/*.prisma"
+      instructions: |
+        - Review database schema design and relationships
+        - Check for proper indexing strategies
+        - Verify data types and constraints
+        - Ensure migration safety
+    
+    - path: "app/api/**/*.ts"
+      instructions: |
+        - Review API route security (authentication, authorization)
+        - Check for proper error handling and status codes
+        - Verify input validation and sanitization
+        - Ensure proper use of HTTP methods
+        - Check for rate limiting considerations
+    
+    - path: "lib/**/*.ts"
+      instructions: |
+        - Review utility function design and reusability
+        - Check for proper error handling
+        - Verify TypeScript types and generics
+        - Ensure proper documentation
+    
+    - path: "**/*.test.ts"
+      instructions: |
+        - Verify test coverage for critical paths
+        - Check for proper test isolation
+        - Ensure meaningful test descriptions
+        - Review test data and mocking strategies
+  
+  # Enable code analysis tools
+  tools:
+    # TypeScript/JavaScript linting
+    eslint:
+      enabled: true
+    
+    # Security scanning
+    gitleaks:
+      enabled: true
+    
+    # Additional security checks
+    semgrep:
+      enabled: true
+    
+    # Dependency vulnerability scanning
+    trivy:
+      enabled: true
+
+# Chat configuration
+chat:
+  auto_reply: true
+
+# Knowledge base - learn from this repository
+knowledge_base:
+  opt_out: false
+  
+  # Learnings about this specific codebase
+  learnings:
+    scope: auto
+  
+  # Code guidelines specific to this project
+  code_guidelines:
+    - "This is a Next.js 14 application using the App Router"
+    - "Use TypeScript for all new files with strict type checking"
+    - "Follow React Server Components patterns where applicable"
+    - "Use Prisma ORM for all database operations"
+    - "Authentication is handled via NextAuth.js"
+    - "UI components use Radix UI and Tailwind CSS"
+    - "Follow the existing file structure in /app and /components directories"
+    - "API routes should include proper error handling and validation"
+    - "Database queries should be optimized and use proper indexing"
+    - "Ensure all user inputs are validated and sanitized"
+    - "Follow accessibility best practices (WCAG 2.1 AA)"
