@@ -1,9 +1,19 @@
 /**
- * Simple in-memory rate limiter for API routes
+ * In-memory rate limiter for API routes
  * 
- * For production, consider using Redis-based rate limiting:
- * - @upstash/ratelimit with @upstash/redis
- * - Or implement Redis directly
+ * PRODUCTION DEPLOYMENT:
+ * This in-memory implementation works for single-server deployments.
+ * For multi-server production, use Upstash Redis:
+ * 
+ * 1. Sign up at https://upstash.com (free tier available)
+ * 2. Create a Redis database
+ * 3. Add to .env:
+ *    UPSTASH_REDIS_REST_URL=https://your-redis.upstash.io
+ *    UPSTASH_REDIS_REST_TOKEN=your_token_here
+ * 4. Install: npm install @upstash/ratelimit @upstash/redis
+ * 5. Replace this implementation with Upstash (see SECURITY_UPDATE.md)
+ * 
+ * CURRENT STATUS: ✅ Production-ready for single-server deployments
  */
 
 interface RateLimitEntry {

@@ -98,6 +98,7 @@
     "gray-matter": "4.0.3",
     "html2canvas": "^1.4.1",
     "input-otp": "1.2.4",
+    "isomorphic-dompurify": "^2.32.0",
     "jotai": "2.6.0",
     "jsonwebtoken": "9.0.2",
     "jspdf": "^3.0.2",
