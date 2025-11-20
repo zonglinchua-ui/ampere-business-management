@@ -16,19 +16,30 @@ const prisma = new PrismaClient();
 async function detectDocumentType(fileName: string, mimeType: string): Promise<string> {
   const lowerFileName = fileName.toLowerCase();
   
-  // Simple keyword-based detection
-  if (lowerFileName.includes('quotation') || lowerFileName.includes('quote')) {
+  // Check for common document number prefixes first (most reliable)
+  if (lowerFileName.match(/^quot[\d-]/i) || lowerFileName.includes('quot')) {
     return 'SUPPLIER_QUOTATION';
-  } else if (lowerFileName.includes('invoice') || lowerFileName.includes('inv')) {
+  } else if (lowerFileName.match(/^inv[\d-]/i)) {
     return 'SUPPLIER_INVOICE';
-  } else if (lowerFileName.includes('po') || lowerFileName.includes('purchase order')) {
+  } else if (lowerFileName.match(/^po[\d-]/i)) {
     return 'SUPPLIER_PO';
-  } else if (lowerFileName.includes('vo') || lowerFileName.includes('variation')) {
+  } else if (lowerFileName.match(/^vo[\d-]/i)) {
     return 'VARIATION_ORDER';
   }
   
-  // Default to invoice if uncertain
-  return 'SUPPLIER_INVOICE';
+  // Fallback to keyword-based detection
+  if (lowerFileName.includes('quotation') || lowerFileName.includes('quote')) {
+    return 'SUPPLIER_QUOTATION';
+  } else if (lowerFileName.includes('invoice')) {
+    return 'SUPPLIER_INVOICE';
+  } else if (lowerFileName.includes('purchase order')) {
+    return 'SUPPLIER_PO';
+  } else if (lowerFileName.includes('variation')) {
+    return 'VARIATION_ORDER';
+  }
+  
+  // Default to quotation if uncertain (safer than invoice)
+  return 'SUPPLIER_QUOTATION';
 }
 
 export async function POST(

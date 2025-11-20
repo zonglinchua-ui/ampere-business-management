@@ -70,6 +70,117 @@ async function convertImageToPNG(filePath: string, mimeType: string): Promise<st
   return pngPath;
 }
 
+function parseMarkdownResponse(text: string): ExtractedDocumentData {
+  const data: ExtractedDocumentData = {};
+  
+  // Extract document number
+  const docNumMatch = text.match(/\*\*Document Number\*\*:?\s*([^\n*]+)/i);
+  if (docNumMatch) {
+    data.documentNumber = docNumMatch[1].trim();
+  }
+  
+  // Extract document date
+  const docDateMatch = text.match(/\*\*Document Date\*\*:?\s*([^\n*]+)/i);
+  if (docDateMatch) {
+    const dateStr = docDateMatch[1].trim();
+    // Try to parse date in DD/MM/YYYY format
+    const dateParts = dateStr.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (dateParts) {
+      const [, day, month, year] = dateParts;
+      data.documentDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    } else {
+      data.documentDate = dateStr;
+    }
+  }
+  
+  // Extract supplier name
+  const supplierMatch = text.match(/\*\*Supplier Name\*\*:?\s*([^\n*]+)/i);
+  if (supplierMatch) {
+    data.supplierName = supplierMatch[1].trim();
+  }
+  
+  // Extract customer name
+  const customerMatch = text.match(/\*\*Customer Name\*\*:?\s*([^\n*]+)/i);
+  if (customerMatch) {
+    data.customerName = customerMatch[1].trim();
+  }
+  
+  // Extract project name
+  const projectMatch = text.match(/\*\*Project Name\/Reference\*\*:?\s*([^\n*]+)/i);
+  if (projectMatch && !projectMatch[1].includes('Not mentioned')) {
+    data.projectName = projectMatch[1].trim();
+  }
+  
+  // Extract total amount
+  const totalMatch = text.match(/\*\*Total Amount\*\*:?\s*S?\$?\s*([\d,]+\.?\d*)/i);
+  if (totalMatch) {
+    data.totalAmount = parseFloat(totalMatch[1].replace(/,/g, ''));
+  }
+  
+  // Extract tax amount
+  const taxMatch = text.match(/\*\*Tax Amount\*\*:?\s*S?\$?\s*([\d,]+\.?\d*)/i);
+  if (taxMatch) {
+    data.taxAmount = parseFloat(taxMatch[1].replace(/,/g, ''));
+  }
+  
+  // Extract subtotal amount
+  const subtotalMatch = text.match(/\*\*Subtotal Amount\*\*:?\s*S?\$?\s*([\d,]+\.?\d*)/i);
+  if (subtotalMatch) {
+    data.subtotalAmount = parseFloat(subtotalMatch[1].replace(/,/g, ''));
+  }
+  
+  // Extract currency
+  const currencyMatch = text.match(/\*\*Currency\*\*:?\s*([A-Z]{3})/i);
+  if (currencyMatch) {
+    data.currency = currencyMatch[1];
+  } else if (text.includes('SGD') || text.includes('S$')) {
+    data.currency = 'SGD';
+  }
+  
+  // Extract payment terms
+  const paymentMatch = text.match(/\*\*Payment Terms\*\*:?\s*([^\n*]+)/i);
+  if (paymentMatch && !paymentMatch[1].includes('Not mentioned')) {
+    data.paymentTerms = paymentMatch[1].trim();
+  }
+  
+  // Extract due date
+  const dueMatch = text.match(/\*\*Due Date\*\*:?\s*([^\n*]+)/i);
+  if (dueMatch) {
+    const dateStr = dueMatch[1].trim();
+    const dateParts = dateStr.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (dateParts) {
+      const [, day, month, year] = dateParts;
+      data.dueDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    } else {
+      data.dueDate = dateStr;
+    }
+  }
+  
+  // Extract line items (basic parsing)
+  const lineItemsMatch = text.match(/\*\*Line Items\*\*:?([\s\S]*?)(?=\*\*|$)/i);
+  if (lineItemsMatch) {
+    const itemsText = lineItemsMatch[1];
+    const items: any[] = [];
+    
+    // Look for item descriptions
+    const itemMatches = itemsText.matchAll(/\*\*Item \d+\*\*:?\s*([^\n]+)/gi);
+    for (const match of itemMatches) {
+      items.push({
+        description: match[1].trim(),
+        quantity: 1,
+        unitPrice: 0,
+        amount: 0
+      });
+    }
+    
+    if (items.length > 0) {
+      data.lineItems = items;
+    }
+  }
+  
+  return data;
+}
+
 async function extractDocumentData(
   filePath: string,
   mimeType: string,
@@ -241,14 +352,23 @@ Only return valid JSON, no additional text.`;
     if (jsonMatch) {
       try {
         extractedData = JSON.parse(jsonMatch[0]);
-        console.log('Extracted data:', JSON.stringify(extractedData, null, 2));
+        console.log('Extracted data from JSON:', JSON.stringify(extractedData, null, 2));
       } catch (parseError) {
         console.error('Failed to parse JSON from Ollama response:', parseError);
         console.error('Raw response:', responseText.substring(0, 500));
       }
     } else {
-      console.warn('No JSON found in Ollama response');
+      console.warn('No JSON found in Ollama response, trying markdown parsing...');
       console.warn('Raw response:', responseText.substring(0, 500));
+      
+      // Fallback: Parse markdown format
+      extractedData = parseMarkdownResponse(responseText);
+      
+      if (Object.keys(extractedData).length > 0) {
+        console.log('Extracted data from markdown:', JSON.stringify(extractedData, null, 2));
+      } else {
+        console.error('Failed to extract any data from response');
+      }
     }
     
     // Calculate confidence based on required fields
