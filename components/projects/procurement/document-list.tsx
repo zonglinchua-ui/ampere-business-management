@@ -26,6 +26,7 @@ interface ProcurementDocument {
   taxAmount: number | null;
   currency: string | null;
   extractionConfidence: number | null;
+  extractedData: any;
   Supplier: { id: string; name: string } | null;
   Customer: { id: string; name: string } | null;
   UploadedBy: { id: string; name: string; email: string };
@@ -321,16 +322,16 @@ export default function DocumentList({ projectId, refreshTrigger }: DocumentList
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm font-medium text-gray-500">Document Number</label>
-                    <p className="text-gray-900">{selectedDocument.documentNumber || '-'}</p>
+                    <p className="text-gray-900">{selectedDocument.extractedData?.documentNumber || selectedDocument.documentNumber || '-'}</p>
                   </div>
                   <div>
                     <label className="text-sm font-medium text-gray-500">Date</label>
-                    <p className="text-gray-900">{formatDate(selectedDocument.documentDate)}</p>
+                    <p className="text-gray-900">{formatDate(selectedDocument.extractedData?.documentDate || selectedDocument.documentDate)}</p>
                   </div>
                   <div>
                     <label className="text-sm font-medium text-gray-500">Total Amount</label>
                     <p className="text-gray-900">
-                      {formatCurrency(selectedDocument.totalAmount, selectedDocument.currency)}
+                      {formatCurrency(selectedDocument.extractedData?.totalAmount || selectedDocument.totalAmount, selectedDocument.extractedData?.currency || selectedDocument.currency)}
                     </p>
                   </div>
                   <div>
