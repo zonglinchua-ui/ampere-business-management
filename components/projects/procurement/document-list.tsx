@@ -319,6 +319,37 @@ export default function DocumentList({ projectId, refreshTrigger }: DocumentList
               </div>
 
               <div className="space-y-4">
+                {/* Supplier Information */}
+                {selectedDocument.extractedData?.supplierName && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <label className="text-sm font-medium text-gray-700 mb-2 block">Supplier</label>
+                    <div className="flex items-center justify-between">
+                      <p className="text-lg font-semibold text-gray-900">
+                        {selectedDocument.extractedData.supplierName}
+                      </p>
+                      {selectedDocument.Supplier ? (
+                        <a
+                          href={`/contacts/${selectedDocument.Supplier.id}`}
+                          className="text-sm text-blue-600 hover:text-blue-800 underline"
+                        >
+                          View Contact →
+                        </a>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            // TODO: Implement create contact with pre-filled name
+                            alert(`Create contact: ${selectedDocument.extractedData.supplierName}`);
+                          }}
+                          className="text-sm bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
+                        >
+                          Create Contact
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Document Details Grid */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm font-medium text-gray-500">Document Number</label>
@@ -329,20 +360,73 @@ export default function DocumentList({ projectId, refreshTrigger }: DocumentList
                     <p className="text-gray-900">{formatDate(selectedDocument.extractedData?.documentDate || selectedDocument.documentDate)}</p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-500">Total Amount</label>
+                    <label className="text-sm font-medium text-gray-500">Subtotal</label>
                     <p className="text-gray-900">
+                      {formatCurrency(selectedDocument.extractedData?.subtotalAmount || selectedDocument.totalAmount, selectedDocument.extractedData?.currency || selectedDocument.currency)}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Tax Amount</label>
+                    <p className="text-gray-900">
+                      {formatCurrency(selectedDocument.extractedData?.taxAmount || selectedDocument.taxAmount || 0, selectedDocument.extractedData?.currency || selectedDocument.currency)}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Total Amount</label>
+                    <p className="text-lg font-semibold text-gray-900">
                       {formatCurrency(selectedDocument.extractedData?.totalAmount || selectedDocument.totalAmount, selectedDocument.extractedData?.currency || selectedDocument.currency)}
                     </p>
                   </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Currency</label>
+                    <p className="text-gray-900">
+                      {selectedDocument.extractedData?.currency || selectedDocument.currency || '-'}
+                    </p>
+                  </div>
+                  {selectedDocument.extractedData?.paymentTerms && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Payment Terms</label>
+                      <p className="text-gray-900">{selectedDocument.extractedData.paymentTerms}</p>
+                    </div>
+                  )}
+                  {selectedDocument.extractedData?.dueDate && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Due Date</label>
+                      <p className="text-gray-900">{formatDate(selectedDocument.extractedData.dueDate)}</p>
+                    </div>
+                  )}
                   <div>
                     <label className="text-sm font-medium text-gray-500">Status</label>
                     <p className="text-gray-900 capitalize">
                       {selectedDocument.status.replace(/_/g, ' ').toLowerCase()}
                     </p>
                   </div>
+                  {selectedDocument.extractionConfidence !== null && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">AI Confidence</label>
+                      <p className="text-gray-900 font-semibold">
+                        {selectedDocument.extractionConfidence}%
+                      </p>
+                    </div>
+                  )}
                 </div>
 
-                {selectedDocument.LineItems && selectedDocument.LineItems.length > 0 && (
+                {/* Terms and Conditions */}
+                {selectedDocument.extractedData?.termsAndConditions && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-500 mb-2 block">
+                      Terms & Conditions
+                    </label>
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                      <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                        {selectedDocument.extractedData.termsAndConditions}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {((selectedDocument.LineItems && selectedDocument.LineItems.length > 0) || 
+                  (selectedDocument.extractedData?.lineItems && selectedDocument.extractedData.lineItems.length > 0)) && (
                   <div>
                     <label className="text-sm font-medium text-gray-500 mb-2 block">
                       Line Items
@@ -366,8 +450,11 @@ export default function DocumentList({ projectId, refreshTrigger }: DocumentList
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
-                          {selectedDocument.LineItems.map((item) => (
-                            <tr key={item.id}>
+                          {(selectedDocument.LineItems && selectedDocument.LineItems.length > 0
+                            ? selectedDocument.LineItems
+                            : selectedDocument.extractedData?.lineItems || []
+                          ).map((item: any, index: number) => (
+                            <tr key={item.id || index}>
                               <td className="px-4 py-2 text-sm text-gray-900">
                                 {item.description}
                               </td>
@@ -376,11 +463,11 @@ export default function DocumentList({ projectId, refreshTrigger }: DocumentList
                               </td>
                               <td className="px-4 py-2 text-sm text-gray-900 text-right">
                                 {item.unitPrice
-                                  ? formatCurrency(item.unitPrice, selectedDocument.currency)
+                                  ? formatCurrency(item.unitPrice, selectedDocument.extractedData?.currency || selectedDocument.currency)
                                   : '-'}
                               </td>
                               <td className="px-4 py-2 text-sm text-gray-900 text-right font-medium">
-                                {formatCurrency(item.amount, selectedDocument.currency)}
+                                {formatCurrency(item.amount, selectedDocument.extractedData?.currency || selectedDocument.currency)}
                               </td>
                             </tr>
                           ))}
