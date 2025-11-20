@@ -138,14 +138,14 @@ export const authOptions: NextAuthOptions = {
     maxAge: 8 * 60 * 60, // 8 hours (1 working day) for internal testing
     updateAge: 60 * 60, // Update session every hour
   },
-  cookies: {
+  cookies: process.env.NODE_ENV === 'production' ? {
     sessionToken: {
       name: `__Secure-next-auth.session-token`,
       options: {
         httpOnly: true,
         sameSite: 'lax',
         path: '/',
-        secure: process.env.NODE_ENV === 'production'
+        secure: true
       }
     },
     callbackUrl: {
@@ -154,7 +154,7 @@ export const authOptions: NextAuthOptions = {
         httpOnly: true,
         sameSite: 'lax',
         path: '/',
-        secure: process.env.NODE_ENV === 'production'
+        secure: true
       }
     },
     csrfToken: {
@@ -163,10 +163,10 @@ export const authOptions: NextAuthOptions = {
         httpOnly: true,
         sameSite: 'lax',
         path: '/',
-        secure: process.env.NODE_ENV === 'production'
+        secure: true
       }
     }
-  },
+  } : undefined,
   callbacks: {
     async redirect({ url, baseUrl }) {
       console.log('ðŸ”„ NextAuth Redirect callback - URL:', url, 'Base URL:', baseUrl)
