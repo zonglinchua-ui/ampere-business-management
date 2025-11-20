@@ -152,7 +152,7 @@ export function LoginForm() {
       const loginResult = await signIn("credentials", {
         email: values.username,
         password: values.password,
-        redirect: true,
+        redirect: false,
         callbackUrl,
       })
 
