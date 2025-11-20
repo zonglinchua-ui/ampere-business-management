@@ -81,7 +81,7 @@ export function SimplifiedFinanceDashboard({ projectId, project }: SimplifiedFin
   const [financeData, setFinanceData] = useState<FinanceData | null>(null)
   const [budgetSummary, setBudgetSummary] = useState<BudgetSummary | null>(null)
   const [budgetItems, setBudgetItems] = useState<SupplierBudgetItem[]>([])
-  const [showProcurement, setShowProcurement] = useState(false)
+  const [showProcurement, setShowProcurement] = useState(true)
 
   const canEdit = session?.user?.role === 'ADMIN' || session?.user?.role === 'PROJECT_MANAGER'
 
