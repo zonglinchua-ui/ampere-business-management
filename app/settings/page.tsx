@@ -1775,7 +1775,7 @@ export default function SettingsPage() {
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent position="popper" sideOffset={5}>
                     <SelectItem value="SUPERADMIN">Super Admin</SelectItem>
                     <SelectItem value="PROJECT_MANAGER">Project Manager</SelectItem>
                     <SelectItem value="FINANCE">Finance</SelectItem>
@@ -1930,7 +1930,7 @@ export default function SettingsPage() {
                   <SelectTrigger>
                     <SelectValue placeholder="Select a role" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent position="popper" sideOffset={5}>
                     <SelectItem value="SUPERADMIN">Super Admin</SelectItem>
                     <SelectItem value="PROJECT_MANAGER">Project Manager</SelectItem>
                     <SelectItem value="FINANCE">Finance</SelectItem>
