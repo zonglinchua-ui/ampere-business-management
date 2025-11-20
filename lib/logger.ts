@@ -8,32 +8,79 @@ import { NextRequest } from "next/server"
 
 const isDevelopment = process.env.NODE_ENV === 'development'
 
+/**
+ * Sanitize sensitive data before logging
+ * SECURITY: Never log passwords, tokens, or other sensitive information
+ */
+function sanitizeData(data: any): any {
+  if (typeof data !== 'object' || data === null) {
+    return data
+  }
+  
+  const sensitiveKeys = [
+    'password', 'token', 'secret', 'apiKey', 'accessToken', 'refreshToken',
+    'creditCard', 'ssn', 'nric', 'authorization', 'cookie'
+  ]
+  
+  const sanitized: any = Array.isArray(data) ? [] : {}
+  
+  for (const [key, value] of Object.entries(data)) {
+    if (sensitiveKeys.some(k => key.toLowerCase().includes(k.toLowerCase()))) {
+      sanitized[key] = '***REDACTED***'
+    } else if (typeof value === 'object' && value !== null) {
+      sanitized[key] = sanitizeData(value)
+    } else {
+      sanitized[key] = value
+    }
+  }
+  
+  return sanitized
+}
+
 // Basic console logging (production-safe)
 export const logger = {
   log: (...args: any[]) => {
     if (isDevelopment) {
       console.log(...args)
     }
+    // In production, send to logging service (e.g., CloudWatch, Sentry)
   },
   
   debug: (...args: any[]) => {
     if (isDevelopment) {
       console.debug(...args)
     }
+    // Never log debug messages in production
   },
   
   info: (...args: any[]) => {
     if (isDevelopment) {
       console.info(...args)
     }
+    // In production, send to logging service
   },
   
   warn: (...args: any[]) => {
-    console.warn(...args)
+    if (isDevelopment) {
+      console.warn(...args)
+    }
+    // In production, send to logging service
   },
   
   error: (...args: any[]) => {
-    console.error(...args)
+    if (isDevelopment) {
+      console.error(...args)
+    }
+    // In production, send to error tracking service (e.g., Sentry)
+  },
+  
+  /**
+   * Log with automatic sanitization of sensitive data
+   * Use this when logging user data or API responses
+   */
+  safe: (level: 'log' | 'debug' | 'info' | 'warn' | 'error', message: string, data?: any) => {
+    const sanitized = data ? sanitizeData(data) : undefined
+    logger[level](message, sanitized)
   }
 }
 

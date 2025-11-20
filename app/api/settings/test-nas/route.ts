@@ -6,12 +6,13 @@ import { authOptions } from '@/lib/auth'
 import { testNASConnection } from '@/lib/nas-storage'
 
 export async function POST(request: NextRequest) {
-  // Disable in production for security
-  // // if (process.env.NODE_ENV === 'production' || process.env.DEPLOYMENT_MODE === 'production') {
-  // // return NextResponse.json(
-  // // { error: 'Test endpoints disabled in production' },
-  // // { status: 403 }
-  // //
+  // Production guard: Disable test endpoints in production
+  if (process.env.NODE_ENV === 'production' || process.env.DEPLOYMENT_MODE === 'production') {
+    return NextResponse.json(
+      { error: 'Test endpoints are disabled in production' },
+      { status: 403 }
+    )
+  }
 
   try {
     const session = await getServerSession(authOptions)
