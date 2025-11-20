@@ -23,11 +23,13 @@ export default function DocumentUpload({ projectId, onUploadComplete }: Document
   const [selectedType, setSelectedType] = useState<string>('AUTO');
   const [notes, setNotes] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [extracting, setExtracting] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<{
-    type: 'success' | 'error' | null;
+    type: 'success' | 'error' | 'extracting' | null;
     message: string;
   }>({ type: null, message: '' });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [documentId, setDocumentId] = useState<string | null>(null);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     if (acceptedFiles.length > 0) {
@@ -50,6 +52,79 @@ export default function DocumentUpload({ projectId, onUploadComplete }: Document
     noKeyboard: false,
     disabled: uploading,
   });
+
+  const pollExtractionStatus = async (docId: string) => {
+    const maxAttempts = 60; // Poll for up to 5 minutes (60 * 5 seconds)
+    let attempts = 0;
+
+    const poll = async () => {
+      try {
+        const response = await fetch(`/api/projects/${projectId}/procurement/documents/${docId}`);
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch document status');
+        }
+
+        const status = data.document?.status;
+
+        if (status === 'EXTRACTED') {
+          // Extraction completed successfully
+          setExtracting(false);
+          const confidence = data.document.extractionConfidence || 0;
+          const projectMismatch = data.document.projectMismatch;
+          
+          let message = `✅ AI extraction completed with ${confidence.toFixed(0)}% confidence!`;
+          if (projectMismatch) {
+            message += ' ⚠️ Warning: Document may belong to a different project.';
+          }
+
+          setUploadStatus({
+            type: 'success',
+            message: message,
+          });
+
+          // Reset form
+          setSelectedFile(null);
+          setNotes('');
+          setDocumentId(null);
+
+          // Notify parent component
+          if (onUploadComplete) {
+            onUploadComplete();
+          }
+        } else if (status === 'FAILED') {
+          // Extraction failed
+          setExtracting(false);
+          setUploadStatus({
+            type: 'error',
+            message: '❌ AI extraction failed. Please try again or contact support.',
+          });
+        } else if (attempts < maxAttempts) {
+          // Still processing, poll again
+          attempts++;
+          setTimeout(poll, 5000); // Poll every 5 seconds
+        } else {
+          // Timeout
+          setExtracting(false);
+          setUploadStatus({
+            type: 'error',
+            message: '⏱️ Extraction timed out. Please refresh the page to check status.',
+          });
+        }
+      } catch (error) {
+        console.error('Polling error:', error);
+        setExtracting(false);
+        setUploadStatus({
+          type: 'error',
+          message: 'Failed to check extraction status. Please refresh the page.',
+        });
+      }
+    };
+
+    // Start polling after a short delay
+    setTimeout(poll, 2000);
+  };
 
   const handleUpload = async () => {
     if (!selectedFile) {
@@ -79,25 +154,25 @@ export default function DocumentUpload({ projectId, onUploadComplete }: Document
         throw new Error(data.error || 'Upload failed');
       }
 
+      // File uploaded successfully, now show extraction progress
+      setUploading(false);
+      setExtracting(true);
+      setDocumentId(data.document.id);
       setUploadStatus({
-        type: 'success',
-        message: `Document uploaded successfully! AI extracted data with ${data.document.extractionConfidence?.toFixed(0)}% confidence.`,
+        type: 'extracting',
+        message: data.message || 'Document uploaded! AI extraction in progress...',
       });
 
-      // Reset form
-      setSelectedFile(null);
-      setNotes('');
-
-      // Notify parent component
-      if (onUploadComplete) {
-        onUploadComplete();
-      }
+      // Start polling for extraction status
+      pollExtractionStatus(data.document.id);
     } catch (error) {
       console.error('Upload error:', error);
       setUploadStatus({
         type: 'error',
         message: error instanceof Error ? error.message : 'Failed to upload document',
       });
+      setUploading(false);
+      setExtracting(false);
     } finally {
       setUploading(false);
     }
@@ -213,11 +288,15 @@ export default function DocumentUpload({ projectId, onUploadComplete }: Document
           className={`flex items-start space-x-2 p-4 rounded-lg ${
             uploadStatus.type === 'success'
               ? 'bg-green-50 text-green-800'
+              : uploadStatus.type === 'extracting'
+              ? 'bg-blue-50 text-blue-800'
               : 'bg-red-50 text-red-800'
           }`}
         >
           {uploadStatus.type === 'success' ? (
             <CheckCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+          ) : uploadStatus.type === 'extracting' ? (
+            <Loader2 className="h-5 w-5 flex-shrink-0 mt-0.5 animate-spin" />
           ) : (
             <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
           )}
@@ -228,9 +307,9 @@ export default function DocumentUpload({ projectId, onUploadComplete }: Document
       {/* Upload Button */}
       <button
         onClick={handleUpload}
-        disabled={!selectedFile || uploading}
+        disabled={!selectedFile || uploading || extracting}
         className={`w-full py-3 px-4 rounded-lg font-medium transition-colors ${
-          !selectedFile || uploading
+          !selectedFile || uploading || extracting
             ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
             : 'bg-blue-600 text-white hover:bg-blue-700'
         }`}
@@ -238,7 +317,12 @@ export default function DocumentUpload({ projectId, onUploadComplete }: Document
         {uploading ? (
           <span className="flex items-center justify-center">
             <Loader2 className="animate-spin h-5 w-5 mr-2" />
-            Processing with AI...
+            Uploading...
+          </span>
+        ) : extracting ? (
+          <span className="flex items-center justify-center">
+            <Loader2 className="animate-spin h-5 w-5 mr-2" />
+            AI Extracting...
           </span>
         ) : (
           'Upload & Extract Data'

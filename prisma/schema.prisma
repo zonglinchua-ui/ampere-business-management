@@ -2681,7 +2681,10 @@ enum ProcurementDocumentType {
 
 enum ProcurementDocumentStatus {
   UPLOADED
+  PENDING_EXTRACTION
+  EXTRACTING
   EXTRACTED
+  FAILED
   PENDING_APPROVAL
   APPROVED
   REJECTED
@@ -2724,6 +2727,7 @@ model ProcurementDocument {
   // Extracted Data
   extractedData         Json?
   extractionConfidence  Float?
+  projectMismatch       Boolean?        @default(false)
   
   // Financial Data
   totalAmount           Decimal?        @db.Decimal(15, 2)
