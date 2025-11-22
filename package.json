@@ -5,7 +5,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "tsx --test app/api/table-views/route.test.ts components/ui/__tests__/table.test.tsx"
   },
   "prisma": {
     "seed": "tsx --require dotenv/config scripts/seed.ts"
