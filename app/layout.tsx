@@ -7,6 +7,7 @@ import { ErrorBoundary } from '@/components/error-boundary'
 import { ApiClientProvider } from '@/components/api-client-provider'
 import { Toaster } from 'sonner'
 import { XeroTokenHeartbeat } from '@/components/xero/xero-token-heartbeat'
+import CommandPaletteProvider from '@/components/CommandPalette'
 
 const inter = Inter({ 
   subsets: ['latin'],
@@ -57,9 +58,9 @@ export default function RootLayout({
           <ApiClientProvider>
             <Providers>
               {children}
-              <Toaster 
-                position="top-right" 
-                richColors 
+              <Toaster
+                position="top-right"
+                richColors
                 closeButton
                 duration={4000}
                 toastOptions={{
@@ -70,6 +71,7 @@ export default function RootLayout({
                   className: 'toast-custom',
                 }}
               />
+              <CommandPaletteProvider />
               {/* Automatic Xero token refresh - keeps tokens fresh without re-authentication */}
               <XeroTokenHeartbeat interval={10 * 60 * 1000} />
             </Providers>
