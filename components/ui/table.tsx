@@ -2,26 +2,106 @@ import * as React from 'react';
 
 import { cn } from '@/lib/utils';
 
-const Table = React.forwardRef<
-  HTMLTableElement,
-  React.HTMLAttributes<HTMLTableElement>
->(({ className, ...props }, ref) => (
-  <div className="relative w-full overflow-auto">
-    <table
-      ref={ref}
-      className={cn('w-full caption-bottom text-sm', className)}
-      {...props}
-    />
-  </div>
-));
+type TableColumnVisibility = Record<string, boolean>;
+
+type TableViewConfig = {
+  id?: string;
+  name: string;
+  columnVisibility: TableColumnVisibility;
+  isDefault?: boolean;
+};
+
+type TableContextValue = {
+  columnVisibility?: TableColumnVisibility;
+  onColumnVisibilityChange?: (visibility: TableColumnVisibility) => void;
+  savedViews?: TableViewConfig[];
+  onSelectView?: (viewId: string) => void;
+  onSaveView?: (view: TableViewConfig) => void;
+  activeViewId?: string;
+  stickyHeader?: boolean;
+};
+
+const TableContext = React.createContext<TableContextValue>({});
+
+const useTableContext = () => React.useContext(TableContext);
+
+const isColumnHidden = (
+  columnKey?: string,
+  columnVisibility?: TableColumnVisibility
+) => {
+  if (!columnKey || !columnVisibility) return false;
+  return columnVisibility[columnKey] === false;
+};
+
+type TableProps = React.HTMLAttributes<HTMLTableElement> & {
+  stickyHeader?: boolean;
+  columnVisibility?: TableColumnVisibility;
+  onColumnVisibilityChange?: (visibility: TableColumnVisibility) => void;
+  savedViews?: TableViewConfig[];
+  onSelectView?: (viewId: string) => void;
+  onSaveView?: (view: TableViewConfig) => void;
+  activeViewId?: string;
+};
+
+const Table = React.forwardRef<HTMLTableElement, TableProps>(
+  (
+    {
+      className,
+      stickyHeader = true,
+      columnVisibility,
+      onColumnVisibilityChange,
+      savedViews,
+      onSelectView,
+      onSaveView,
+      activeViewId,
+      ...props
+    },
+    ref
+  ) => (
+    <TableContext.Provider
+      value={{
+        columnVisibility,
+        onColumnVisibilityChange,
+        savedViews,
+        onSelectView,
+        onSaveView,
+        activeViewId,
+        stickyHeader,
+      }}
+    >
+      <div className="relative w-full overflow-x-auto rounded-lg border bg-card">
+        <table
+          ref={ref}
+          className={cn(
+            'w-full min-w-[640px] caption-bottom text-sm align-middle',
+            className
+          )}
+          {...props}
+        />
+      </div>
+    </TableContext.Provider>
+  )
+);
 Table.displayName = 'Table';
 
 const TableHeader = React.forwardRef<
   HTMLTableSectionElement,
   React.HTMLAttributes<HTMLTableSectionElement>
->(({ className, ...props }, ref) => (
-  <thead ref={ref} className={cn('[&_tr]:border-b', className)} {...props} />
-));
+>(({ className, ...props }, ref) => {
+  const { stickyHeader } = useTableContext();
+
+  return (
+    <thead
+      ref={ref}
+      className={cn(
+        '[&_tr]:border-b',
+        stickyHeader && 'sticky top-0 z-20 bg-card shadow-sm',
+        className
+      )}
+      {...props}
+    />
+  );
+});
 TableHeader.displayName = 'TableHeader';
 
 const TableBody = React.forwardRef<
@@ -66,31 +146,58 @@ const TableRow = React.forwardRef<
 ));
 TableRow.displayName = 'TableRow';
 
-const TableHead = React.forwardRef<
-  HTMLTableCellElement,
-  React.ThHTMLAttributes<HTMLTableCellElement>
->(({ className, ...props }, ref) => (
-  <th
-    ref={ref}
-    className={cn(
-      'h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0',
-      className
-    )}
-    {...props}
-  />
-));
+type TableHeadProps = React.ThHTMLAttributes<HTMLTableCellElement> & {
+  columnKey?: string;
+};
+
+const TableHead = React.forwardRef<HTMLTableCellElement, TableHeadProps>(
+  ({ className, columnKey, ...props }, ref) => {
+    const { columnVisibility } = useTableContext();
+    const hidden = isColumnHidden(columnKey, columnVisibility);
+
+    return (
+      <th
+        ref={ref}
+        className={cn(
+          'h-12 px-4 text-left align-middle font-medium text-muted-foreground backdrop-blur [&:has([role=checkbox])]:pr-0',
+          hidden && 'hidden',
+          className
+        )}
+        aria-hidden={hidden}
+        data-column-key={columnKey}
+        hidden={hidden}
+        {...props}
+      />
+    );
+  }
+);
 TableHead.displayName = 'TableHead';
 
-const TableCell = React.forwardRef<
-  HTMLTableCellElement,
-  React.TdHTMLAttributes<HTMLTableCellElement>
->(({ className, ...props }, ref) => (
-  <td
-    ref={ref}
-    className={cn('p-4 align-middle [&:has([role=checkbox])]:pr-0', className)}
-    {...props}
-  />
-));
+type TableCellProps = React.TdHTMLAttributes<HTMLTableCellElement> & {
+  columnKey?: string;
+};
+
+const TableCell = React.forwardRef<HTMLTableCellElement, TableCellProps>(
+  ({ className, columnKey, ...props }, ref) => {
+    const { columnVisibility } = useTableContext();
+    const hidden = isColumnHidden(columnKey, columnVisibility);
+
+    return (
+      <td
+        ref={ref}
+        className={cn(
+          'p-4 align-middle [&:has([role=checkbox])]:pr-0',
+          hidden && 'hidden',
+          className
+        )}
+        aria-hidden={hidden}
+        data-column-key={columnKey}
+        hidden={hidden}
+        {...props}
+      />
+    );
+  }
+);
 TableCell.displayName = 'TableCell';
 
 const TableCaption = React.forwardRef<
@@ -115,3 +222,86 @@ export {
   TableCell,
   TableCaption,
 };
+export type { TableColumnVisibility, TableViewConfig };
+
+type TableColumnToggleProps = {
+  columns: { key: string; label: string }[];
+  className?: string;
+};
+
+const TableColumnVisibilityToggle: React.FC<TableColumnToggleProps> = ({
+  columns,
+  className,
+}) => {
+  const { columnVisibility, onColumnVisibilityChange } = useTableContext();
+  const effectiveVisibility = columnVisibility ?? {};
+
+  if (!onColumnVisibilityChange) return null;
+
+  const handleToggle = (key: string) => {
+    const current = effectiveVisibility[key] ?? true;
+    onColumnVisibilityChange({
+      ...effectiveVisibility,
+      [key]: !current,
+    });
+  };
+
+  return (
+    <div
+      className={cn('flex flex-wrap gap-3 text-sm text-muted-foreground', className)}
+      aria-label="Column visibility controls"
+    >
+      {columns.map((column) => {
+        const isVisible = effectiveVisibility[column.key] ?? true;
+
+        return (
+          <label key={column.key} className="flex items-center gap-2">
+            <input
+              aria-label={column.label}
+              type="checkbox"
+              className="h-4 w-4 rounded border-muted-foreground/50 accent-primary"
+              checked={isVisible}
+              aria-checked={isVisible}
+              data-state={isVisible ? 'checked' : 'unchecked'}
+              onChange={() => handleToggle(column.key)}
+            />
+            <span>{column.label}</span>
+          </label>
+        );
+      })}
+    </div>
+  );
+};
+
+type TableViewSwitcherProps = {
+  className?: string;
+};
+
+const TableViewSwitcher: React.FC<TableViewSwitcherProps> = ({ className }) => {
+  const { savedViews, activeViewId, onSelectView } = useTableContext();
+
+  if (!savedViews?.length || !onSelectView) return null;
+
+  return (
+    <div className={cn('flex items-center gap-2 text-sm', className)}>
+      <label className="text-muted-foreground" htmlFor="table-view-select">
+        Saved view
+      </label>
+      <select
+        id="table-view-select"
+        className="rounded-md border bg-card px-3 py-2"
+        value={activeViewId ?? ''}
+        onChange={(event) => onSelectView(event.target.value)}
+      >
+        <option value="">Default</option>
+        {savedViews.map((view) => (
+          <option key={view.id ?? view.name} value={view.id ?? view.name}>
+            {view.name}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+};
+
+export { TableColumnVisibilityToggle, TableViewSwitcher };
