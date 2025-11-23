@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
       const updatedLog = await prisma.xero_logs.update({
         where: { id: logId },
         data: {
-          status: 'RETRYING',
+          status: log.status,
           message: `${log.message}\nManual retry requested by ${(session.user as any).email || 'system'}`.trim(),
           updatedAt: new Date()
         }
