@@ -80,35 +80,32 @@ export async function POST(
     const payload = parsed.data;
 
     if (payload.id) {
-      const existing = await deps.client.tableView.findUnique({
-        where: { id: payload.id },
+      const view = await deps.client.$transaction(async (tx) => {
+        const existing = await tx.tableView.findUnique({
+          where: { id: payload.id },
+        });
+
+        if (!existing || existing.userId !== session.user.id) {
+          throw new Error('VIEW_NOT_FOUND');
+        }
+
+        if (payload.isDefault) {
+          await tx.tableView.updateMany({
+            where: { userId: session.user.id, tableId: payload.tableId },
+            data: { isDefault: false },
+          });
+        }
+
+        return tx.tableView.update({
+          where: { id: payload.id },
+          data: {
+            name: payload.name,
+            tableId: payload.tableId,
+            columnVisibility: payload.columnVisibility,
+            isDefault: payload.isDefault ?? existing.isDefault,
+          },
+        });
       });
-
-      if (!existing || existing.userId !== session.user.id) {
-        return NextResponse.json({ error: 'View not found' }, { status: 404 });
-      }
-
-      const update = deps.client.tableView.update({
-        where: { id: payload.id },
-        data: {
-          name: payload.name,
-          tableId: payload.tableId,
-          columnVisibility: payload.columnVisibility,
-          isDefault: payload.isDefault ?? existing.isDefault,
-        },
-      });
-
-      const view = payload.isDefault
-        ? (
-            await deps.client.$transaction([
-              deps.client.tableView.updateMany({
-                where: { userId: session.user.id, tableId: payload.tableId },
-                data: { isDefault: false },
-              }),
-              update,
-            ])
-          )[1]
-        : await update;
 
       return NextResponse.json({ view }, { status: 200 });
     }
@@ -137,6 +134,10 @@ export async function POST(
 
     return NextResponse.json({ view }, { status: 201 });
   } catch (error) {
+    if (error instanceof Error && error.message === 'VIEW_NOT_FOUND') {
+      return NextResponse.json({ error: 'View not found' }, { status: 404 });
+    }
+
     console.error('[TABLE_VIEWS_POST]', error);
     return NextResponse.json(
       { error: 'Unable to persist table view' },
