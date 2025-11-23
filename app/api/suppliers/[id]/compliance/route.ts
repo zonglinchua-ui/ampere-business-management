@@ -54,12 +54,14 @@ export function createComplianceRouteHandlers(deps = defaultDeps) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
       }
 
-      const body = (await request.json()) as ComplianceDocumentInput & { documentId?: string }
-      if (!body.documentId) {
+      const { documentId, ...payload } = (await request.json()) as ComplianceDocumentInput & {
+        documentId?: string
+      }
+      if (!documentId) {
         return NextResponse.json({ error: "documentId is required" }, { status: 400 })
       }
 
-      await updateComplianceDocument(body.documentId, body, deps.client)
+      await updateComplianceDocument(documentId, payload, deps.client)
       const summary = await getComplianceSummary(params.id, deps.client)
       return NextResponse.json(summary)
     },
