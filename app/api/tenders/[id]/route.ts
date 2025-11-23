@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { archiveDeletedTender, logArchival } from '@/lib/nas-archival-service'
+import { getFileUrl } from '@/lib/s3'
 
 export async function GET(
   request: Request,
@@ -99,6 +100,11 @@ export async function GET(
           orderBy: {
             createdAt: 'desc'
           }
+        },
+        PlanSheet: {
+          orderBy: {
+            createdAt: 'desc'
+          }
         }
       }
     })
@@ -147,7 +153,13 @@ export async function GET(
         validUntil: q.validUntil?.toISOString() || null,
         createdAt: q.createdAt.toISOString()
       })),
-      documents: tender.Document
+      documents: tender.Document,
+      planSheets: tender.PlanSheet.map((plan) => ({
+        ...plan,
+        createdAt: plan.createdAt.toISOString(),
+        updatedAt: plan.updatedAt.toISOString(),
+        fileUrl: getFileUrl(plan.fileKey)
+      }))
     }
 
     return NextResponse.json(transformedTender)
