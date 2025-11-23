@@ -1,0 +1,2 @@
+# Created manually to track Prisma migrations provider
+provider = "postgresql"
