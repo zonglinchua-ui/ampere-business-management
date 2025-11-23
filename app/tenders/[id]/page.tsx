@@ -58,6 +58,7 @@ import { toast } from "react-hot-toast"
 import { useSession } from "next-auth/react"
 import { formatCurrency } from "@/lib/utils"
 import { TenderFileManager } from '@/components/TenderFileManager'
+import { TakeoffWorkspace } from '@/components/takeoff/takeoff-workspace'
 
 interface TenderDetails {
   id: string
@@ -1054,10 +1055,29 @@ export default function TenderDetailsPage() {
                       </TableBody>
                     </Table>
                   </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Takeoff workspace</CardTitle>
+                <CardDescription>
+                  Browse sheets with thumbnails, calibrate scales, and control overlay filters for takeoff
+                  detections.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {tender.planSheets && tender.planSheets.length > 0 ? (
+                  <TakeoffWorkspace planSheets={tender.planSheets} />
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Upload plan sheets to enable thumbnail navigation, calibration inputs, and overlay filters.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
 
           <TabsContent value="activity">
             <Card>
