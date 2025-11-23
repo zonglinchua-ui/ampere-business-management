@@ -1401,6 +1401,7 @@ model Tender {
   User_Tender_salespersonIdToUser User?            @relation("Tender_salespersonIdToUser", fields: [salespersonId], references: [id])
   TenderActivity                  TenderActivity[]
   ProgressClaim                   ProgressClaim[]
+  TenderTakeoffPackage            TenderTakeoffPackage[]
 }
 
 model TenderActivity {
@@ -1414,6 +1415,43 @@ model TenderActivity {
   userEmail   String
   createdAt   DateTime @default(now())
   Tender      Tender   @relation(fields: [tenderId], references: [id])
+}
+
+model TenderTakeoffPackage {
+  id               String           @id @default(cuid())
+  tenderId         String
+  name             String
+  inferenceStatus  InferenceStatus  @default(PENDING)
+  lastRunAt        DateTime?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  PlanSheet        PlanSheet[]
+  Tender           Tender           @relation(fields: [tenderId], references: [id])
+}
+
+model PlanSheet {
+  id                      String            @id @default(cuid())
+  tenderTakeoffPackageId  String
+  name                    String
+  imageUrl                String
+  version                 Int               @default(0)
+  lastDetectedAt          DateTime?
+  createdAt               DateTime          @default(now())
+  updatedAt               DateTime          @updatedAt
+  TenderTakeoffPackage    TenderTakeoffPackage @relation(fields: [tenderTakeoffPackageId], references: [id])
+  DetectedElement         DetectedElement[]
+}
+
+model DetectedElement {
+  id             String    @id @default(cuid())
+  planSheetId    String
+  type           String
+  polygon        Json?
+  boundingBox    Json?
+  confidence     Float
+  version        Int
+  createdAt      DateTime  @default(now())
+  PlanSheet      PlanSheet @relation(fields: [planSheetId], references: [id])
 }
 
 model User {
@@ -2291,6 +2329,13 @@ enum TenderStatus {
   LOST
   CANCELLED
   EXPIRED
+}
+
+enum InferenceStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
 }
 
 enum UserRole {
