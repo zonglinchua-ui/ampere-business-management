@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { CommentThread } from "@/components/comments/CommentThread";
 import {
   Table,
   TableBody,
@@ -539,12 +540,14 @@ export default function ProjectBudgetPage() {
                 ))}
               </TableBody>
             </Table>
-          )}
-        </CardContent>
-      </Card>
+      )}
+    </CardContent>
+  </Card>
 
-      {/* Dialogs */}
-      <UploadQuotationDialog
+  <CommentThread entityId={projectId} entityType="PROJECT_BUDGET" />
+
+  {/* Dialogs */}
+  <UploadQuotationDialog
         open={uploadDialogOpen}
         onOpenChange={setUploadDialogOpen}
         projectId={projectId}
