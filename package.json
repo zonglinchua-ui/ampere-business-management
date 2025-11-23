@@ -6,6 +6,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "test": "tsx tests/comments.test.tsx",
+    "test:all": "tsx tests/run-all-tests.ts",
+    "test:comments": "tsx tests/comments.test.tsx",
+    "test:api": "tsx tests/api-handlers.test.ts",
+    "test:schema": "tsx tests/schema-validation.test.ts"
     "test": "TS_NODE_COMPILER_OPTIONS=\"{\\\"module\\\":\\\"commonjs\\\",\\\"allowImportingTsExtensions\\\":true}\" node --require ts-node/register --test tests/**/*.test.ts"
     "test": "tsx --test '**/*.test.{ts,tsx}'"
     "test": "tsx tests/run-tests.ts",

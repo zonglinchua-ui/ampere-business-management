@@ -9,6 +9,7 @@ import { toast } from "sonner"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { CommentThread } from "@/components/comments/CommentThread"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { 
   Table,
@@ -627,6 +628,7 @@ export default function PurchaseOrderDetailPage({ params }: { params: { id: stri
             </Card>
           </TabsContent>
         </Tabs>
+        <CommentThread entityId={purchaseOrder.id} entityType="PURCHASE_ORDER" />
       </div>
     </MainLayout>
   )

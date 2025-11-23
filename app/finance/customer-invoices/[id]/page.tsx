@@ -8,7 +8,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { 
+import { CommentThread } from '@/components/comments/CommentThread'
+import {
   Table,
   TableBody,
   TableCell,
@@ -594,6 +595,8 @@ export default function InvoiceDetailPage() {
             </Card>
           </div>
         </div>
+
+        <CommentThread entityId={invoice.id} entityType="INVOICE" />
 
         {/* Delete Confirmation Dialog */}
         <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
