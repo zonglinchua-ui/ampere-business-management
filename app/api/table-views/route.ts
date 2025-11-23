@@ -80,6 +80,34 @@ export async function POST(
     const payload = parsed.data;
 
     if (payload.id) {
+      const view = await deps.client.$transaction(async (tx) => {
+        const existing = await tx.tableView.findUnique({
+          where: { id: payload.id },
+        });
+
+        if (!existing || existing.userId !== session.user.id) {
+          throw new Error('VIEW_NOT_FOUND');
+        }
+
+        if (payload.isDefault) {
+          await tx.tableView.updateMany({
+            where: { userId: session.user.id, tableId: payload.tableId },
+            data: { isDefault: false },
+          });
+        }
+
+        return tx.tableView.update({
+          where: { id: payload.id },
+          data: {
+            name: payload.name,
+            tableId: payload.tableId,
+            columnVisibility: payload.columnVisibility,
+            isDefault: payload.isDefault ?? existing.isDefault,
+          },
+        });
+      });
+
+      return NextResponse.json({ view }, { status: 200 });
       const VIEW_NOT_FOUND_ERROR = 'VIEW_NOT_FOUND';
 
       try {
@@ -150,6 +178,10 @@ export async function POST(
 
     return NextResponse.json({ view }, { status: 201 });
   } catch (error) {
+    if (error instanceof Error && error.message === 'VIEW_NOT_FOUND') {
+      return NextResponse.json({ error: 'View not found' }, { status: 404 });
+    }
+
     console.error('[TABLE_VIEWS_POST]', error);
     return NextResponse.json(
       { error: 'Unable to persist table view' },
