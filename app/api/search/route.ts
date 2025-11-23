@@ -1,96 +1,153 @@
-
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/db"
+import { checkRateLimit, getClientIdentifier } from "@/lib/rate-limit"
+import { GlobalSearchResult, SearchEntityType } from "@/lib/search"
 
-/**
- * Unified Search API
- * GET /api/search?entity=customer&query=ABC&limit=20
- * 
- * Supports searching across multiple entity types with live typeahead
- */
-
-type SearchEntity = 'customer' | 'supplier' | 'project' | 'user'
-
-interface SearchResult {
-  id: string
-  label: string
-  value: string
-  subtitle?: string
-  metadata?: Record<string, any>
+interface SearchHandlerDeps {
+  prismaClient: typeof prisma
+  getSession: () => Promise<any>
+  rateLimit?: typeof checkRateLimit
+  clientIdentifier?: typeof getClientIdentifier
 }
 
-export async function GET(req: NextRequest) {
-  try {
-    const session = await getServerSession(authOptions)
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
+interface SearchContext {
+  query: string
+  limit: number
+  recent: boolean
+}
 
-    const { searchParams } = new URL(req.url)
-    const entity = searchParams.get("entity") as SearchEntity
-    const query = searchParams.get("query") || ""
-    const limit = parseInt(searchParams.get("limit") || "20")
+export function createSearchHandler({
+  prismaClient,
+  getSession,
+  rateLimit = checkRateLimit,
+  clientIdentifier = getClientIdentifier
+}: SearchHandlerDeps) {
+  return async function handleSearch(req: NextRequest) {
+    try {
+      const session = await getSession()
 
-    if (!entity) {
-      return NextResponse.json(
-        { error: "Entity type is required" },
-        { status: 400 }
-      )
-    }
+      if (!session) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      }
 
-    let results: SearchResult[] = []
+      const identifier = session.user?.id || clientIdentifier(req)
+      const rateLimitResult = rateLimit(identifier, {
+        maxRequests: 60,
+        windowSeconds: 60
+      })
 
-    switch (entity) {
-      case 'customer':
-        results = await searchCustomers(query, limit)
-        break
-      case 'supplier':
-        results = await searchSuppliers(query, limit)
-        break
-      case 'project':
-        results = await searchProjects(query, limit)
-        break
-      case 'user':
-        results = await searchUsers(query, limit)
-        break
-      default:
+      if (!rateLimitResult.success) {
+        const retryAfter = Math.ceil((rateLimitResult.resetAt - Date.now()) / 1000)
+
         return NextResponse.json(
-          { error: "Invalid entity type" },
+          {
+            error: "Too many requests",
+            message: "You have exceeded the search rate limit. Please try again shortly.",
+            retryAfter
+          },
+          {
+            status: 429,
+            headers: {
+              "Retry-After": retryAfter.toString(),
+              "X-RateLimit-Limit": "60",
+              "X-RateLimit-Remaining": "0",
+              "X-RateLimit-Reset": rateLimitResult.resetAt.toString()
+            }
+          }
+        )
+      }
+
+      const { searchParams } = new URL(req.url)
+      const query = searchParams.get("query") || searchParams.get("q") || ""
+      const limit = parseInt(searchParams.get("limit") || "8", 10)
+      const recent = searchParams.get("recent") === "true"
+      const explicitEntity = searchParams.get("entity") as SearchEntityType | null
+      const entityList =
+        searchParams
+          .get("entities")
+          ?.split(",")
+          .map((entry) => entry.trim())
+          .filter(Boolean) as SearchEntityType[] | undefined
+
+      const entities: SearchEntityType[] =
+        explicitEntity
+          ? [explicitEntity]
+          : entityList && entityList.length
+            ? entityList
+            : ["supplier", "project", "invoice"]
+
+      const invalidEntity = entities.find(
+        (entity) => !["supplier", "project", "invoice", "customer", "user"].includes(entity)
+      )
+
+      if (invalidEntity) {
+        return NextResponse.json(
+          { error: `Invalid entity type: ${invalidEntity}` },
           { status: 400 }
         )
-    }
+      }
 
-    return NextResponse.json({
-      results,
-      count: results.length,
-      entity,
-      query
-    })
-  } catch (error) {
-    console.error("Search API error:", error)
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    )
+      const ctx: SearchContext = { query, limit, recent }
+      const entityResults = await Promise.all(
+        entities.map((entity) => searchByEntity(prismaClient, entity, ctx))
+      )
+      const results: GlobalSearchResult[] = entityResults.flat()
+
+      return NextResponse.json({
+        results,
+        count: results.length,
+        entities,
+        query
+      })
+    } catch (error) {
+      console.error("Search API error:", error)
+      return NextResponse.json(
+        { error: "Internal server error" },
+        { status: 500 }
+      )
+    }
   }
 }
 
-async function searchCustomers(query: string, limit: number): Promise<SearchResult[]> {
-  const customers = await prisma.customer.findMany({
+async function searchByEntity(
+  prismaClient: typeof prisma,
+  entity: SearchEntityType,
+  ctx: SearchContext
+) {
+  switch (entity) {
+    case "customer":
+      return searchCustomers(prismaClient, ctx)
+    case "supplier":
+      return searchSuppliers(prismaClient, ctx)
+    case "project":
+      return searchProjects(prismaClient, ctx)
+    case "invoice":
+      return searchInvoices(prismaClient, ctx)
+    case "user":
+      return searchUsers(prismaClient, ctx)
+    default:
+      return []
+  }
+}
+
+async function searchCustomers(prismaClient: typeof prisma, ctx: SearchContext) {
+  const customers = await prismaClient.customer.findMany({
     where: {
       isActive: true,
       isDeleted: false,
-      isCustomer: true, // Only customers, not general contacts
-      OR: query ? [
-        { name: { contains: query, mode: "insensitive" } },
-        { customerNumber: { contains: query, mode: "insensitive" } },
-        { contactPerson: { contains: query, mode: "insensitive" } },
-        { email: { contains: query, mode: "insensitive" } },
-      ] : undefined
+      isCustomer: true,
+      OR: ctx.query
+        ? [
+          { name: { contains: ctx.query, mode: "insensitive" } },
+          { customerNumber: { contains: ctx.query, mode: "insensitive" } },
+          { contactPerson: { contains: ctx.query, mode: "insensitive" } },
+          { email: { contains: ctx.query, mode: "insensitive" } },
+        ]
+        : undefined
     },
-    take: limit,
+    take: ctx.limit,
     select: {
       id: true,
       name: true,
@@ -99,13 +156,15 @@ async function searchCustomers(query: string, limit: number): Promise<SearchResu
       contactPerson: true,
       customerType: true,
     },
-    orderBy: { name: "asc" }
+    orderBy: ctx.recent ? { updatedAt: "desc" } : { name: "asc" }
   })
 
-  return customers.map((c: any) => ({
+  return customers.map((c) => ({
     id: c.id,
     value: c.id,
-    label: `${c.name} ${c.customerNumber ? `(${c.customerNumber})` : ''}`,
+    type: "customer" as const,
+    title: `${c.name}${c.customerNumber ? ` (${c.customerNumber})` : ""}`,
+    label: `${c.name}${c.customerNumber ? ` (${c.customerNumber})` : ""}`,
     subtitle: c.contactPerson || c.email || undefined,
     metadata: {
       customerNumber: c.customerNumber,
@@ -116,19 +175,21 @@ async function searchCustomers(query: string, limit: number): Promise<SearchResu
   }))
 }
 
-async function searchSuppliers(query: string, limit: number): Promise<SearchResult[]> {
-  const suppliers = await prisma.supplier.findMany({
+async function searchSuppliers(prismaClient: typeof prisma, ctx: SearchContext) {
+  const suppliers = await prismaClient.supplier.findMany({
     where: {
       isActive: true,
       isDeleted: false,
-      OR: query ? [
-        { name: { contains: query, mode: "insensitive" } },
-        { supplierNumber: { contains: query, mode: "insensitive" } },
-        { contactPerson: { contains: query, mode: "insensitive" } },
-        { email: { contains: query, mode: "insensitive" } },
-      ] : undefined
+      OR: ctx.query
+        ? [
+          { name: { contains: ctx.query, mode: "insensitive" } },
+          { supplierNumber: { contains: ctx.query, mode: "insensitive" } },
+          { contactPerson: { contains: ctx.query, mode: "insensitive" } },
+          { email: { contains: ctx.query, mode: "insensitive" } },
+        ]
+        : undefined
     },
-    take: limit,
+    take: ctx.limit,
     select: {
       id: true,
       name: true,
@@ -136,15 +197,21 @@ async function searchSuppliers(query: string, limit: number): Promise<SearchResu
       email: true,
       phone: true,
       contactPerson: true,
+      isApproved: true,
+      updatedAt: true
     },
-    orderBy: { name: "asc" }
+    orderBy: ctx.recent ? { updatedAt: "desc" } : { name: "asc" }
   })
 
-  return suppliers.map((s: any) => ({
+  return suppliers.map((s) => ({
     id: s.id,
     value: s.id,
-    label: `${s.name} ${s.supplierNumber ? `(${s.supplierNumber})` : ''}`,
+    type: "supplier" as const,
+    title: s.name,
+    label: `${s.name}${s.supplierNumber ? ` (${s.supplierNumber})` : ""}`,
     subtitle: s.contactPerson || s.email || s.phone || undefined,
+    href: `/suppliers/${s.id}`,
+    status: s.isApproved ? "Approved" : "Pending",
     metadata: {
       supplierNumber: s.supplierNumber,
       email: s.email,
@@ -154,37 +221,47 @@ async function searchSuppliers(query: string, limit: number): Promise<SearchResu
   }))
 }
 
-async function searchProjects(query: string, limit: number): Promise<SearchResult[]> {
-  const projects = await prisma.project.findMany({
+async function searchProjects(prismaClient: typeof prisma, ctx: SearchContext) {
+  const projects = await prismaClient.project.findMany({
     where: {
       isActive: true,
-      OR: query ? [
-        { name: { contains: query, mode: "insensitive" } },
-        { projectNumber: { contains: query, mode: "insensitive" } },
-        { description: { contains: query, mode: "insensitive" } },
-      ] : undefined
+      OR: ctx.query
+        ? [
+          { name: { contains: ctx.query, mode: "insensitive" } },
+          { projectNumber: { contains: ctx.query, mode: "insensitive" } },
+          { description: { contains: ctx.query, mode: "insensitive" } },
+        ]
+        : undefined
     },
-    take: limit,
+    take: ctx.limit,
     select: {
       id: true,
       name: true,
       projectNumber: true,
       description: true,
       status: true,
+      contractValue: true,
       Customer: {
         select: {
           name: true
         }
-      }
+      },
+      updatedAt: true
     },
-    orderBy: { createdAt: "desc" }
+    orderBy: ctx.recent ? { updatedAt: "desc" } : { createdAt: "desc" }
   })
 
-  return projects.map((p: any) => ({
+  return projects.map((p) => ({
     id: p.id,
     value: p.id,
+    type: "project" as const,
+    title: `${p.name} (${p.projectNumber})`,
     label: `${p.name} (${p.projectNumber})`,
     subtitle: p.Customer?.name || p.description || undefined,
+    href: `/projects/${p.id}`,
+    status: p.status,
+    amount: p.contractValue ? Number(p.contractValue) : undefined,
+    currency: "SGD",
     metadata: {
       projectNumber: p.projectNumber,
       description: p.description,
@@ -194,27 +271,84 @@ async function searchProjects(query: string, limit: number): Promise<SearchResul
   }))
 }
 
-async function searchUsers(query: string, limit: number): Promise<SearchResult[]> {
-  const users = await prisma.user.findMany({
-    where: {
-      OR: query ? [
-        { name: { contains: query, mode: "insensitive" } },
-        { email: { contains: query, mode: "insensitive" } },
-      ] : undefined
+async function searchInvoices(prismaClient: typeof prisma, ctx: SearchContext) {
+  const invoices = await prismaClient.customerInvoice.findMany({
+    where: ctx.query
+      ? {
+        OR: [
+          { invoiceNumber: { contains: ctx.query, mode: "insensitive" } },
+          { description: { contains: ctx.query, mode: "insensitive" } },
+          { Customer: { name: { contains: ctx.query, mode: "insensitive" } } },
+          { Project: { name: { contains: ctx.query, mode: "insensitive" } } },
+        ]
+      }
+      : undefined,
+    take: ctx.limit,
+    select: {
+      id: true,
+      invoiceNumber: true,
+      status: true,
+      totalAmount: true,
+      amountDue: true,
+      currency: true,
+      description: true,
+      issueDate: true,
+      Customer: {
+        select: { name: true }
+      },
+      Project: {
+        select: { name: true, projectNumber: true }
+      },
+      createdAt: true
     },
-    take: limit,
+    orderBy: ctx.recent ? { issueDate: "desc" } : { issueDate: "desc" }
+  })
+
+  return invoices.map((invoice) => ({
+    id: invoice.id,
+    value: invoice.id,
+    type: "invoice" as const,
+    title: `${invoice.invoiceNumber}${invoice.Customer?.name ? ` — ${invoice.Customer.name}` : ""}`,
+    label: `${invoice.invoiceNumber}${invoice.Customer?.name ? ` — ${invoice.Customer.name}` : ""}`,
+    subtitle: invoice.Project?.name || invoice.description || undefined,
+    href: `/finance/customer-invoices/${invoice.id}`,
+    status: invoice.status,
+    amount: invoice.totalAmount ? Number(invoice.totalAmount) : undefined,
+    currency: invoice.currency,
+    metadata: {
+      amountDue: invoice.amountDue ? Number(invoice.amountDue) : undefined,
+      projectNumber: invoice.Project?.projectNumber,
+      customerName: invoice.Customer?.name,
+      issueDate: invoice.issueDate
+    }
+  }))
+}
+
+async function searchUsers(prismaClient: typeof prisma, ctx: SearchContext) {
+  const users = await prismaClient.user.findMany({
+    where: {
+      OR: ctx.query
+        ? [
+          { name: { contains: ctx.query, mode: "insensitive" } },
+          { email: { contains: ctx.query, mode: "insensitive" } },
+        ]
+        : undefined
+    },
+    take: ctx.limit,
     select: {
       id: true,
       name: true,
       email: true,
       role: true,
     },
-    orderBy: { name: "asc" }
+    orderBy: ctx.recent ? { updatedAt: "desc" } : { name: "asc" }
   })
 
-  return users.map((u: any) => ({
+  return users.map((u) => ({
     id: u.id,
     value: u.id,
+    type: "user" as const,
+    title: u.name || u.email,
     label: u.name || u.email,
     subtitle: u.email !== u.name ? u.email : undefined,
     metadata: {
@@ -223,5 +357,10 @@ async function searchUsers(query: string, limit: number): Promise<SearchResult[]
     }
   }))
 }
+
+export const GET = createSearchHandler({
+  prismaClient: prisma,
+  getSession: () => getServerSession(authOptions)
+})
 
 export const dynamic = "force-dynamic"

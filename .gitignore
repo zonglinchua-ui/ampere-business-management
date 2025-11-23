@@ -1,6 +1,7 @@
 ﻿# Dependencies
 node_modules/
 .pnpm-store/
+.yarn/
 
 # Build files
 .next/

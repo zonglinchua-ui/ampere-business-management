@@ -1411,6 +1411,7 @@ model User {
   TaskAttachment                                            TaskAttachment[]
   TaskComment                                               TaskComment[]
   TaskNotification                                          TaskNotification[]
+  TableViews                                                TableView[]
   ProjectNotification                                       ProjectNotification[]
   ServiceNotification                                       ServiceNotification[]
   Tender_Tender_assignedToIdToUser                          Tender[]                      @relation("Tender_assignedToIdToUser")
@@ -1436,6 +1437,21 @@ model User {
   ProcurementApprovalsGiven                                 ProcurementApprovalHistory[]  @relation("ProcurementApprover")
   Comment                                                   Comment[]
   CommentMention                                            CommentMention[]
+}
+
+model TableView {
+  id               String   @id @default(cuid())
+  tableId          String
+  name             String
+  columnVisibility Json
+  isDefault        Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  userId           String
+  User             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tableId, name])
+  @@index([userId, tableId])
 }
 
 model VerificationToken {
