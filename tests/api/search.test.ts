@@ -96,3 +96,16 @@ test('returns unauthorized when no session is present', async () => {
 
   assert.strictEqual(response.status, 401)
 })
+
+test('returns 429 when rate limit is exceeded', async () => {
+  const handler = createSearchHandler({
+    prismaClient: prismaMock as any,
+    getSession: async () => ({ user: { id: 'user-2' } }),
+    rateLimit: () => ({ success: false, remaining: 0, resetAt: Date.now() + 1000 })
+  })
+
+  const request = new NextRequest('http://localhost/api/search?query=test')
+  const response = await handler(request)
+
+  assert.strictEqual(response.status, 429)
+})

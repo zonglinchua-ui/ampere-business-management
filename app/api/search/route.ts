@@ -2,11 +2,14 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/db"
+import { checkRateLimit, getClientIdentifier } from "@/lib/rate-limit"
 import { GlobalSearchResult, SearchEntityType } from "@/lib/search"
 
 interface SearchHandlerDeps {
   prismaClient: typeof prisma
   getSession: () => Promise<any>
+  rateLimit?: typeof checkRateLimit
+  clientIdentifier?: typeof getClientIdentifier
 }
 
 interface SearchContext {
@@ -17,7 +20,9 @@ interface SearchContext {
 
 export function createSearchHandler({
   prismaClient,
-  getSession
+  getSession,
+  rateLimit = checkRateLimit,
+  clientIdentifier = getClientIdentifier
 }: SearchHandlerDeps) {
   return async function handleSearch(req: NextRequest) {
     try {
@@ -25,6 +30,33 @@ export function createSearchHandler({
 
       if (!session) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      }
+
+      const identifier = session.user?.id || clientIdentifier(req)
+      const rateLimitResult = rateLimit(identifier, {
+        maxRequests: 60,
+        windowSeconds: 60
+      })
+
+      if (!rateLimitResult.success) {
+        const retryAfter = Math.ceil((rateLimitResult.resetAt - Date.now()) / 1000)
+
+        return NextResponse.json(
+          {
+            error: "Too many requests",
+            message: "You have exceeded the search rate limit. Please try again shortly.",
+            retryAfter
+          },
+          {
+            status: 429,
+            headers: {
+              "Retry-After": retryAfter.toString(),
+              "X-RateLimit-Limit": "60",
+              "X-RateLimit-Remaining": "0",
+              "X-RateLimit-Reset": rateLimitResult.resetAt.toString()
+            }
+          }
+        )
       }
 
       const { searchParams } = new URL(req.url)
@@ -58,12 +90,10 @@ export function createSearchHandler({
       }
 
       const ctx: SearchContext = { query, limit, recent }
-      const results: GlobalSearchResult[] = []
-
-      for (const entity of entities) {
-        const entityResults = await searchByEntity(prismaClient, entity, ctx)
-        results.push(...entityResults)
-      }
+      const entityResults = await Promise.all(
+        entities.map((entity) => searchByEntity(prismaClient, entity, ctx))
+      )
+      const results: GlobalSearchResult[] = entityResults.flat()
 
       return NextResponse.json({
         results,
