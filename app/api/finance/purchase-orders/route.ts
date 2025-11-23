@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
     }
 
     const userRole = session?.user?.role
-    const canAccessFinance = ["SUPERADMIN", "FINANCE"].includes(userRole || "")
+    const canAccessFinance = ["SUPERADMIN", "FINANCE", "PROJECT_MANAGER"].includes(userRole || "")
     
     if (!canAccessFinance) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
