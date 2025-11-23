@@ -25,7 +25,7 @@ This package contains a **production-ready**, fully cleaned and optimized versio
 ## 📦 Package Contents
 
 ```
-ampere_business_management/app/
+ampere-business-management/app/
 ├── 🐳 Dockerfile                    # Docker container configuration
 ├── 🐳 docker-compose.yml            # Docker Compose setup
 ├── 🔧 .dockerignore                 # Docker ignore patterns
