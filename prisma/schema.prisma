@@ -229,6 +229,15 @@ model CustomerInvoice {
   Document               Document[]
   Payment                Payment[]
   ProgressClaim          ProgressClaim[]
+  User                User                  @relation(fields: [createdById], references: [id])
+  Customer            Customer              @relation(fields: [customerId], references: [id])
+  Project             Project?              @relation(fields: [projectId], references: [id])
+  Quotation           Quotation?            @relation(fields: [quotationId], references: [id])
+  CustomerInvoiceItem CustomerInvoiceItem[]
+  Document            Document[]
+  Payment             Payment[]
+  ProgressClaim       ProgressClaim[]
+  Comment             Comment[]
 }
 
 model CustomerInvoiceItem {
@@ -617,6 +626,7 @@ model PurchaseOrder {
   PurchaseOrderItem                     PurchaseOrderItem[]
   SupplierInvoice                       SupplierInvoice[]
   SupplierBudgetItem                    SupplierBudgetItem[]
+  Comment                               Comment[]
 }
 
 model PurchaseOrderActivity {
@@ -1243,6 +1253,38 @@ model TaskNotification {
   User      User             @relation(fields: [userId], references: [id])
 }
 
+model Comment {
+  id               String             @id @default(cuid())
+  entityType       CommentEntityType
+  invoiceId        String?
+  purchaseOrderId  String?
+  projectId        String?
+  content          String
+  createdById      String
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  createdBy        User              @relation(fields: [createdById], references: [id])
+  Invoice          CustomerInvoice?  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  PurchaseOrder    PurchaseOrder?    @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  Project          Project?          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  CommentMention   CommentMention[]
+
+  @@index([entityType, invoiceId])
+  @@index([entityType, purchaseOrderId])
+  @@index([entityType, projectId])
+}
+
+model CommentMention {
+  id         String   @id @default(cuid())
+  commentId  String
+  userId     String
+  createdAt  DateTime @default(now())
+  Comment    Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  User       User     @relation(fields: [userId], references: [id])
+
+  @@unique([commentId, userId])
+}
+
 model ProjectNotification {
   id          String           @id
   projectId   String
@@ -1406,6 +1448,7 @@ model User {
   TaskAttachment                                            TaskAttachment[]
   TaskComment                                               TaskComment[]
   TaskNotification                                          TaskNotification[]
+  TableViews                                                TableView[]
   ProjectNotification                                       ProjectNotification[]
   ServiceNotification                                       ServiceNotification[]
   Tender_Tender_assignedToIdToUser                          Tender[]                      @relation("Tender_assignedToIdToUser")
@@ -1429,6 +1472,23 @@ model User {
   PORequestsCreated                                         ProcurementPORequest[]        @relation("PORequestedBy")
   PORequestsApproved                                        ProcurementPORequest[]        @relation("POApprovedBy")
   ProcurementApprovalsGiven                                 ProcurementApprovalHistory[]  @relation("ProcurementApprover")
+  Comment                                                   Comment[]
+  CommentMention                                            CommentMention[]
+}
+
+model TableView {
+  id               String   @id @default(cuid())
+  tableId          String
+  name             String
+  columnVisibility Json
+  isDefault        Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  userId           String
+  User             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tableId, name])
+  @@index([userId, tableId])
 }
 
 model VerificationToken {
@@ -1888,6 +1948,12 @@ enum NotificationType {
   SERVICE_INVOICE_REMINDER
   PROJECT_OVER_BUDGET
   PROJECT_MILESTONE_REACHED
+}
+
+enum CommentEntityType {
+  INVOICE
+  PURCHASE_ORDER
+  PROJECT_BUDGET
 }
 
 enum PaymentMethod {
