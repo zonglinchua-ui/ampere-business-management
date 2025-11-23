@@ -261,7 +261,9 @@ Return JSON: {"documentType": "VALUE", "confidence": 0-100}. Favor purchase orde
     return { documentType: filenameGuess, confidence: 55 };
   }
 
-  return { documentType: fallbackType, confidence: 30 };
+  // If vision parsing fails and we cannot infer from filename, avoid defaulting to a PO
+  // classification so that ingestion safeguards still block non-PO uploads.
+  return { documentType: 'UNKNOWN', confidence: 0 };
 }
 
 export async function extractDocumentData(
