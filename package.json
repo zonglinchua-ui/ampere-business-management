@@ -6,6 +6,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "test": "tsx tests/run-tests.ts",
+    "test:tsx": "tsx --test \"tests/**/*.{test,ts,tsx}\""
     "test": "tsx --test \"tests/**/*.test.{ts,tsx}\""
   },
   "prisma": {
