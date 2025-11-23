@@ -1395,6 +1395,7 @@ model Tender {
   updatedAt                       DateTime
   salespersonId                   String?
   nasDocumentPath                 String?
+  PlanSheet                       PlanSheet[]
   Document                        Document[]
   Quotation                       Quotation[]
   Task                            Task[]
@@ -1405,6 +1406,23 @@ model Tender {
   TenderActivity                  TenderActivity[]
   ProgressClaim                   ProgressClaim[]
   TenderTakeoffPackage            TenderTakeoffPackage[]
+}
+
+model PlanSheet {
+  id        String   @id @default(cuid())
+  tenderId  String
+  name      String
+  fileKey   String
+  pageCount Int?
+  dpi       Int?
+  scale     Float?
+  units     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  Tender Tender @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+
+  @@index([tenderId])
 }
 
 model TenderActivity {

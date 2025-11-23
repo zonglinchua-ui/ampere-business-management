@@ -81,6 +81,20 @@ export function getFileUrl(key: string): string {
   return `https://${bucketName}.s3.${process.env.AWS_REGION || 'us-west-2'}.amazonaws.com/${key}`
 }
 
+export async function uploadPlanFile(buffer: Buffer, fileName: string): Promise<{ key: string; url: string }> {
+  const key = `${folderPrefix}takeoff/plans/${Date.now()}-${fileName}`
+
+  const command = new PutObjectCommand({
+    Bucket: bucketName,
+    Key: key,
+    Body: buffer,
+  })
+
+  await s3Client.send(command)
+
+  return { key, url: getFileUrl(key) }
+}
+
 export async function getFileBuffer(key: string): Promise<Buffer> {
   const command = new GetObjectCommand({
     Bucket: bucketName,
