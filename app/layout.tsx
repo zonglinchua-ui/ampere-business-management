@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from 'next/font/google'
 import './globals.css'
 import './css-fixes.css'
 import { Providers } from '@/components/providers'
@@ -8,13 +7,6 @@ import { ApiClientProvider } from '@/components/api-client-provider'
 import { Toaster } from 'sonner'
 import { XeroTokenHeartbeat } from '@/components/xero/xero-token-heartbeat'
 import CommandPaletteProvider from '@/components/CommandPalette'
-
-const inter = Inter({ 
-  subsets: ['latin'],
-  display: 'swap',
-  preload: true,
-  fallback: ['system-ui', 'arial']
-})
 
 export const metadata: Metadata = {
   title: "Ampere Engineering - Business Management System",
@@ -53,7 +45,7 @@ export default function RootLayout({
       <head>
         <meta name="next-size-adjust" content="true" />
       </head>
-      <body className={inter.className}>
+      <body className="font-sans">
         <ErrorBoundary>
           <ApiClientProvider>
             <Providers>

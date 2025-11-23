@@ -28,11 +28,11 @@ export async function defaultNotifier(message: string) {
     }
   }
   await createSystemLog({
-    type: "ALERT",
+    type: "NOTIFICATION",
     action: "COMPLIANCE_EXPIRY_ALERT",
     message,
     module: "SUPPLIER_COMPLIANCE",
-    status: "INFO"
+    status: "WARNING"
   })
 }
 

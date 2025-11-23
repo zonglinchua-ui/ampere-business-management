@@ -229,14 +229,6 @@ model CustomerInvoice {
   Document               Document[]
   Payment                Payment[]
   ProgressClaim          ProgressClaim[]
-  User                User                  @relation(fields: [createdById], references: [id])
-  Customer            Customer              @relation(fields: [customerId], references: [id])
-  Project             Project?              @relation(fields: [projectId], references: [id])
-  Quotation           Quotation?            @relation(fields: [quotationId], references: [id])
-  CustomerInvoiceItem CustomerInvoiceItem[]
-  Document            Document[]
-  Payment             Payment[]
-  ProgressClaim       ProgressClaim[]
   Comment             Comment[]
 }
 
@@ -424,6 +416,7 @@ model Project {
   Task                             Task[]
   VariationOrder                   VariationOrder[]
   ProgressClaim                    ProgressClaim[]
+  Comment                          Comment[]
   SupplierBudgetItem               SupplierBudgetItem[]
   ProjectBudgetSummary             ProjectBudgetSummary?
   BudgetAlert                      BudgetAlert[]
@@ -1103,8 +1096,6 @@ enum RiskLevel {
   LOW
   MEDIUM
   HIGH
-  ProcurementDocuments            ProcurementDocument[]     @relation("SupplierProcurementDocs")
-  ProcurementPORequests           ProcurementPORequest[]    @relation("SupplierPORequests")
 }
 
 model SupplierContract {

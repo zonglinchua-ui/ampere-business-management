@@ -3,6 +3,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { getPortfolioForecast } from '@/lib/budget/forecast'
 import BudgetWorkspace from '@/components/budget/budget-workspace'
 
+export const dynamic = 'force-dynamic'
+
 export default async function BudgetHomePage() {
   const forecasts = await getPortfolioForecast()
 
