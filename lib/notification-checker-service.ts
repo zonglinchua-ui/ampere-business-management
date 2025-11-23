@@ -13,6 +13,7 @@ import {
   sendOutstandingSubmissionNotification
 } from './whatsapp-service'
 import { createSystemLog } from './logger'
+import { notifyExpiringComplianceDocuments } from './suppliers/compliance-alerts'
 
 /**
  * Check for upcoming tender deadlines and send notifications
@@ -410,6 +411,23 @@ export async function checkOutstandingProgressClaims(): Promise<{
   return results
 }
 
+export async function checkComplianceExpiryNotifications(): Promise<{
+  checked: number
+  notified: number
+  errors: string[]
+}> {
+  const result = { checked: 0, notified: 0, errors: [] as string[] }
+  try {
+    const response = await notifyExpiringComplianceDocuments()
+    result.checked = response.count
+    result.notified = response.count
+  } catch (error: any) {
+    console.error('[Notification Checker] Error checking compliance expiries', error)
+    result.errors.push(error.message)
+  }
+  return result
+}
+
 /**
  * Run all notification checks
  */
@@ -418,24 +436,27 @@ export async function runAllNotificationChecks(): Promise<{
   tasks: { checked: number; notified: number; errors: string[] }
   invoices: { checked: number; notified: number; errors: string[] }
   progressClaims: { checked: number; notified: number; errors: string[] }
+  compliance: { checked: number; notified: number; errors: string[] }
   totalNotified: number
   totalErrors: number
 }> {
   console.log('\n🔔 [Notification Checker] Starting notification checks...')
-  
+
   const tenders = await checkTenderDeadlines()
   const tasks = await checkTaskDeadlines()
   const invoices = await checkOutstandingInvoices()
   const progressClaims = await checkOutstandingProgressClaims()
-  
-  const totalNotified = tenders.notified + tasks.notified + invoices.notified + progressClaims.notified
-  const totalErrors = tenders.errors.length + tasks.errors.length + invoices.errors.length + progressClaims.errors.length
+  const compliance = await checkComplianceExpiryNotifications()
+
+  const totalNotified = tenders.notified + tasks.notified + invoices.notified + progressClaims.notified + compliance.notified
+  const totalErrors = tenders.errors.length + tasks.errors.length + invoices.errors.length + progressClaims.errors.length + compliance.errors.length
   
   console.log('\n📊 [Notification Checker] Summary:')
   console.log(`  Tenders: ${tenders.notified}/${tenders.checked} notified`)
   console.log(`  Tasks: ${tasks.notified}/${tasks.checked} notified`)
   console.log(`  Invoices: ${invoices.notified}/${invoices.checked} notified`)
   console.log(`  Progress Claims: ${progressClaims.notified}/${progressClaims.checked} notified`)
+  console.log(`  Compliance: ${compliance.notified}/${compliance.checked} notified`)
   console.log(`  Total: ${totalNotified} notifications sent`)
   if (totalErrors > 0) {
     console.log(`  Errors: ${totalErrors}`)
@@ -447,6 +468,7 @@ export async function runAllNotificationChecks(): Promise<{
     tasks,
     invoices,
     progressClaims,
+    compliance,
     totalNotified,
     totalErrors
   }
