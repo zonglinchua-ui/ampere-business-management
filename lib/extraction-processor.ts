@@ -1,17 +1,39 @@
-import { PrismaClient } from '@prisma/client';
 import { readFile } from 'fs/promises';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { existsSync } from 'fs';
 import sharp from 'sharp';
+import { prisma } from '@/lib/db';
 
 const execAsync = promisify(exec);
-const prisma = new PrismaClient();
 
 const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
 const OLLAMA_VISION_MODEL = 'llama3.2-vision';
 
-interface ExtractedDocumentData {
+const filenameTypeHints: Record<string, string> = {
+  quotation: 'SUPPLIER_QUOTATION',
+  quote: 'SUPPLIER_QUOTATION',
+  invoice: 'SUPPLIER_INVOICE',
+  po: 'SUPPLIER_PO',
+  purchase: 'SUPPLIER_PO',
+};
+
+function detectDocumentTypeFromFilename(fileName: string): string | undefined {
+  const lower = fileName.toLowerCase();
+  if (lower.match(/^quot[\d-]/i) || lower.includes('quot')) return 'SUPPLIER_QUOTATION';
+  if (lower.match(/^inv[\d-]/i)) return 'SUPPLIER_INVOICE';
+  if (lower.match(/^po[\d-]/i)) return 'SUPPLIER_PO';
+  if (lower.match(/^vo[\d-]/i) || lower.includes('variation')) return 'VARIATION_ORDER';
+
+  for (const key of Object.keys(filenameTypeHints)) {
+    if (lower.includes(key)) {
+      return filenameTypeHints[key];
+    }
+  }
+  return undefined;
+}
+
+export interface ExtractedDocumentData {
   documentNumber?: string;
   documentDate?: string;
   supplierName?: string;
@@ -181,26 +203,76 @@ function parseMarkdownResponse(text: string): ExtractedDocumentData {
   return data;
 }
 
-async function extractDocumentData(
+export async function prepareVisionImage(filePath: string, mimeType: string): Promise<string> {
+  let processedPath = filePath;
+
+  if (mimeType.startsWith('image/')) {
+    processedPath = await convertImageToPNG(filePath, mimeType);
+  } else if (mimeType === 'application/pdf') {
+    processedPath = await convertPDFToPNG(filePath);
+  }
+
+  const fileBuffer = await readFile(processedPath);
+  return fileBuffer.toString('base64');
+}
+
+export async function classifyProcurementDocument(
+  filePath: string,
+  mimeType: string,
+  fileName: string,
+  fallbackType: string = 'SUPPLIER_PO'
+): Promise<{ documentType: string; confidence: number }> {
+  const filenameGuess = detectDocumentTypeFromFilename(fileName);
+
+  try {
+    const base64Data = await prepareVisionImage(filePath, mimeType);
+    const prompt = `Classify this procurement document as one of: SUPPLIER_PO, CUSTOMER_PO, SUPPLIER_QUOTATION, SUPPLIER_INVOICE, VARIATION_ORDER.
+Return JSON: {"documentType": "VALUE", "confidence": 0-100}. Favor purchase orders when wording like PO, purchase order, or buyer instructions appear.`;
+
+    const response = await fetch(`${OLLAMA_BASE_URL}/api/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: OLLAMA_VISION_MODEL,
+        prompt,
+        images: [base64Data],
+        stream: false,
+        options: { temperature: 0, top_p: 0.8 }
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Vision classifier failed: ${response.statusText}`);
+    }
+
+    const result = await response.json();
+    const jsonMatch = (result.response as string)?.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      if (parsed.documentType) {
+        return { documentType: parsed.documentType, confidence: parsed.confidence ?? 50 };
+      }
+    }
+  } catch (error) {
+    console.warn('[Classifier] Falling back to filename heuristic:', (error as Error).message);
+  }
+
+  if (filenameGuess) {
+    return { documentType: filenameGuess, confidence: 55 };
+  }
+
+  return { documentType: fallbackType, confidence: 30 };
+}
+
+export async function extractDocumentData(
   filePath: string,
   mimeType: string,
   documentType: string,
-  projectName: string
+  projectName?: string
 ): Promise<{ data: ExtractedDocumentData; confidence: number }> {
   try {
-    let processedPath = filePath;
-    
-    // Convert to PNG
-    if (mimeType.startsWith('image/')) {
-      processedPath = await convertImageToPNG(filePath, mimeType);
-    } else if (mimeType === 'application/pdf') {
-      console.log('Converting PDF to PNG for vision model...');
-      processedPath = await convertPDFToPNG(filePath);
-    }
-    
-    // Read file as base64
-    const fileBuffer = await readFile(processedPath);
-    const base64Data = fileBuffer.toString('base64');
+    const base64Data = await prepareVisionImage(filePath, mimeType);
+    const projectNameForPrompt = projectName || 'Unknown Project';
     
     // Create extraction prompt with project name validation
     let prompt = '';
@@ -230,7 +302,7 @@ async function extractDocumentData(
 }
 
 IMPORTANT: Look carefully for any project name, project reference, or site address mentioned in the document.
-The current project this document is uploaded to is: "${projectName}"
+The current project this document is uploaded to is: "${projectNameForPrompt}"
 
 Only return valid JSON, no additional text.`;
         break;
@@ -272,6 +344,7 @@ Only return valid JSON, no additional text.`;
   "documentNumber": "PO number",
   "documentDate": "date in YYYY-MM-DD format",
   "supplierName": "supplier company name",
+  "customerName": "customer/buyer name if visible",
   "projectName": "project name or reference if mentioned",
   "projectReference": "project reference number if mentioned",
   "totalAmount": numeric value only,
@@ -286,11 +359,12 @@ Only return valid JSON, no additional text.`;
     }
   ],
   "paymentTerms": "payment terms",
+  "dueDate": "delivery or handover date if stated",
   "termsAndConditions": "terms and conditions"
 }
 
 IMPORTANT: Look carefully for any project name, project reference, or site address mentioned in the document.
-The current project this document is uploaded to is: "${projectName}"
+The current project this document is uploaded to is: "${projectNameForPrompt}"
 
 Only return valid JSON, no additional text.`;
         break;
@@ -308,7 +382,7 @@ Only return valid JSON, no additional text.`;
 }
 
 IMPORTANT: Look carefully for any project name, project reference, or site address mentioned in the document.
-The current project this document is uploaded to is: "${projectName}"
+The current project this document is uploaded to is: "${projectNameForPrompt}"
 
 Only return valid JSON, no additional text.`;
     }
