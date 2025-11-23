@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { InvoiceBrandingPreview } from "@/components/invoices/invoice-branding-preview"
 import { 
   Plus, 
   Search, 
@@ -55,6 +56,10 @@ interface Invoice {
   paidDate?: string | null
   notes?: string | null
   termsConditions?: string | null
+  brandingPresetId?: string | null
+  reminderCadence?: "GENTLE" | "FIRM" | "CUSTOM"
+  reminderOffsets?: number[] | null
+  BrandingPreset?: BrandingPreset | null
   createdAt: string
   client: {
     id: string
@@ -65,6 +70,15 @@ interface Invoice {
     id: string
     name: string
   } | null
+}
+
+interface BrandingPreset {
+  id: string
+  name: string
+  logoUrl?: string | null
+  primaryColor?: string | null
+  accentColor?: string | null
+  terms?: string | null
 }
 
 interface Client {
@@ -94,6 +108,19 @@ const invoiceSchema = z.object({
   projectId: z.string().optional(),
   notes: z.string().optional(),
   termsConditions: z.string().optional(),
+  brandingPresetId: z.string().optional(),
+  reminderCadence: z.enum(["GENTLE", "FIRM", "CUSTOM"]).default("GENTLE"),
+  reminderOffsets: z
+    .preprocess(val => {
+      if (Array.isArray(val)) return val
+      if (typeof val === "string") {
+        return val
+          .split(",")
+          .map(part => parseInt(part.trim(), 10))
+          .filter(num => !isNaN(num))
+      }
+      return []
+    }, z.array(z.number().int().nonnegative()).optional()),
 })
 
 type InvoiceFormData = z.infer<typeof invoiceSchema>
@@ -110,6 +137,7 @@ export function InvoicesClient() {
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [clients, setClients] = useState<Client[]>([])
   const [projects, setProjects] = useState<Project[]>([])
+  const [brandingPresets, setBrandingPresets] = useState<BrandingPreset[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("")
@@ -132,8 +160,12 @@ export function InvoicesClient() {
       projectId: "",
       notes: "",
       termsConditions: "",
+      brandingPresetId: "",
+      reminderCadence: "GENTLE",
+      reminderOffsets: [],
     },
   })
+  const selectedBrandingPreset = brandingPresets.find(preset => preset.id === form.watch("brandingPresetId"))
 
   const fetchInvoices = async () => {
     try {
@@ -189,9 +221,25 @@ export function InvoicesClient() {
     }
   }
 
+  const fetchBrandingPresets = async () => {
+    try {
+      const response = await fetch("/api/invoices/branding")
+      if (!response.ok) {
+        throw new Error("Failed to fetch branding presets")
+      }
+
+      const data = await response.json()
+      setBrandingPresets(data.presets || [])
+    } catch (error) {
+      console.error("Error fetching branding presets:", error)
+      toast.error("Failed to load branding presets")
+    }
+  }
+
   useEffect(() => {
     fetchClients()
     fetchProjects()
+    fetchBrandingPresets()
   }, [])
 
   useEffect(() => {
@@ -218,6 +266,9 @@ export function InvoicesClient() {
         projectId: data.projectId || null,
         notes: data.notes || null,
         termsConditions: data.termsConditions || null,
+        brandingPresetId: data.brandingPresetId || null,
+        reminderCadence: data.reminderCadence || "GENTLE",
+        reminderOffsets: data.reminderOffsets && data.reminderOffsets.length ? data.reminderOffsets : [],
       }
 
       const url = editingInvoice ? `/api/invoices/${editingInvoice.id}` : "/api/invoices"
@@ -263,6 +314,9 @@ export function InvoicesClient() {
       projectId: invoice.project?.id || "",
       notes: invoice.notes || "",
       termsConditions: invoice.termsConditions || "",
+      brandingPresetId: invoice.brandingPresetId || "",
+      reminderCadence: invoice.reminderCadence || "GENTLE",
+      reminderOffsets: invoice.reminderOffsets || [],
     })
     setIsDialogOpen(true)
   }
@@ -497,6 +551,65 @@ export function InvoicesClient() {
                   {form.formState.errors.dueDate && (
                     <p className="text-sm text-red-600">{form.formState.errors.dueDate.message}</p>
                   )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="brandingPresetId">Branding preset</Label>
+                  <Select
+                    value={form.watch("brandingPresetId") || ""}
+                    onValueChange={(value) => form.setValue("brandingPresetId", value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select preset" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Default branding</SelectItem>
+                      {brandingPresets.map((preset) => (
+                        <SelectItem key={preset.id} value={preset.id}>
+                          {preset.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <InvoiceBrandingPreview
+                    preset={selectedBrandingPreset}
+                    title={form.watch("title") || "Invoice"}
+                    customerName={clients.find(c => c.id === form.watch("clientId"))?.name || "Customer"}
+                    totalAmount={(Number(form.watch("amount")) || 0) + (Number(form.watch("tax")) || 0)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="reminderCadence">Reminder cadence</Label>
+                  <Select
+                    value={form.watch("reminderCadence")}
+                    onValueChange={(value) => form.setValue("reminderCadence", value as any)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="GENTLE">Gentle (3, 7, 14 days)</SelectItem>
+                      <SelectItem value="FIRM">Firm (1, 3, 7, 14 days)</SelectItem>
+                      <SelectItem value="CUSTOM">Custom cadence</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Label className="text-xs text-muted-foreground" htmlFor="reminderOffsets">
+                    Custom offsets (comma separated days after due date)
+                  </Label>
+                  <Input
+                    id="reminderOffsets"
+                    placeholder="e.g. 2, 5, 10"
+                    value={(form.watch("reminderOffsets") || []).join(", ")}
+                    onChange={(event) => {
+                      const value = event.target.value
+                        .split(',')
+                        .map(part => parseInt(part.trim(), 10))
+                        .filter(num => !isNaN(num))
+                      form.setValue("reminderOffsets", value)
+                    }}
+                  />
                 </div>
               </div>
 

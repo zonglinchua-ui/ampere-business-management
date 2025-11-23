@@ -1,11 +1,11 @@
 generator client {
-    provider = "prisma-client-js"
-    binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x"]
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x"]
 }
 
 datasource db {
-    provider = "postgresql"
-    url      = env("DATABASE_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model Account {
@@ -62,33 +62,33 @@ model BudgetCategory {
 }
 
 model Customer {
-  id                              String               @id
+  id                              String                  @id
   name                            String
   email                           String?
   phone                           String?
   address                         String?
   city                            String?
   state                           String?
-  country                         String               @default("Singapore")
+  country                         String                  @default("Singapore")
   postalCode                      String?
   contactPerson                   String?
   companyReg                      String?
   website                         String?
   notes                           String?
-  customerType                    CustomerType         @default(ENTERPRISE)
+  customerType                    CustomerType            @default(ENTERPRISE)
   bankName                        String?
   bankAccountNumber               String?
   bankAccountName                 String?
   bankSwiftCode                   String?
   bankAddress                     String?
-  isActive                        Boolean              @default(true)
-  createdAt                       DateTime             @default(now())
+  isActive                        Boolean                 @default(true)
+  createdAt                       DateTime                @default(now())
   updatedAt                       DateTime
   createdById                     String
-  customerNumber                  String?              @unique
-  isXeroSynced                    Boolean              @default(false)
+  customerNumber                  String?                 @unique
+  isXeroSynced                    Boolean                 @default(false)
   lastXeroSync                    DateTime?
-  xeroContactId                   String?              @unique
+  xeroContactId                   String?                 @unique
   xeroAccountNumber               String?
   xeroAccountsPayableTaxType      String?
   xeroAccountsReceivableTaxType   String?
@@ -106,7 +106,7 @@ model Customer {
   primaryFirstName                String?
   primaryLastName                 String?
   primaryEmail                    String?
-  phoneCountry                    String?              @default("+65")
+  phoneCountry                    String?                 @default("+65")
   phoneArea                       String?
   phoneNumber                     String?
   internalNotes                   String?
@@ -117,7 +117,7 @@ model Customer {
   billingCity                     String?
   billingState                    String?
   billingPostcode                 String?
-  billingCountry                  String?              @default("Singapore")
+  billingCountry                  String?                 @default("Singapore")
   deliveryAddressLine1            String?
   deliveryAddressLine2            String?
   deliveryAddressLine3            String?
@@ -125,24 +125,24 @@ model Customer {
   deliveryCity                    String?
   deliveryState                   String?
   deliveryPostcode                String?
-  deliveryCountry                 String?              @default("Singapore")
+  deliveryCountry                 String?                 @default("Singapore")
   financialDetailsNote            String?
   taxId                           String?
-  currency                        String?              @default("SGD")
+  currency                        String?                 @default("SGD")
   salesAccountId                  String?
-  invoiceDue                      String?              @default("of_following_month")
-  amountSetting                   String?              @default("use_org_settings")
-  salesTaxSetting                 String?              @default("OUTPUT2")
-  discountRate                    Decimal?             @default(0) @db.Decimal(5, 2)
-  creditLimit                     Decimal?             @db.Decimal(15, 2)
-  blockInvoiceOverlimit           Boolean              @default(false)
+  invoiceDue                      String?                 @default("of_following_month")
+  amountSetting                   String?                 @default("use_org_settings")
+  salesTaxSetting                 String?                 @default("OUTPUT2")
+  discountRate                    Decimal?                @default(0) @db.Decimal(5, 2)
+  creditLimit                     Decimal?                @db.Decimal(15, 2)
+  blockInvoiceOverlimit           Boolean                 @default(false)
   brandingTheme                   String?
   xeroNetworkKey                  String?
   defaultCurrency                 String?
   emailAddress                    String?
   fax                             String?
   firstName                       String?
-  isCustomer                      Boolean?             @default(true)
+  isCustomer                      Boolean?                @default(true)
   isSupplier                      Boolean?
   lastName                        String?
   mailingAttention                String?
@@ -169,11 +169,16 @@ model Customer {
   streetRegion                    String?
   taxNumber                       String?
   xeroUpdatedDateUtc              String?
-  isDeleted                       Boolean              @default(false) @map("is_deleted")
-  deletedAt                       DateTime?            @map("deleted_at")
-  deletedBy                       String?              @map("deleted_by")
-  User_Customer_createdByIdToUser User                 @relation("Customer_createdByIdToUser", fields: [createdById], references: [id])
-  User_Customer_deletedByToUser   User?                @relation("Customer_deletedByToUser", fields: [deletedBy], references: [id])
+  isDeleted                       Boolean                 @default(false) @map("is_deleted")
+  deletedAt                       DateTime?               @map("deleted_at")
+  deletedBy                       String?                 @map("deleted_by")
+  brandingPresetId                String?
+  reminderCadence                 InvoiceReminderCadence? @default(GENTLE)
+  reminderOffsets                 Int[]                   @default([])
+  lastReminderSentAt              DateTime?
+  User_Customer_createdByIdToUser User                    @relation("Customer_createdByIdToUser", fields: [createdById], references: [id])
+  User_Customer_deletedByToUser   User?                   @relation("Customer_deletedByToUser", fields: [deletedBy], references: [id])
+  BrandingPreset                  InvoiceBrandingPreset?  @relation(fields: [brandingPresetId], references: [id])
   CustomerInvoice                 CustomerInvoice[]
   LegacyInvoice                   LegacyInvoice[]
   Payment                         Payment[]
@@ -216,6 +221,14 @@ model CustomerInvoice {
   amountPaid             Decimal?              @db.Decimal(15, 2)
   xeroType               String?
   isProgressClaimInvoice Boolean?              @default(false)
+  User                   User                  @relation(fields: [createdById], references: [id])
+  Customer               Customer              @relation(fields: [customerId], references: [id])
+  Project                Project?              @relation(fields: [projectId], references: [id])
+  Quotation              Quotation?            @relation(fields: [quotationId], references: [id])
+  CustomerInvoiceItem    CustomerInvoiceItem[]
+  Document               Document[]
+  Payment                Payment[]
+  ProgressClaim          ProgressClaim[]
   User                User                  @relation(fields: [createdById], references: [id])
   Customer            Customer              @relation(fields: [customerId], references: [id])
   Project             Project?              @relation(fields: [projectId], references: [id])
@@ -224,6 +237,7 @@ model CustomerInvoice {
   Document            Document[]
   Payment             Payment[]
   ProgressClaim       ProgressClaim[]
+  Comment             Comment[]
 }
 
 model CustomerInvoiceItem {
@@ -278,23 +292,47 @@ model Document {
 }
 
 model LegacyInvoice {
-  id            String        @id
-  invoiceNumber String        @unique
-  projectId     String
-  customerId    String
-  amount        Decimal       @db.Decimal(15, 2)
-  taxAmount     Decimal?      @db.Decimal(15, 2)
-  totalAmount   Decimal       @db.Decimal(15, 2)
-  status        InvoiceStatus @default(DRAFT)
-  issueDate     DateTime
-  dueDate       DateTime
-  description   String?
-  createdById   String
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime
-  User          User          @relation(fields: [createdById], references: [id])
-  Customer      Customer      @relation(fields: [customerId], references: [id])
-  Project       Project       @relation(fields: [projectId], references: [id])
+  id                 String                  @id
+  invoiceNumber      String                  @unique
+  projectId          String
+  customerId         String
+  amount             Decimal                 @db.Decimal(15, 2)
+  taxAmount          Decimal?                @db.Decimal(15, 2)
+  totalAmount        Decimal                 @db.Decimal(15, 2)
+  status             InvoiceStatus           @default(DRAFT)
+  issueDate          DateTime
+  dueDate            DateTime
+  description        String?
+  createdById        String
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime
+  brandingPresetId   String?
+  reminderCadence    InvoiceReminderCadence? @default(GENTLE)
+  reminderOffsets    Int[]                   @default([])
+  lastReminderSentAt DateTime?
+  User               User                    @relation(fields: [createdById], references: [id])
+  Customer           Customer                @relation(fields: [customerId], references: [id])
+  Project            Project                 @relation(fields: [projectId], references: [id])
+  BrandingPreset     InvoiceBrandingPreset?  @relation(fields: [brandingPresetId], references: [id])
+}
+
+model InvoiceBrandingPreset {
+  id           String          @id @default(cuid())
+  name         String
+  logoUrl      String?
+  primaryColor String?
+  accentColor  String?
+  terms        String?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  Customers    Customer[]
+  Invoices     LegacyInvoice[]
+}
+
+enum InvoiceReminderCadence {
+  GENTLE
+  FIRM
+  CUSTOM
 }
 
 model Payment {
@@ -331,46 +369,46 @@ model Payment {
 }
 
 model Project {
-  id                               String               @id
-  projectNumber                    String               @unique
+  id                               String                 @id
+  projectNumber                    String                 @unique
   name                             String
   description                      String?
-  projectType                      ProjectType          @default(REGULAR)
+  projectType                      ProjectType            @default(REGULAR)
   workType                         ProjectWorkType?
-  status                           ProjectStatus        @default(PLANNING)
-  priority                         Priority             @default(MEDIUM)
+  status                           ProjectStatus          @default(PLANNING)
+  priority                         Priority               @default(MEDIUM)
   startDate                        DateTime?
   endDate                          DateTime?
-  estimatedBudget                  Decimal?             @db.Decimal(15, 2)
-  actualCost                       Decimal?             @db.Decimal(15, 2)
-  progress                         Int                  @default(0)
+  estimatedBudget                  Decimal?               @db.Decimal(15, 2)
+  actualCost                       Decimal?               @db.Decimal(15, 2)
+  progress                         Int                    @default(0)
   customerId                       String
   managerId                        String?
   createdById                      String
-  isActive                         Boolean              @default(true)
-  createdAt                        DateTime             @default(now())
+  isActive                         Boolean                @default(true)
+  createdAt                        DateTime               @default(now())
   updatedAt                        DateTime
   salespersonId                    String?
-  contractValue                    Decimal?             @db.Decimal(15, 2)
-  contractValueBeforeTax           Decimal?             @db.Decimal(15, 2)
-  contractTaxAmount                Decimal?             @db.Decimal(15, 2)
+  contractValue                    Decimal?               @db.Decimal(15, 2)
+  contractValueBeforeTax           Decimal?               @db.Decimal(15, 2)
+  contractTaxAmount                Decimal?               @db.Decimal(15, 2)
   contractDocumentPath             String?
   contractDocumentName             String?
   address                          String?
   latitude                         Float?
   longitude                        Float?
   city                             String?
-  country                          String?              @default("Singapore")
+  country                          String?                @default("Singapore")
   postalCode                       String?
   BcaProjectForm                   BcaProjectForm[]
   CustomerInvoice                  CustomerInvoice[]
   Document                         Document[]
   InvoiceMetadata                  InvoiceMetadata[]
   LegacyInvoice                    LegacyInvoice[]
-  User_Project_createdByIdToUser   User                 @relation("Project_createdByIdToUser", fields: [createdById], references: [id])
-  Customer                         Customer             @relation(fields: [customerId], references: [id])
-  User_Project_managerIdToUser     User?                @relation("Project_managerIdToUser", fields: [managerId], references: [id])
-  User_Project_salespersonIdToUser User?                @relation("Project_salespersonIdToUser", fields: [salespersonId], references: [id])
+  User_Project_createdByIdToUser   User                   @relation("Project_createdByIdToUser", fields: [createdById], references: [id])
+  Customer                         Customer               @relation(fields: [customerId], references: [id])
+  User_Project_managerIdToUser     User?                  @relation("Project_managerIdToUser", fields: [managerId], references: [id])
+  User_Project_salespersonIdToUser User?                  @relation("Project_salespersonIdToUser", fields: [salespersonId], references: [id])
   CompanyReference                 CompanyReference[]
   ProjectBudget                    ProjectBudget[]
   ProjectDocument                  ProjectDocument[]
@@ -389,28 +427,28 @@ model Project {
   SupplierBudgetItem               SupplierBudgetItem[]
   ProjectBudgetSummary             ProjectBudgetSummary?
   BudgetAlert                      BudgetAlert[]
-  ProcurementDocuments             ProcurementDocument[]   @relation("ProcurementDocuments")
-  ProcurementPORequests            ProcurementPORequest[]  @relation("ProjectPORequests")
+  ProcurementDocuments             ProcurementDocument[]  @relation("ProcurementDocuments")
+  ProcurementPORequests            ProcurementPORequest[] @relation("ProjectPORequests")
 }
 
 model ProjectBudget {
-  id                       String                @id
-  projectId                String
-  category                 ProjectBudgetCategory @default(GENERAL)
-  budgetedAmount           Decimal               @db.Decimal(15, 2)
-  budgetedAmountBeforeTax  Decimal?              @db.Decimal(15, 2)
-  budgetedTaxAmount        Decimal?              @db.Decimal(15, 2)
-  actualAmount             Decimal               @default(0) @db.Decimal(15, 2)
-  actualAmountBeforeTax    Decimal?              @db.Decimal(15, 2)
-  actualTaxAmount          Decimal?              @db.Decimal(15, 2)
-  description              String?
-  createdById              String
-  createdAt                DateTime              @default(now())
-  updatedAt                DateTime
-  customCategoryId         String?
-  User                     User                  @relation(fields: [createdById], references: [id])
-  BudgetCategory           BudgetCategory?       @relation(fields: [customCategoryId], references: [id])
-  Project                  Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  id                      String                @id
+  projectId               String
+  category                ProjectBudgetCategory @default(GENERAL)
+  budgetedAmount          Decimal               @db.Decimal(15, 2)
+  budgetedAmountBeforeTax Decimal?              @db.Decimal(15, 2)
+  budgetedTaxAmount       Decimal?              @db.Decimal(15, 2)
+  actualAmount            Decimal               @default(0) @db.Decimal(15, 2)
+  actualAmountBeforeTax   Decimal?              @db.Decimal(15, 2)
+  actualTaxAmount         Decimal?              @db.Decimal(15, 2)
+  description             String?
+  createdById             String
+  createdAt               DateTime              @default(now())
+  updatedAt               DateTime
+  customCategoryId        String?
+  User                    User                  @relation(fields: [createdById], references: [id])
+  BudgetCategory          BudgetCategory?       @relation(fields: [customCategoryId], references: [id])
+  Project                 Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@unique([projectId, category, customCategoryId])
 }
@@ -588,6 +626,7 @@ model PurchaseOrder {
   PurchaseOrderItem                     PurchaseOrderItem[]
   SupplierInvoice                       SupplierInvoice[]
   SupplierBudgetItem                    SupplierBudgetItem[]
+  Comment                               Comment[]
 }
 
 model PurchaseOrderActivity {
@@ -796,29 +835,29 @@ model VariationOrder {
 }
 
 model ServiceContract {
-  id                                    String                    @id @default(cuid())
-  contractNo                            String                    @unique
-  customerId                            String
-  projectId                             String?
-  managerId                             String?
-  serviceType                           ServiceType
-  frequency                             ServiceFrequency
-  startDate                             DateTime
-  endDate                               DateTime
-  contractValue                         Decimal?                  @db.Decimal(15, 2)
-  filePath                              String?
-  createdById                           String
-  createdAt                             DateTime                  @default(now())
-  updatedAt                             DateTime                  @updatedAt
-  title                                 String
-  status                                ServiceContractStatus     @default(Active)
-  User_ServiceContract_createdByIdToUser User                     @relation("ServiceContractCreator", fields: [createdById], references: [id])
-  User_ServiceContract_managerIdToUser  User?                     @relation("ServiceContractManager", fields: [managerId], references: [id])
-  Customer                              Customer                  @relation(fields: [customerId], references: [id])
-  Project                               Project?                  @relation(fields: [projectId], references: [id])
-  ServiceContractSupplier               ServiceContractSupplier[]
-  ServiceJob                            ServiceJob[]
-  ServiceNotification                   ServiceNotification[]
+  id                                     String                    @id @default(cuid())
+  contractNo                             String                    @unique
+  customerId                             String
+  projectId                              String?
+  managerId                              String?
+  serviceType                            ServiceType
+  frequency                              ServiceFrequency
+  startDate                              DateTime
+  endDate                                DateTime
+  contractValue                          Decimal?                  @db.Decimal(15, 2)
+  filePath                               String?
+  createdById                            String
+  createdAt                              DateTime                  @default(now())
+  updatedAt                              DateTime                  @updatedAt
+  title                                  String
+  status                                 ServiceContractStatus     @default(Active)
+  User_ServiceContract_createdByIdToUser User                      @relation("ServiceContractCreator", fields: [createdById], references: [id])
+  User_ServiceContract_managerIdToUser   User?                     @relation("ServiceContractManager", fields: [managerId], references: [id])
+  Customer                               Customer                  @relation(fields: [customerId], references: [id])
+  Project                                Project?                  @relation(fields: [projectId], references: [id])
+  ServiceContractSupplier                ServiceContractSupplier[]
+  ServiceJob                             ServiceJob[]
+  ServiceNotification                    ServiceNotification[]
 }
 
 model ServiceContractSupplier {
@@ -874,15 +913,15 @@ model ServiceJob {
 }
 
 model ServiceJobSheet {
-  id                      String     @id
-  jobId                   String
-  jobSheetNumber          String?    @unique // Global running number: CS-25-10-XXXX
-  filePath                String     // Generated job sheet
-  endorsedFilePath        String?    // Customer-endorsed job sheet (uploaded)
-  endorsedUploadedAt      DateTime?  // When the endorsed document was uploaded
-  clientSignature         String?
-  generatedAt             DateTime   @default(now())
-  ServiceJob              ServiceJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  id                 String     @id
+  jobId              String
+  jobSheetNumber     String?    @unique // Global running number: CS-25-10-XXXX
+  filePath           String // Generated job sheet
+  endorsedFilePath   String? // Customer-endorsed job sheet (uploaded)
+  endorsedUploadedAt DateTime? // When the endorsed document was uploaded
+  clientSignature    String?
+  generatedAt        DateTime   @default(now())
+  ServiceJob         ServiceJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
 }
 
 model Session {
@@ -1064,6 +1103,8 @@ enum RiskLevel {
   LOW
   MEDIUM
   HIGH
+  ProcurementDocuments            ProcurementDocument[]     @relation("SupplierProcurementDocs")
+  ProcurementPORequests           ProcurementPORequest[]    @relation("SupplierPORequests")
 }
 
 model SupplierContract {
@@ -1261,6 +1302,38 @@ model TaskNotification {
   User      User             @relation(fields: [userId], references: [id])
 }
 
+model Comment {
+  id               String             @id @default(cuid())
+  entityType       CommentEntityType
+  invoiceId        String?
+  purchaseOrderId  String?
+  projectId        String?
+  content          String
+  createdById      String
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  createdBy        User              @relation(fields: [createdById], references: [id])
+  Invoice          CustomerInvoice?  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  PurchaseOrder    PurchaseOrder?    @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  Project          Project?          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  CommentMention   CommentMention[]
+
+  @@index([entityType, invoiceId])
+  @@index([entityType, purchaseOrderId])
+  @@index([entityType, projectId])
+}
+
+model CommentMention {
+  id         String   @id @default(cuid())
+  commentId  String
+  userId     String
+  createdAt  DateTime @default(now())
+  Comment    Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  User       User     @relation(fields: [userId], references: [id])
+
+  @@unique([commentId, userId])
+}
+
 model ProjectNotification {
   id          String           @id
   projectId   String
@@ -1283,20 +1356,20 @@ model ProjectNotification {
 }
 
 model ServiceNotification {
-  id          String           @id
-  contractId  String
-  userId      String
-  type        NotificationType
-  message     String
-  metadata    Json?
-  isRead      Boolean          @default(false)
-  isDismissed Boolean          @default(false)
-  readAt      DateTime?
-  dismissedAt DateTime?
-  sentAt      DateTime?
-  createdAt   DateTime         @default(now())
-  ServiceContract ServiceContract @relation(fields: [contractId], references: [id], onDelete: Cascade)
-  User        User             @relation(fields: [userId], references: [id])
+  id              String           @id
+  contractId      String
+  userId          String
+  type            NotificationType
+  message         String
+  metadata        Json?
+  isRead          Boolean          @default(false)
+  isDismissed     Boolean          @default(false)
+  readAt          DateTime?
+  dismissedAt     DateTime?
+  sentAt          DateTime?
+  createdAt       DateTime         @default(now())
+  ServiceContract ServiceContract  @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  User            User             @relation(fields: [userId], references: [id])
 
   @@index([contractId])
   @@index([userId])
@@ -1424,6 +1497,7 @@ model User {
   TaskAttachment                                            TaskAttachment[]
   TaskComment                                               TaskComment[]
   TaskNotification                                          TaskNotification[]
+  TableViews                                                TableView[]
   ProjectNotification                                       ProjectNotification[]
   ServiceNotification                                       ServiceNotification[]
   Tender_Tender_assignedToIdToUser                          Tender[]                      @relation("Tender_assignedToIdToUser")
@@ -1447,6 +1521,23 @@ model User {
   PORequestsCreated                                         ProcurementPORequest[]        @relation("PORequestedBy")
   PORequestsApproved                                        ProcurementPORequest[]        @relation("POApprovedBy")
   ProcurementApprovalsGiven                                 ProcurementApprovalHistory[]  @relation("ProcurementApprover")
+  Comment                                                   Comment[]
+  CommentMention                                            CommentMention[]
+}
+
+model TableView {
+  id               String   @id @default(cuid())
+  tableId          String
+  name             String
+  columnVisibility Json
+  isDefault        Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  userId           String
+  User             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tableId, name])
+  @@index([userId, tableId])
 }
 
 model VerificationToken {
@@ -1908,6 +1999,12 @@ enum NotificationType {
   PROJECT_MILESTONE_REACHED
 }
 
+enum CommentEntityType {
+  INVOICE
+  PURCHASE_ORDER
+  PROJECT_BUDGET
+}
+
 enum PaymentMethod {
   CASH
   BANK_TRANSFER
@@ -2310,123 +2407,123 @@ enum BcaExportType {
 }
 
 model CompanyProfile {
-  id                          String             @id
-  companyName                 String
-  registrationNumber          String?
-  businessType                String?
-  yearEstablished             Int?
-  address                     String?
-  city                        String?
-  state                       String?
-  country                     String             @default("Singapore")
-  postalCode                  String?
-  phone                       String?
-  fax                         String?
-  email                       String?
-  website                     String?
-  introduction                String?            @db.Text
-  vision                      String?            @db.Text
-  mission                     String?            @db.Text
-  coreValues                  String?            @db.Text
-  logoPath                    String?
-  organizationChartPath       String?
-  qaqcDocumentPath            String?
-  certifications              String?            @db.Text
-  accreditations              String?            @db.Text
-  keyPersonnel                String?            @db.Text
-  technicalCapabilities       String?            @db.Text
-  equipment                   String?            @db.Text
-  safetyRecords               String?            @db.Text
-  isActive                    Boolean            @default(true)
-  createdAt                   DateTime           @default(now())
-  updatedAt                   DateTime
-  createdById                 String
-  User                        User               @relation(fields: [createdById], references: [id])
-  CompanyReference            CompanyReference[]
+  id                    String             @id
+  companyName           String
+  registrationNumber    String?
+  businessType          String?
+  yearEstablished       Int?
+  address               String?
+  city                  String?
+  state                 String?
+  country               String             @default("Singapore")
+  postalCode            String?
+  phone                 String?
+  fax                   String?
+  email                 String?
+  website               String?
+  introduction          String?            @db.Text
+  vision                String?            @db.Text
+  mission               String?            @db.Text
+  coreValues            String?            @db.Text
+  logoPath              String?
+  organizationChartPath String?
+  qaqcDocumentPath      String?
+  certifications        String?            @db.Text
+  accreditations        String?            @db.Text
+  keyPersonnel          String?            @db.Text
+  technicalCapabilities String?            @db.Text
+  equipment             String?            @db.Text
+  safetyRecords         String?            @db.Text
+  isActive              Boolean            @default(true)
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime
+  createdById           String
+  User                  User               @relation(fields: [createdById], references: [id])
+  CompanyReference      CompanyReference[]
 }
 
 model CompanyReference {
-  id                String         @id
-  companyProfileId  String
-  projectId         String
-  achievements      String?        @db.Text
-  highlights        String?        @db.Text
-  customNotes       String?        @db.Text
-  isFeatured        Boolean        @default(false)
-  displayOrder      Int            @default(0)
-  includeInProfile  Boolean        @default(true)
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime
-  Project           Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  CompanyProfile    CompanyProfile @relation(fields: [companyProfileId], references: [id], onDelete: Cascade)
+  id               String         @id
+  companyProfileId String
+  projectId        String
+  achievements     String?        @db.Text
+  highlights       String?        @db.Text
+  customNotes      String?        @db.Text
+  isFeatured       Boolean        @default(false)
+  displayOrder     Int            @default(0)
+  includeInProfile Boolean        @default(true)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime
+  Project          Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  CompanyProfile   CompanyProfile @relation(fields: [companyProfileId], references: [id], onDelete: Cascade)
 
   @@unique([companyProfileId, projectId])
 }
 
 model ProgressClaim {
-  id                   String              @id
-  claimNumber          String              @unique
-  projectId            String
-  quotationId          String?
-  tenderId             String?
-  claimDate            DateTime            @default(now())
-  status               ProgressClaimStatus @default(DRAFT)
-  claimTitle           String
-  description          String?
-  previousClaimedAmount Decimal            @default(0) @db.Decimal(15, 2)
-  currentClaimAmount   Decimal             @default(0) @db.Decimal(15, 2)
-  cumulativeAmount     Decimal             @default(0) @db.Decimal(15, 2)
-  retentionPercentage  Decimal?            @default(0) @db.Decimal(5, 2)
-  retentionAmount      Decimal?            @default(0) @db.Decimal(15, 2)
-  gstRate              Decimal?            @default(9) @db.Decimal(5, 2)
-  gstAmount            Decimal?            @default(0) @db.Decimal(15, 2)
-  subTotal             Decimal?            @default(0) @db.Decimal(15, 2)
-  netClaimAmount       Decimal             @default(0) @db.Decimal(15, 2)
-  submittedToClientAt  DateTime?
-  approvedByClientAt   DateTime?
-  rejectedByClientAt   DateTime?
-  approvalNotes        String?
-  rejectionReason      String?
-  customerApprovedAmount Decimal?          @db.Decimal(15, 2)
-  customerApprovedDocumentUrl String?
+  id                           String              @id
+  claimNumber                  String              @unique
+  projectId                    String
+  quotationId                  String?
+  tenderId                     String?
+  claimDate                    DateTime            @default(now())
+  status                       ProgressClaimStatus @default(DRAFT)
+  claimTitle                   String
+  description                  String?
+  previousClaimedAmount        Decimal             @default(0) @db.Decimal(15, 2)
+  currentClaimAmount           Decimal             @default(0) @db.Decimal(15, 2)
+  cumulativeAmount             Decimal             @default(0) @db.Decimal(15, 2)
+  retentionPercentage          Decimal?            @default(0) @db.Decimal(5, 2)
+  retentionAmount              Decimal?            @default(0) @db.Decimal(15, 2)
+  gstRate                      Decimal?            @default(9) @db.Decimal(5, 2)
+  gstAmount                    Decimal?            @default(0) @db.Decimal(15, 2)
+  subTotal                     Decimal?            @default(0) @db.Decimal(15, 2)
+  netClaimAmount               Decimal             @default(0) @db.Decimal(15, 2)
+  submittedToClientAt          DateTime?
+  approvedByClientAt           DateTime?
+  rejectedByClientAt           DateTime?
+  approvalNotes                String?
+  rejectionReason              String?
+  customerApprovedAmount       Decimal?            @db.Decimal(15, 2)
+  customerApprovedDocumentUrl  String?
   customerApprovedDocumentName String?
-  invoiceId            String?
-  invoicedAt           DateTime?
-  createdById          String
-  approvedByClientUserId String?
-  createdAt            DateTime            @default(now())
-  updatedAt            DateTime
-  Project              Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  Quotation            Quotation?          @relation(fields: [quotationId], references: [id], onDelete: SetNull)
-  Tender               Tender?             @relation(fields: [tenderId], references: [id], onDelete: SetNull)
-  CreatedBy            User                @relation("ProgressClaimCreatedBy", fields: [createdById], references: [id])
-  ApprovedByClient     User?               @relation("ProgressClaimApprovedBy", fields: [approvedByClientUserId], references: [id])
-  CustomerInvoice      CustomerInvoice?    @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
-  items                ProgressClaimItem[]
+  invoiceId                    String?
+  invoicedAt                   DateTime?
+  createdById                  String
+  approvedByClientUserId       String?
+  createdAt                    DateTime            @default(now())
+  updatedAt                    DateTime
+  Project                      Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  Quotation                    Quotation?          @relation(fields: [quotationId], references: [id], onDelete: SetNull)
+  Tender                       Tender?             @relation(fields: [tenderId], references: [id], onDelete: SetNull)
+  CreatedBy                    User                @relation("ProgressClaimCreatedBy", fields: [createdById], references: [id])
+  ApprovedByClient             User?               @relation("ProgressClaimApprovedBy", fields: [approvedByClientUserId], references: [id])
+  CustomerInvoice              CustomerInvoice?    @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  items                        ProgressClaimItem[]
 }
 
 model ProgressClaimItem {
-  id                   String         @id
-  progressClaimId      String
-  itemNumber           Int            @default(0)
-  description          String
-  unit                 String         @default("pcs")
-  unitRate             Decimal        @db.Decimal(15, 2)
-  totalQuantity        Decimal        @db.Decimal(10, 2)
-  totalAmount          Decimal        @db.Decimal(15, 2)
-  previousClaimedQty   Decimal        @default(0) @db.Decimal(10, 2)
-  previousClaimedPct   Decimal        @default(0) @db.Decimal(5, 2)
+  id                    String        @id
+  progressClaimId       String
+  itemNumber            Int           @default(0)
+  description           String
+  unit                  String        @default("pcs")
+  unitRate              Decimal       @db.Decimal(15, 2)
+  totalQuantity         Decimal       @db.Decimal(10, 2)
+  totalAmount           Decimal       @db.Decimal(15, 2)
+  previousClaimedQty    Decimal       @default(0) @db.Decimal(10, 2)
+  previousClaimedPct    Decimal       @default(0) @db.Decimal(5, 2)
   previousClaimedAmount Decimal       @default(0) @db.Decimal(15, 2)
-  currentClaimQty      Decimal        @default(0) @db.Decimal(10, 2)
-  currentClaimPct      Decimal        @default(0) @db.Decimal(5, 2)
-  currentClaimAmount   Decimal        @default(0) @db.Decimal(15, 2)
-  cumulativeQty        Decimal        @default(0) @db.Decimal(10, 2)
-  cumulativePct        Decimal        @default(0) @db.Decimal(5, 2)
-  cumulativeAmount     Decimal        @default(0) @db.Decimal(15, 2)
-  notes                String?
-  createdAt            DateTime       @default(now())
-  updatedAt            DateTime
-  ProgressClaim        ProgressClaim  @relation(fields: [progressClaimId], references: [id], onDelete: Cascade)
+  currentClaimQty       Decimal       @default(0) @db.Decimal(10, 2)
+  currentClaimPct       Decimal       @default(0) @db.Decimal(5, 2)
+  currentClaimAmount    Decimal       @default(0) @db.Decimal(15, 2)
+  cumulativeQty         Decimal       @default(0) @db.Decimal(10, 2)
+  cumulativePct         Decimal       @default(0) @db.Decimal(5, 2)
+  cumulativeAmount      Decimal       @default(0) @db.Decimal(15, 2)
+  notes                 String?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime
+  ProgressClaim         ProgressClaim @relation(fields: [progressClaimId], references: [id], onDelete: Cascade)
 }
 
 enum ProgressClaimStatus {
@@ -2440,61 +2537,61 @@ enum ProgressClaimStatus {
 
 // WhatsApp Alerts Settings
 model WhatsAppAlertSettings {
-  id                String   @id @default(cuid())
-  alertType         String   @unique
-  enabled           Boolean  @default(true)
-  timingConfig      Json?
-  recipientConfig   Json?
-  thresholdConfig   Json?
-  messageTemplate   String   @db.Text
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  
+  id              String   @id @default(cuid())
+  alertType       String   @unique
+  enabled         Boolean  @default(true)
+  timingConfig    Json?
+  recipientConfig Json?
+  thresholdConfig Json?
+  messageTemplate String   @db.Text
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
   @@index([alertType])
   @@index([enabled])
 }
 
 model WhatsAppRoleRecipients {
-  id            String   @id @default(cuid())
-  roleName      String   @unique
-  phoneNumbers  String[]
-  enabled       Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
+  id           String   @id @default(cuid())
+  roleName     String   @unique
+  phoneNumbers String[]
+  enabled      Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
   @@index([roleName])
 }
 
 model WhatsAppGlobalSettings {
-  id                  String   @id @default(cuid())
-  quietHoursStart     String?
-  quietHoursEnd       String?
-  defaultCountryCode  String   @default("+65")
-  maxMessagesPerHour  Int      @default(100)
-  testMode            Boolean  @default(false)
-  testPhoneNumber     String?
-  wahaApiUrl          String?
-  wahaApiKey          String?
-  wahaSession         String   @default("default")
-  enabled             Boolean  @default(true)
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  id                 String   @id @default(cuid())
+  quietHoursStart    String?
+  quietHoursEnd      String?
+  defaultCountryCode String   @default("+65")
+  maxMessagesPerHour Int      @default(100)
+  testMode           Boolean  @default(false)
+  testPhoneNumber    String?
+  wahaApiUrl         String?
+  wahaApiKey         String?
+  wahaSession        String   @default("default")
+  enabled            Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 }
 
 model WhatsAppNotificationLog {
-  id              String                      @id @default(cuid())
-  alertType       String
-  recipientPhone  String
-  recipientName   String?
-  recipientRole   String?
-  message         String                      @db.Text
-  status          WhatsAppNotificationStatus  @default(QUEUED)
-  errorMessage    String?                     @db.Text
-  sentAt          DateTime?
-  retryCount      Int                         @default(0)
-  metadata        Json?
-  createdAt       DateTime                    @default(now())
-  
+  id             String                     @id @default(cuid())
+  alertType      String
+  recipientPhone String
+  recipientName  String?
+  recipientRole  String?
+  message        String                     @db.Text
+  status         WhatsAppNotificationStatus @default(QUEUED)
+  errorMessage   String?                    @db.Text
+  sentAt         DateTime?
+  retryCount     Int                        @default(0)
+  metadata       Json?
+  createdAt      DateTime                   @default(now())
+
   @@index([alertType])
   @@index([status])
   @@index([recipientPhone])
@@ -2513,69 +2610,69 @@ enum WhatsAppNotificationStatus {
 // ============================================
 
 model SupplierBudgetItem {
-  id                    String                 @id @default(cuid())
-  projectId             String
-  
+  id        String @id @default(cuid())
+  projectId String
+
   // Supplier information
-  supplierId            String
-  supplierName          String
-  tradeType             String
-  description           String?
-  
+  supplierId   String
+  supplierName String
+  tradeType    String
+  description  String?
+
   // Budget amounts
-  quotedAmount          Decimal                @db.Decimal(15, 2)
-  quotedAmountBeforeTax Decimal?               @db.Decimal(15, 2)
-  quotedTaxAmount       Decimal?               @db.Decimal(15, 2)
-  
+  quotedAmount          Decimal  @db.Decimal(15, 2)
+  quotedAmountBeforeTax Decimal? @db.Decimal(15, 2)
+  quotedTaxAmount       Decimal? @db.Decimal(15, 2)
+
   // Actual costs
-  actualCost            Decimal                @default(0) @db.Decimal(15, 2)
-  actualCostBeforeTax   Decimal?               @db.Decimal(15, 2)
-  actualTaxAmount       Decimal?               @db.Decimal(15, 2)
-  
+  actualCost          Decimal  @default(0) @db.Decimal(15, 2)
+  actualCostBeforeTax Decimal? @db.Decimal(15, 2)
+  actualTaxAmount     Decimal? @db.Decimal(15, 2)
+
   // Variance
-  variance              Decimal?               @db.Decimal(15, 2)
-  variancePercentage    Decimal?               @db.Decimal(5, 2)
-  
+  variance           Decimal? @db.Decimal(15, 2)
+  variancePercentage Decimal? @db.Decimal(5, 2)
+
   // Quotation details
-  quotationReference    String?
-  quotationDate         DateTime?
-  quotationFilePath     String?
-  quotationFileName     String?
-  
+  quotationReference String?
+  quotationDate      DateTime?
+  quotationFilePath  String?
+  quotationFileName  String?
+
   // AI extraction metadata
-  extractedByAI         Boolean                @default(false)
-  aiConfidence          Decimal?               @db.Decimal(3, 2)
-  aiExtractedData       Json?
-  needsReview           Boolean                @default(false)
-  
+  extractedByAI   Boolean  @default(false)
+  aiConfidence    Decimal? @db.Decimal(3, 2)
+  aiExtractedData Json?
+  needsReview     Boolean  @default(false)
+
   // PO linkage
-  purchaseOrderId       String?
-  poIssued              Boolean                @default(false)
-  poIssuedDate          DateTime?
-  
+  purchaseOrderId String?
+  poIssued        Boolean   @default(false)
+  poIssuedDate    DateTime?
+
   // Status
-  status                SupplierBudgetStatus   @default(QUOTED)
-  isApproved            Boolean                @default(false)
-  approvedById          String?
-  approvedAt            DateTime?
-  
+  status       SupplierBudgetStatus @default(QUOTED)
+  isApproved   Boolean              @default(false)
+  approvedById String?
+  approvedAt   DateTime?
+
   // Notes
-  notes                 String?
-  internalNotes         String?
-  
+  notes         String?
+  internalNotes String?
+
   // Audit
-  createdById           String
-  createdAt             DateTime               @default(now())
-  updatedAt             DateTime               @updatedAt
-  
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
   // Relations
-  Project               Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  Supplier              Supplier               @relation(fields: [supplierId], references: [id])
-  PurchaseOrder         PurchaseOrder?         @relation(fields: [purchaseOrderId], references: [id])
-  CreatedBy             User                   @relation("SupplierBudget_createdBy", fields: [createdById], references: [id])
-  ApprovedBy            User?                  @relation("SupplierBudget_approvedBy", fields: [approvedById], references: [id])
-  BudgetAlert           BudgetAlert[]
-  
+  Project       Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  Supplier      Supplier       @relation(fields: [supplierId], references: [id])
+  PurchaseOrder PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id])
+  CreatedBy     User           @relation("SupplierBudget_createdBy", fields: [createdById], references: [id])
+  ApprovedBy    User?          @relation("SupplierBudget_approvedBy", fields: [approvedById], references: [id])
+  BudgetAlert   BudgetAlert[]
+
   @@index([projectId])
   @@index([supplierId])
   @@index([status])
@@ -2583,98 +2680,98 @@ model SupplierBudgetItem {
 }
 
 model ProjectBudgetSummary {
-  id                    String                 @id @default(cuid())
-  projectId             String                 @unique
-  
+  id        String @id @default(cuid())
+  projectId String @unique
+
   // Revenue
-  contractValue         Decimal                @db.Decimal(15, 2)
-  contractValueBeforeTax Decimal?              @db.Decimal(15, 2)
-  contractTaxAmount     Decimal?               @db.Decimal(15, 2)
-  
+  contractValue          Decimal  @db.Decimal(15, 2)
+  contractValueBeforeTax Decimal? @db.Decimal(15, 2)
+  contractTaxAmount      Decimal? @db.Decimal(15, 2)
+
   // Budget
-  totalBudget           Decimal                @db.Decimal(15, 2)
-  totalBudgetBeforeTax  Decimal?               @db.Decimal(15, 2)
-  totalBudgetTaxAmount  Decimal?               @db.Decimal(15, 2)
-  
+  totalBudget          Decimal  @db.Decimal(15, 2)
+  totalBudgetBeforeTax Decimal? @db.Decimal(15, 2)
+  totalBudgetTaxAmount Decimal? @db.Decimal(15, 2)
+
   // Actual costs
-  totalActualCost       Decimal                @default(0) @db.Decimal(15, 2)
-  totalActualCostBeforeTax Decimal?            @db.Decimal(15, 2)
-  totalActualTaxAmount  Decimal?               @db.Decimal(15, 2)
-  
+  totalActualCost          Decimal  @default(0) @db.Decimal(15, 2)
+  totalActualCostBeforeTax Decimal? @db.Decimal(15, 2)
+  totalActualTaxAmount     Decimal? @db.Decimal(15, 2)
+
   // Profit calculations
-  estimatedProfit       Decimal                @db.Decimal(15, 2)
-  estimatedProfitMargin Decimal                @db.Decimal(5, 2)
-  actualProfit          Decimal?               @db.Decimal(15, 2)
-  actualProfitMargin    Decimal?               @db.Decimal(5, 2)
-  
+  estimatedProfit       Decimal  @db.Decimal(15, 2)
+  estimatedProfitMargin Decimal  @db.Decimal(5, 2)
+  actualProfit          Decimal? @db.Decimal(15, 2)
+  actualProfitMargin    Decimal? @db.Decimal(5, 2)
+
   // Budget utilization
-  budgetUtilization     Decimal                @db.Decimal(5, 2)
-  costUtilization       Decimal?               @db.Decimal(5, 2)
-  
+  budgetUtilization Decimal  @db.Decimal(5, 2)
+  costUtilization   Decimal? @db.Decimal(5, 2)
+
   // Supplier counts
-  totalSuppliers        Int                    @default(0)
-  suppliersWithPO       Int                    @default(0)
-  suppliersWithQuotation Int                   @default(0)
-  
+  totalSuppliers         Int @default(0)
+  suppliersWithPO        Int @default(0)
+  suppliersWithQuotation Int @default(0)
+
   // Warnings
-  hasWarnings           Boolean                @default(false)
-  warningCount          Int                    @default(0)
-  criticalWarningCount  Int                    @default(0)
-  
+  hasWarnings          Boolean @default(false)
+  warningCount         Int     @default(0)
+  criticalWarningCount Int     @default(0)
+
   // Last calculation
-  lastCalculatedAt      DateTime               @default(now())
-  lastCalculatedById    String?
-  
+  lastCalculatedAt   DateTime @default(now())
+  lastCalculatedById String?
+
   // Audit
-  createdAt             DateTime               @default(now())
-  updatedAt             DateTime               @updatedAt
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
-  Project               Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  LastCalculatedBy      User?                  @relation(fields: [lastCalculatedById], references: [id])
-  
+  Project          Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  LastCalculatedBy User?   @relation(fields: [lastCalculatedById], references: [id])
+
   @@index([projectId])
 }
 
 model BudgetAlert {
-  id                    String                 @id @default(cuid())
-  projectId             String
-  
+  id        String @id @default(cuid())
+  projectId String
+
   // Alert details
-  alertType             BudgetAlertType
-  severity              AlertSeverity          @default(WARNING)
-  title                 String
-  message               String
-  
+  alertType BudgetAlertType
+  severity  AlertSeverity   @default(WARNING)
+  title     String
+  message   String
+
   // Context
-  supplierBudgetItemId  String?
-  supplierName          String?
-  
+  supplierBudgetItemId String?
+  supplierName         String?
+
   // Thresholds
-  threshold             Decimal?               @db.Decimal(5, 2)
-  currentValue          Decimal?               @db.Decimal(15, 2)
-  limitValue            Decimal?               @db.Decimal(15, 2)
-  
+  threshold    Decimal? @db.Decimal(5, 2)
+  currentValue Decimal? @db.Decimal(15, 2)
+  limitValue   Decimal? @db.Decimal(15, 2)
+
   // Status
-  isRead                Boolean                @default(false)
-  isDismissed           Boolean                @default(false)
-  isResolved            Boolean                @default(false)
-  readAt                DateTime?
-  dismissedAt           DateTime?
-  resolvedAt            DateTime?
-  
+  isRead      Boolean   @default(false)
+  isDismissed Boolean   @default(false)
+  isResolved  Boolean   @default(false)
+  readAt      DateTime?
+  dismissedAt DateTime?
+  resolvedAt  DateTime?
+
   // Notifications
-  notifiedUsers         Json?
-  notifiedAt            DateTime?
-  
+  notifiedUsers Json?
+  notifiedAt    DateTime?
+
   // Audit
-  createdAt             DateTime               @default(now())
-  updatedAt             DateTime               @updatedAt
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
-  Project               Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  SupplierBudgetItem    SupplierBudgetItem?    @relation(fields: [supplierBudgetItemId], references: [id])
-  
+  Project            Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  SupplierBudgetItem SupplierBudgetItem? @relation(fields: [supplierBudgetItemId], references: [id])
+
   @@index([projectId])
   @@index([isRead])
   @@index([severity])
@@ -2711,7 +2808,6 @@ enum AlertSeverity {
   WARNING
   CRITICAL
 }
-
 
 // ============================================================================
 // Procurement Document Management System
@@ -2752,90 +2848,90 @@ enum ProcurementPaymentTerms {
 }
 
 model ProcurementDocument {
-  id                    String          @id @default(cuid())
-  projectId             String
-  documentType          ProcurementDocumentType
-  documentNumber        String?
-  documentDate          DateTime?
-  status                ProcurementDocumentStatus  @default(UPLOADED)
-  
+  id             String                    @id @default(cuid())
+  projectId      String
+  documentType   ProcurementDocumentType
+  documentNumber String?
+  documentDate   DateTime?
+  status         ProcurementDocumentStatus @default(UPLOADED)
+
   // File Information
-  fileName              String
-  originalFileName      String
-  filePath              String
-  centralFilePath       String?
-  fileSize              Int
-  mimeType              String
-  
+  fileName         String
+  originalFileName String
+  filePath         String
+  centralFilePath  String?
+  fileSize         Int
+  mimeType         String
+
   // Related Entities
-  supplierId            String?
-  customerId            String?
-  
+  supplierId String?
+  customerId String?
+
   // Extracted Data
-  extractedData         Json?
-  extractionConfidence  Float?
-  projectMismatch       Boolean?        @default(false)
-  
+  extractedData        Json?
+  extractionConfidence Float?
+  projectMismatch      Boolean? @default(false)
+
   // Financial Data
-  totalAmount           Decimal?        @db.Decimal(15, 2)
-  currency              String?         @default("SGD")
-  taxAmount             Decimal?        @db.Decimal(15, 2)
-  subtotalAmount        Decimal?        @db.Decimal(15, 2)
-  
+  totalAmount    Decimal? @db.Decimal(15, 2)
+  currency       String?  @default("SGD")
+  taxAmount      Decimal? @db.Decimal(15, 2)
+  subtotalAmount Decimal? @db.Decimal(15, 2)
+
   // Payment Terms
-  paymentTerms          ProcurementPaymentTerms?
-  customPaymentTerms    String?
-  dueDate               DateTime?
-  
+  paymentTerms       ProcurementPaymentTerms?
+  customPaymentTerms String?
+  dueDate            DateTime?
+
   // Terms & Conditions
-  termsAndConditions    String?
-  
+  termsAndConditions String?
+
   // Linking
-  linkedQuotationId     String?
-  linkedPOId            String?
-  linkedVOId            String?
-  parentDocumentId      String?
-  
+  linkedQuotationId String?
+  linkedPOId        String?
+  linkedVOId        String?
+  parentDocumentId  String?
+
   // Approval Workflow
-  requiresApproval      Boolean         @default(false)
-  approvalStatus        ApprovalStatus?
-  approvedById          String?
-  approvedAt            DateTime?
-  rejectionReason       String?
-  
+  requiresApproval Boolean         @default(false)
+  approvalStatus   ApprovalStatus?
+  approvedById     String?
+  approvedAt       DateTime?
+  rejectionReason  String?
+
   // Metadata
-  notes                 String?
-  uploadedById          String
-  createdAt             DateTime        @default(now())
-  updatedAt             DateTime        @updatedAt
-  
+  notes        String?
+  uploadedById String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
   // Relations
-  Project               Project         @relation("ProcurementDocuments", fields: [projectId], references: [id], onDelete: Cascade)
-  Supplier              Supplier?       @relation("SupplierProcurementDocs", fields: [supplierId], references: [id])
-  Customer              Customer?       @relation("CustomerProcurementDocs", fields: [customerId], references: [id])
-  UploadedBy            User            @relation("ProcurementDocUploadedBy", fields: [uploadedById], references: [id])
-  ApprovedBy            User?           @relation("ProcurementDocApprovedBy", fields: [approvedById], references: [id])
-  
+  Project    Project   @relation("ProcurementDocuments", fields: [projectId], references: [id], onDelete: Cascade)
+  Supplier   Supplier? @relation("SupplierProcurementDocs", fields: [supplierId], references: [id])
+  Customer   Customer? @relation("CustomerProcurementDocs", fields: [customerId], references: [id])
+  UploadedBy User      @relation("ProcurementDocUploadedBy", fields: [uploadedById], references: [id])
+  ApprovedBy User?     @relation("ProcurementDocApprovedBy", fields: [approvedById], references: [id])
+
   // Self-referencing relations
-  LinkedQuotation       ProcurementDocument?  @relation("QuotationToPO", fields: [linkedQuotationId], references: [id], onDelete: SetNull)
-  LinkedPOs             ProcurementDocument[] @relation("QuotationToPO")
-  LinkedPO              ProcurementDocument?  @relation("POToInvoice", fields: [linkedPOId], references: [id], onDelete: SetNull)
-  LinkedInvoices        ProcurementDocument[] @relation("POToInvoice")
-  LinkedVO              ProcurementDocument?  @relation("VOToRevisedPO", fields: [linkedVOId], references: [id], onDelete: SetNull)
-  LinkedRevisedPOs      ProcurementDocument[] @relation("VOToRevisedPO")
-  ParentDocument        ProcurementDocument?  @relation("ProcurementDocRevisions", fields: [parentDocumentId], references: [id], onDelete: SetNull)
-  Revisions             ProcurementDocument[] @relation("ProcurementDocRevisions")
-  
+  LinkedQuotation  ProcurementDocument?  @relation("QuotationToPO", fields: [linkedQuotationId], references: [id], onDelete: SetNull)
+  LinkedPOs        ProcurementDocument[] @relation("QuotationToPO")
+  LinkedPO         ProcurementDocument?  @relation("POToInvoice", fields: [linkedPOId], references: [id], onDelete: SetNull)
+  LinkedInvoices   ProcurementDocument[] @relation("POToInvoice")
+  LinkedVO         ProcurementDocument?  @relation("VOToRevisedPO", fields: [linkedVOId], references: [id], onDelete: SetNull)
+  LinkedRevisedPOs ProcurementDocument[] @relation("VOToRevisedPO")
+  ParentDocument   ProcurementDocument?  @relation("ProcurementDocRevisions", fields: [parentDocumentId], references: [id], onDelete: SetNull)
+  Revisions        ProcurementDocument[] @relation("ProcurementDocRevisions")
+
   // Line Items
-  LineItems             ProcurementDocumentLineItem[]
-  
+  LineItems ProcurementDocumentLineItem[]
+
   // PO Generation Requests
-  POGenerationRequests  ProcurementPORequest[] @relation("QuotationPORequests")
-  GeneratedFromRequest  ProcurementPORequest[] @relation("GeneratedPO")
-  
+  POGenerationRequests ProcurementPORequest[] @relation("QuotationPORequests")
+  GeneratedFromRequest ProcurementPORequest[] @relation("GeneratedPO")
+
   // Approval History
-  ApprovalHistory       ProcurementApprovalHistory[]
-  
+  ApprovalHistory ProcurementApprovalHistory[]
+
   @@index([projectId])
   @@index([documentType])
   @@index([status])
@@ -2850,75 +2946,75 @@ model ProcurementDocument {
 }
 
 model ProcurementDocumentLineItem {
-  id          String          @id @default(cuid())
-  documentId  String
-  lineNumber  Int
-  
+  id         String @id @default(cuid())
+  documentId String
+  lineNumber Int
+
   // Item Details
   description String
-  quantity    Decimal?        @db.Decimal(10, 2)
-  unitPrice   Decimal?        @db.Decimal(15, 2)
+  quantity    Decimal? @db.Decimal(10, 2)
+  unitPrice   Decimal? @db.Decimal(15, 2)
   unit        String?
-  amount      Decimal         @db.Decimal(15, 2)
-  
+  amount      Decimal  @db.Decimal(15, 2)
+
   // Additional Info
-  notes       String?
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-  
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
-  Document    ProcurementDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  
+  Document ProcurementDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
   @@index([documentId])
 }
 
 model ProcurementPORequest {
-  id                  String          @id @default(cuid())
-  quotationId         String
-  projectId           String
-  supplierId          String
-  
+  id          String @id @default(cuid())
+  quotationId String
+  projectId   String
+  supplierId  String
+
   // PO Details
-  poNumber            String
-  poDate              DateTime
-  deliveryDate        DateTime?
-  deliveryAddress     String?
-  
+  poNumber        String
+  poDate          DateTime
+  deliveryDate    DateTime?
+  deliveryAddress String?
+
   // Financial
-  totalAmount         Decimal         @db.Decimal(15, 2)
-  currency            String          @default("SGD")
-  taxAmount           Decimal?        @db.Decimal(15, 2)
-  
+  totalAmount Decimal  @db.Decimal(15, 2)
+  currency    String   @default("SGD")
+  taxAmount   Decimal? @db.Decimal(15, 2)
+
   // Terms
-  paymentTerms        ProcurementPaymentTerms
-  customPaymentTerms  String?
-  termsAndConditions  String?
-  
+  paymentTerms       ProcurementPaymentTerms
+  customPaymentTerms String?
+  termsAndConditions String?
+
   // Approval
-  status              ApprovalStatus  @default(PENDING)
-  approvedById        String?
-  approvedAt          DateTime?
-  rejectionReason     String?
-  
+  status          ApprovalStatus @default(PENDING)
+  approvedById    String?
+  approvedAt      DateTime?
+  rejectionReason String?
+
   // Generated PO
-  generatedPOId       String?
-  
+  generatedPOId String?
+
   // Metadata
-  requestedById       String
-  createdAt           DateTime        @default(now())
-  updatedAt           DateTime        @updatedAt
-  
+  requestedById String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
   // Relations
-  Quotation           ProcurementDocument @relation("QuotationPORequests", fields: [quotationId], references: [id], onDelete: Cascade)
-  Project             Project         @relation("ProjectPORequests", fields: [projectId], references: [id], onDelete: Cascade)
-  Supplier            Supplier        @relation("SupplierPORequests", fields: [supplierId], references: [id])
-  RequestedBy         User            @relation("PORequestedBy", fields: [requestedById], references: [id])
-  ApprovedBy          User?           @relation("POApprovedBy", fields: [approvedById], references: [id])
-  GeneratedPO         ProcurementDocument? @relation("GeneratedPO", fields: [generatedPOId], references: [id], onDelete: SetNull)
-  
+  Quotation   ProcurementDocument  @relation("QuotationPORequests", fields: [quotationId], references: [id], onDelete: Cascade)
+  Project     Project              @relation("ProjectPORequests", fields: [projectId], references: [id], onDelete: Cascade)
+  Supplier    Supplier             @relation("SupplierPORequests", fields: [supplierId], references: [id])
+  RequestedBy User                 @relation("PORequestedBy", fields: [requestedById], references: [id])
+  ApprovedBy  User?                @relation("POApprovedBy", fields: [approvedById], references: [id])
+  GeneratedPO ProcurementDocument? @relation("GeneratedPO", fields: [generatedPOId], references: [id], onDelete: SetNull)
+
   // Approval History
-  ApprovalHistory     ProcurementApprovalHistory[]
-  
+  ApprovalHistory ProcurementApprovalHistory[]
+
   @@index([quotationId])
   @@index([projectId])
   @@index([supplierId])
@@ -2927,21 +3023,21 @@ model ProcurementPORequest {
 }
 
 model ProcurementApprovalHistory {
-  id            String                @id @default(cuid())
-  documentId    String?
-  poRequestId   String?
-  
+  id          String  @id @default(cuid())
+  documentId  String?
+  poRequestId String?
+
   // Approval Details
-  action        ApprovalStatus
-  comments      String?
-  approvedById  String
-  approvedAt    DateTime              @default(now())
-  
+  action       ApprovalStatus
+  comments     String?
+  approvedById String
+  approvedAt   DateTime       @default(now())
+
   // Relations
-  Document      ProcurementDocument?      @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  PORequest     ProcurementPORequest?  @relation(fields: [poRequestId], references: [id], onDelete: Cascade)
-  ApprovedBy    User                  @relation("ProcurementApprover", fields: [approvedById], references: [id])
-  
+  Document   ProcurementDocument?  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  PORequest  ProcurementPORequest? @relation(fields: [poRequestId], references: [id], onDelete: Cascade)
+  ApprovedBy User                  @relation("ProcurementApprover", fields: [approvedById], references: [id])
+
   @@index([documentId])
   @@index([poRequestId])
 }

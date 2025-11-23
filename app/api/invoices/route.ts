@@ -16,6 +16,12 @@ const createInvoiceSchema = z.object({
   dueDate: z.string(),
   customerId: z.string().min(1, "Customer is required"),
   projectId: z.string().min(1, "Project is required"), // Made required to match schema
+  brandingPresetId: z.string().optional().nullable(),
+  reminderCadence: z.enum(["GENTLE", "FIRM", "CUSTOM"]).optional(),
+  reminderOffsets: z
+    .array(z.number().int().nonnegative())
+    .optional()
+    .nullable(),
 })
 
 const generateInvoiceNumber = async () => {
@@ -90,6 +96,7 @@ export async function GET(req: NextRequest) {
               name: true,
             },
           },
+          BrandingPreset: true,
         },
         orderBy: {
           createdAt: "desc",
@@ -165,6 +172,9 @@ export async function POST(req: NextRequest) {
         status: validatedData.status,
         customerId: validatedData.customerId,
         projectId: validatedData.projectId,
+        brandingPresetId: validatedData.brandingPresetId || undefined,
+        reminderCadence: validatedData.reminderCadence,
+        reminderOffsets: validatedData.reminderOffsets || undefined,
         invoiceNumber,
         totalAmount,
         issueDate: validatedData.issueDate ? new Date(validatedData.issueDate) : new Date(),
@@ -186,6 +196,7 @@ export async function POST(req: NextRequest) {
             name: true,
           },
         },
+        BrandingPreset: true,
       },
     })
 
