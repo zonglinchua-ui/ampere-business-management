@@ -8,7 +8,7 @@ import {
   isExpiringSoon,
   notifyExpiringComplianceDocuments
 } from "@/lib/suppliers/compliance-alerts"
-import { createComplianceRouteHandlers } from "@/app/api/suppliers/[id]/compliance/route"
+import { createComplianceRouteHandlers } from "@/app/api/suppliers/[id]/compliance/handlers"
 
 function createMockClient(initialDocs: any[] = []) {
   const documents = [...initialDocs]

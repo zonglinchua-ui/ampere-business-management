@@ -51,7 +51,6 @@ export async function GET(
             description: true,
           },
         },
-        BrandingPreset: true,
         User: {
           select: {
             id: true,

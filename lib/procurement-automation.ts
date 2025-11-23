@@ -30,10 +30,12 @@ async function findOrCreateCustomer(name: string, userId: string) {
 
   return prisma.customer.create({
     data: {
+      id: randomUUID(),
       name,
       createdById: userId,
       isActive: true,
       country: "Singapore",
+      updatedAt: new Date(),
     }
   })
 }
@@ -92,6 +94,7 @@ export async function createProjectFromPurchaseOrder(options: {
       name: projectName,
       customerId: customer.id,
       createdById: options.uploadedById,
+      updatedAt: new Date(),
       status: "PLANNING",
       projectType,
       contractValue: decimalOrNull(options.extractedData.totalAmount),

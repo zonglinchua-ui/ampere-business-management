@@ -262,7 +262,11 @@ export function CommandPalette({
   }
 
   return (
-    <CommandDialog open={open} onOpenChange={onOpenChange} label="Global command palette">
+    <CommandDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      aria-label="Global command palette"
+    >
       {commandShell}
     </CommandDialog>
   )

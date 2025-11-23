@@ -130,7 +130,13 @@ export async function handleCommentRequest(
       include: { createdBy: true },
     })
 
-    if (!existingComment || existingComment.entityType !== entityType || existingComment[entityKey] !== entityId) {
+    const matchesEntity =
+      existingComment &&
+      ((entityType === CommentEntityType.INVOICE && existingComment.invoiceId === entityId) ||
+        (entityType === CommentEntityType.PURCHASE_ORDER && existingComment.purchaseOrderId === entityId) ||
+        (entityType === CommentEntityType.PROJECT_BUDGET && existingComment.projectId === entityId))
+
+    if (!existingComment || existingComment.entityType !== entityType || !matchesEntity) {
       return NextResponse.json({ error: "Comment not found" }, { status: 404 })
     }
 
@@ -175,7 +181,13 @@ export async function handleCommentRequest(
     const { commentId } = commentDeleteSchema.parse(body)
 
     const existingComment = await prisma.comment.findUnique({ where: { id: commentId } })
-    if (!existingComment || existingComment.entityType !== entityType || existingComment[entityKey] !== entityId) {
+    const matchesEntity =
+      existingComment &&
+      ((entityType === CommentEntityType.INVOICE && existingComment.invoiceId === entityId) ||
+        (entityType === CommentEntityType.PURCHASE_ORDER && existingComment.purchaseOrderId === entityId) ||
+        (entityType === CommentEntityType.PROJECT_BUDGET && existingComment.projectId === entityId))
+
+    if (!existingComment || existingComment.entityType !== entityType || !matchesEntity) {
       return NextResponse.json({ error: "Comment not found" }, { status: 404 })
     }
 
