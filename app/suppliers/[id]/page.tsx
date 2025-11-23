@@ -34,7 +34,11 @@ import {
   Clock,
   FolderOpen,
   AlertCircle,
-  Trash2
+  Trash2,
+  ShieldCheck,
+  ShieldAlert,
+  UploadCloud,
+  AlertTriangle
 } from "lucide-react"
 import { toast } from "sonner"
 import { format } from "date-fns"
@@ -108,6 +112,26 @@ interface PurchaseOrder {
   paidDate?: string
 }
 
+interface ComplianceDocument {
+  id: string
+  name: string
+  type: string
+  fileUrl?: string | null
+  verificationStatus: string
+  verificationNotes?: string | null
+  expiresAt?: string | null
+  createdAt: string
+}
+
+interface ComplianceRiskProfile {
+  complianceRiskScore: number
+  financialRiskScore: number
+  deliveryRiskScore: number
+  overallRiskScore: number
+  riskLevel: "LOW" | "MEDIUM" | "HIGH"
+  riskEvaluatedAt: string
+}
+
 const supplierSchema = z.object({
   name: z.string().min(1, "Supplier name is required"),
   email: z.string().email("Invalid email").optional().or(z.literal("")),
@@ -147,6 +171,16 @@ export default function SupplierDetailPage() {
   const [activities, setActivities] = useState<ActivityItem[]>([])
   const [activitiesLoading, setActivitiesLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [complianceDocs, setComplianceDocs] = useState<ComplianceDocument[]>([])
+  const [complianceRisk, setComplianceRisk] = useState<ComplianceRiskProfile | null>(null)
+  const [complianceLoading, setComplianceLoading] = useState(false)
+  const [newComplianceDoc, setNewComplianceDoc] = useState({
+    name: "",
+    type: "INSURANCE",
+    expiresAt: "",
+    fileUrl: "",
+    verificationStatus: "PENDING"
+  })
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [deleteLoading, setDeleteLoading] = useState(false)
@@ -256,6 +290,127 @@ export default function SupplierDetailPage() {
       setLoading(false)
     }
   }, [supplierId])
+
+  const loadCompliance = async () => {
+    try {
+      setComplianceLoading(true)
+      const response = await fetch(`/api/suppliers/${supplierId}/compliance`)
+      if (response.ok) {
+        const data = await response.json()
+        setComplianceDocs(data.documents || [])
+        setComplianceRisk(data.risk || null)
+      }
+    } catch (err) {
+      console.error("Failed to load compliance data", err)
+    } finally {
+      setComplianceLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (supplierId) {
+      loadCompliance()
+    }
+  }, [supplierId])
+
+  const handleCreateComplianceDoc = async () => {
+    try {
+      setComplianceLoading(true)
+      const payload = {
+        ...newComplianceDoc,
+        expiresAt: newComplianceDoc.expiresAt ? new Date(newComplianceDoc.expiresAt).toISOString() : null,
+        fileUrl: newComplianceDoc.fileUrl || null
+      }
+
+      const response = await fetch(`/api/suppliers/${supplierId}/compliance`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      })
+
+      if (!response.ok) {
+        throw new Error("Unable to save compliance document")
+      }
+
+      const data = await response.json()
+      setComplianceDocs(data.documents || [])
+      setComplianceRisk(data.risk || null)
+      setNewComplianceDoc({
+        name: "",
+        type: "INSURANCE",
+        expiresAt: "",
+        fileUrl: "",
+        verificationStatus: "PENDING"
+      })
+      toast.success("Compliance document saved")
+    } catch (err) {
+      console.error(err)
+      toast.error("Failed to save compliance document")
+    } finally {
+      setComplianceLoading(false)
+    }
+  }
+
+  const handleUpdateVerification = async (documentId: string, verificationStatus: string) => {
+    try {
+      setComplianceLoading(true)
+      const response = await fetch(`/api/suppliers/${supplierId}/compliance`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ documentId, verificationStatus })
+      })
+
+      if (!response.ok) {
+        throw new Error("Unable to update compliance status")
+      }
+
+      const data = await response.json()
+      setComplianceDocs(data.documents || [])
+      setComplianceRisk(data.risk || null)
+      toast.success("Compliance status updated")
+    } catch (err) {
+      console.error(err)
+      toast.error("Failed to update compliance status")
+    } finally {
+      setComplianceLoading(false)
+    }
+  }
+
+  const handleDeleteComplianceDoc = async (documentId: string) => {
+    try {
+      setComplianceLoading(true)
+      const response = await fetch(`/api/suppliers/${supplierId}/compliance`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ documentId })
+      })
+
+      if (!response.ok) {
+        throw new Error("Unable to delete compliance document")
+      }
+
+      const data = await response.json()
+      setComplianceDocs(data.documents || [])
+      setComplianceRisk(data.risk || null)
+      toast.success("Compliance document removed")
+    } catch (err) {
+      console.error(err)
+      toast.error("Failed to delete compliance document")
+    } finally {
+      setComplianceLoading(false)
+    }
+  }
+
+  const riskColor = (level?: string) => {
+    switch (level) {
+      case "HIGH":
+        return "text-red-600"
+      case "LOW":
+        return "text-green-600"
+      default:
+        return "text-amber-600"
+    }
+  }
 
   const handleOpenEdit = () => {
     if (supplier) {
@@ -533,11 +688,12 @@ export default function SupplierDetailPage() {
             // fetchActivities() - Uncomment when API is ready
           }
         }}>
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="projects">Projects</TabsTrigger>
             <TabsTrigger value="invoices">Invoices</TabsTrigger>
             <TabsTrigger value="activity">Activity</TabsTrigger>
+            <TabsTrigger value="compliance">Compliance</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
@@ -784,6 +940,193 @@ export default function SupplierDetailPage() {
                     </p>
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="compliance" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <Card className="lg:col-span-1">
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <ShieldCheck className="mr-2 h-5 w-5" />
+                    Risk Overview
+                  </CardTitle>
+                  <CardDescription>Automated risk profile based on compliance records</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {complianceRisk ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm text-muted-foreground">Overall</p>
+                        <span className={`font-semibold ${riskColor(complianceRisk.riskLevel)}`}>
+                          {complianceRisk.overallRiskScore} ({complianceRisk.riskLevel})
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span>Compliance</span>
+                        <span className="font-medium">{complianceRisk.complianceRiskScore}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span>Financial</span>
+                        <span className="font-medium">{complianceRisk.financialRiskScore}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span>Delivery</span>
+                        <span className="font-medium">{complianceRisk.deliveryRiskScore}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Last evaluated {complianceRisk.riskEvaluatedAt ? format(new Date(complianceRisk.riskEvaluatedAt), 'PPpp') : 'recently'}
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No risk signals yet.</p>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card className="lg:col-span-2">
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center">
+                      <ShieldAlert className="mr-2 h-5 w-5" />
+                      Compliance Documents
+                    </CardTitle>
+                    <CardDescription>Track expirations and verification</CardDescription>
+                  </div>
+                  {complianceLoading && <Badge variant="outline">Refreshing...</Badge>}
+                </CardHeader>
+                <CardContent>
+                  {complianceDocs.length === 0 ? (
+                    <div className="text-center py-10 text-muted-foreground">
+                      No compliance documents uploaded yet.
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {complianceDocs.map((doc) => {
+                        const expiresSoon = doc.expiresAt ? (new Date(doc.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24) <= 30 : false
+                        return (
+                          <div key={doc.id} className="border rounded-lg p-4">
+                            <div className="flex items-start justify-between">
+                              <div className="space-y-1">
+                                <p className="font-semibold">{doc.name}</p>
+                                <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                                  <Badge variant="outline">{doc.type}</Badge>
+                                  <Badge variant={doc.verificationStatus === 'VERIFIED' ? 'default' : 'secondary'}>{doc.verificationStatus}</Badge>
+                                  {doc.expiresAt && (
+                                    <span className="flex items-center space-x-1">
+                                      <Calendar className="h-4 w-4" />
+                                      <span>
+                                        Expires {format(new Date(doc.expiresAt), 'PP')}
+                                        {expiresSoon && <span className="ml-2 inline-flex items-center text-amber-600"><AlertTriangle className="h-4 w-4 mr-1" />Soon</span>}
+                                      </span>
+                                    </span>
+                                  )}
+                                </div>
+                                {doc.fileUrl && (
+                                  <a href={doc.fileUrl} target="_blank" rel="noreferrer" className="text-blue-600 text-sm underline">
+                                    View document
+                                  </a>
+                                )}
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <Select onValueChange={(value) => handleUpdateVerification(doc.id, value)} defaultValue={doc.verificationStatus}>
+                                  <SelectTrigger className="w-[140px]">
+                                    <SelectValue placeholder="Status" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {['PENDING', 'VERIFIED', 'REJECTED', 'EXPIRED'].map((status) => (
+                                      <SelectItem key={status} value={status}>{status}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <Button variant="ghost" size="icon" onClick={() => handleDeleteComplianceDoc(doc.id)}>
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <UploadCloud className="mr-2 h-5 w-5" />
+                  Add Compliance Document
+                </CardTitle>
+                <CardDescription>Upload metadata and track renewal dates</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label>Name</Label>
+                    <Input
+                      value={newComplianceDoc.name}
+                      onChange={(e) => setNewComplianceDoc({ ...newComplianceDoc, name: e.target.value })}
+                      placeholder="E.g. Insurance Certificate"
+                    />
+                  </div>
+                  <div>
+                    <Label>Type</Label>
+                    <Select
+                      onValueChange={(value) => setNewComplianceDoc({ ...newComplianceDoc, type: value })}
+                      defaultValue={newComplianceDoc.type}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Document type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {['INSURANCE', 'LICENSE', 'SAFETY', 'CERTIFICATION', 'FINANCIAL', 'CUSTOM'].map((type) => (
+                          <SelectItem key={type} value={type}>{type}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Expiry Date</Label>
+                    <Input
+                      type="date"
+                      value={newComplianceDoc.expiresAt}
+                      onChange={(e) => setNewComplianceDoc({ ...newComplianceDoc, expiresAt: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label>Verification Status</Label>
+                    <Select
+                      onValueChange={(value) => setNewComplianceDoc({ ...newComplianceDoc, verificationStatus: value })}
+                      defaultValue={newComplianceDoc.verificationStatus}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {['PENDING', 'VERIFIED', 'REJECTED', 'EXPIRED'].map((status) => (
+                          <SelectItem key={status} value={status}>{status}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="md:col-span-2">
+                    <Label>Document URL (optional)</Label>
+                    <Input
+                      type="url"
+                      value={newComplianceDoc.fileUrl}
+                      onChange={(e) => setNewComplianceDoc({ ...newComplianceDoc, fileUrl: e.target.value })}
+                      placeholder="https://"
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end">
+                  <Button onClick={handleCreateComplianceDoc} disabled={complianceLoading || !newComplianceDoc.name}>
+                    Save Document
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>

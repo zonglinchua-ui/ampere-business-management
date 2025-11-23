@@ -1002,6 +1002,12 @@ model Supplier {
   isDeleted                       Boolean                   @default(false) @map("is_deleted")
   deletedAt                       DateTime?                 @map("deleted_at")
   deletedBy                       String?                   @map("deleted_by")
+  complianceRiskScore             Int?
+  financialRiskScore              Int?
+  deliveryRiskScore               Int?
+  overallRiskScore                Int?
+  riskLevel                       RiskLevel?                @default(MEDIUM)
+  riskEvaluatedAt                 DateTime?
   Document                        Document[]
   ProjectSupplier                 ProjectSupplier[]
   ProjectTransaction              ProjectTransaction[]
@@ -1017,6 +1023,47 @@ model Supplier {
   SupplierBudgetItem              SupplierBudgetItem[]
   ProcurementDocuments            ProcurementDocument[]   @relation("SupplierProcurementDocs")
   ProcurementPORequests           ProcurementPORequest[]  @relation("SupplierPORequests")
+  ComplianceDocuments             SupplierComplianceDocument[]
+}
+
+model SupplierComplianceDocument {
+  id                  String                        @id @default(cuid())
+  supplierId          String
+  name                String
+  type                ComplianceDocumentType
+  fileUrl             String?
+  verificationStatus  ComplianceVerificationStatus  @default(PENDING)
+  verificationNotes   String?
+  expiresAt           DateTime?
+  riskScore           Int?
+  createdAt           DateTime                      @default(now())
+  updatedAt           DateTime                      @updatedAt
+  Supplier            Supplier                      @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  @@index([supplierId])
+  @@index([expiresAt])
+}
+
+enum ComplianceDocumentType {
+  INSURANCE
+  LICENSE
+  SAFETY
+  CERTIFICATION
+  FINANCIAL
+  CUSTOM
+}
+
+enum ComplianceVerificationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+  EXPIRED
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
 }
 
 model SupplierContract {
