@@ -7,6 +7,8 @@
     "start": "next start",
     "lint": "next lint",
     "test": "tsx --test '**/*.test.{ts,tsx}'"
+    "test": "tsx tests/run-tests.ts",
+    "test:tsx": "tsx --test \"tests/**/*.{test,ts,tsx}\""
     "test": "tsx --test \"tests/**/*.test.{ts,tsx}\""
   },
   "prisma": {
