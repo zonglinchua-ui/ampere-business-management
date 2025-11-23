@@ -79,13 +79,6 @@ export async function POST(
 
     const payload = parsed.data;
 
-    if (payload.isDefault) {
-      await deps.client.tableView.updateMany({
-        where: { userId: session.user.id, tableId: payload.tableId },
-        data: { isDefault: false },
-      });
-    }
-
     if (payload.id) {
       const existing = await deps.client.tableView.findUnique({
         where: { id: payload.id },
@@ -95,7 +88,7 @@ export async function POST(
         return NextResponse.json({ error: 'View not found' }, { status: 404 });
       }
 
-      const view = await deps.client.tableView.update({
+      const update = deps.client.tableView.update({
         where: { id: payload.id },
         data: {
           name: payload.name,
@@ -105,10 +98,22 @@ export async function POST(
         },
       });
 
+      const view = payload.isDefault
+        ? (
+            await deps.client.$transaction([
+              deps.client.tableView.updateMany({
+                where: { userId: session.user.id, tableId: payload.tableId },
+                data: { isDefault: false },
+              }),
+              update,
+            ])
+          )[1]
+        : await update;
+
       return NextResponse.json({ view }, { status: 200 });
     }
 
-    const view = await deps.client.tableView.create({
+    const create = deps.client.tableView.create({
       data: {
         name: payload.name,
         tableId: payload.tableId,
@@ -117,6 +122,18 @@ export async function POST(
         userId: session.user.id,
       },
     });
+
+    const view = payload.isDefault
+      ? (
+          await deps.client.$transaction([
+            deps.client.tableView.updateMany({
+              where: { userId: session.user.id, tableId: payload.tableId },
+              data: { isDefault: false },
+            }),
+            create,
+          ])
+        )[1]
+      : await create;
 
     return NextResponse.json({ view }, { status: 201 });
   } catch (error) {

@@ -1412,9 +1412,10 @@ model TableView {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
   userId           String
-  User             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+User             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, tableId, name])
+@@unique([userId, tableId, name])
+@@index([userId, tableId])
 }
 
 model VerificationToken {

@@ -47,6 +47,10 @@ describe('Table column visibility', () => {
 
     assert.ok(!visibleMarkup.includes('data-column-key="status" hidden'));
     assert.ok(hiddenMarkup.includes('data-column-key="status" hidden'));
+
+    const statusHeaderHidden = /<th[^>]*data-column-key="status"[^>]*hidden/;
+    assert.ok(statusHeaderHidden.test(hiddenMarkup));
+    assert.ok(!statusHeaderHidden.test(visibleMarkup));
   });
 
   it('reflects column visibility in toggle state', () => {
@@ -59,5 +63,10 @@ describe('Table column visibility', () => {
       hiddenToggleMarkup.includes('aria-label="Status"') &&
         hiddenToggleMarkup.includes('data-state="unchecked"')
     );
+
+    const statusHeader = /<th[^>]*data-column-key="status"/;
+    const statusHeaderHidden = /<th[^>]*data-column-key="status"[^>]*hidden/;
+    assert.ok(statusHeader.test(visibleToggleMarkup));
+    assert.ok(statusHeaderHidden.test(hiddenToggleMarkup));
   });
 });

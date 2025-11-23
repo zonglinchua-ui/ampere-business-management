@@ -1,3 +1,5 @@
+"use client";
+
 import * as React from 'react';
 
 import { cn } from '@/lib/utils';
@@ -247,10 +249,11 @@ const TableColumnVisibilityToggle: React.FC<TableColumnToggleProps> = ({
   };
 
   return (
-    <div
+    <fieldset
       className={cn('flex flex-wrap gap-3 text-sm text-muted-foreground', className)}
       aria-label="Column visibility controls"
     >
+      <legend className="sr-only">Column visibility controls</legend>
       {columns.map((column) => {
         const isVisible = effectiveVisibility[column.key] ?? true;
 
@@ -269,7 +272,7 @@ const TableColumnVisibilityToggle: React.FC<TableColumnToggleProps> = ({
           </label>
         );
       })}
-    </div>
+    </fieldset>
   );
 };
 
