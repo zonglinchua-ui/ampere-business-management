@@ -1,0 +1,606 @@
+2025-11-08 00:31:18 +08:00:   ▲ Next.js 14.2.28
+2025-11-08 00:31:18 +08:00:   - Local:        http://localhost:3000
+2025-11-08 00:31:18 +08:00: 
+2025-11-08 00:31:18 +08:00:  ✓ Starting...
+2025-11-08 00:31:18 +08:00:  ✓ Ready in 449ms
+2025-11-08 00:31:25 +08:00: 🕐 [Cron] Executing automatic Xero token refresh...
+2025-11-08 00:31:25 +08:00: 
+🔍 [Token Refresh Service] Checking Xero token status...
+2025-11-08 00:31:25 +08:00: prisma:error 
+Invalid `prisma.xeroIntegration.findFirst()` invocation:
+
+
+error: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.
+  -->  schema.prisma:8
+   | 
+ 7 |   provider = "postgresql"
+ 8 |   url      = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+2025-11-08 00:31:25 +08:00: prisma:error 
+Invalid `prisma.system_logs.create()` invocation:
+
+
+error: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.
+  -->  schema.prisma:8
+   | 
+ 7 |   provider = "postgresql"
+ 8 |   url      = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+2025-11-08 00:34:20 +08:00:   ▲ Next.js 14.2.28
+2025-11-08 00:34:20 +08:00:   - Local:        http://localhost:3000
+2025-11-08 00:34:20 +08:00: 
+2025-11-08 00:34:20 +08:00:  ✓ Starting...
+2025-11-08 00:34:20 +08:00:  ✓ Ready in 637ms
+2025-11-08 00:35:47 +08:00: 🕐 [Cron] Executing automatic Xero token refresh...
+2025-11-08 00:35:47 +08:00: 
+🔍 [Token Refresh Service] Checking Xero token status...
+2025-11-08 00:35:47 +08:00: prisma:error 
+Invalid `prisma.xeroIntegration.findFirst()` invocation:
+
+
+error: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.
+  -->  schema.prisma:8
+   | 
+ 7 |   provider = "postgresql"
+ 8 |   url      = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+2025-11-08 00:35:47 +08:00: prisma:error 
+Invalid `prisma.system_logs.create()` invocation:
+
+
+error: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.
+  -->  schema.prisma:8
+   | 
+ 7 |   provider = "postgresql"
+ 8 |   url      = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+2025-11-08 00:36:57 +08:00: 🔄 NextAuth Redirect callback - URL: /dashboard Base URL: https://czl-pc.tail2217a9.ts.net
+2025-11-08 00:36:57 +08:00: ➡️ Redirecting to relative URL: https://czl-pc.tail2217a9.ts.net/dashboard
+2025-11-08 00:36:57 +08:00: 🔍 Authorization attempt for: zack@ampere.com.sg
+2025-11-08 00:36:57 +08:00: 🔍 Environment check: {
+  nodeEnv: 'production',
+  nextauthUrl: 'https://czl-pc.tail2217a9.ts.net',
+  originalNextAuthUrl: 'same',
+  nextauthSecret: '***configured***',
+  databaseUrl: '***configured***'
+}
+2025-11-08 00:36:57 +08:00: 🔎 Searching for user by username: zack@ampere.com.sg
+2025-11-08 00:36:57 +08:00: prisma:error 
+Invalid `prisma.user.findFirst()` invocation:
+
+
+error: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.
+  -->  schema.prisma:8
+   | 
+ 7 |   provider = "postgresql"
+ 8 |   url      = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+2025-11-08 00:37:28 +08:00: 🕐 [Cron] Executing automatic Xero token refresh...
+2025-11-08 00:37:28 +08:00: 
+🔍 [Token Refresh Service] Checking Xero token status...
+2025-11-08 00:37:28 +08:00: prisma:error 
+Invalid `prisma.xeroIntegration.findFirst()` invocation:
+
+
+error: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.
+  -->  schema.prisma:8
+   | 
+ 7 |   provider = "postgresql"
+ 8 |   url      = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+2025-11-08 00:37:28 +08:00: prisma:error 
+Invalid `prisma.system_logs.create()` invocation:
+
+
+error: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.
+  -->  schema.prisma:8
+   | 
+ 7 |   provider = "postgresql"
+ 8 |   url      = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+2025-11-08 00:37:57 +08:00:   ▲ Next.js 14.2.28
+2025-11-08 00:37:57 +08:00:   - Local:        http://localhost:3000
+2025-11-08 00:37:57 +08:00: 
+2025-11-08 00:37:57 +08:00:  ✓ Starting...
+2025-11-08 00:37:57 +08:00:  ✓ Ready in 387ms
+2025-11-08 00:38:13 +08:00: 🔄 NextAuth Redirect callback - URL: https://czl-pc.tail2217a9.ts.net Base URL: https://czl-pc.tail2217a9.ts.net
+2025-11-08 00:38:13 +08:00: ➡️ Redirecting to same origin: https://czl-pc.tail2217a9.ts.net
+2025-11-08 00:38:13 +08:00: 🔍 Authorization attempt for: zack@ampere.com.sg
+2025-11-08 00:38:13 +08:00: 🔍 Environment check: {
+  nodeEnv: 'production',
+  nextauthUrl: 'https://czl-pc.tail2217a9.ts.net',
+  originalNextAuthUrl: 'same',
+  nextauthSecret: '***configured***',
+  databaseUrl: '***configured***'
+}
+2025-11-08 00:38:13 +08:00: 🔎 Searching for user by username: zack@ampere.com.sg
+2025-11-08 00:38:13 +08:00: prisma:error 
+Invalid `prisma.user.findFirst()` invocation:
+
+
+error: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.
+  -->  schema.prisma:8
+   | 
+ 7 |   provider = "postgresql"
+ 8 |   url      = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+2025-11-08 00:38:44 +08:00: 🕐 [Cron] Executing automatic Xero token refresh...
+2025-11-08 00:38:44 +08:00: 
+🔍 [Token Refresh Service] Checking Xero token status...
+2025-11-08 00:38:44 +08:00: prisma:error 
+Invalid `prisma.xeroIntegration.findFirst()` invocation:
+
+
+error: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.
+  -->  schema.prisma:8
+   | 
+ 7 |   provider = "postgresql"
+ 8 |   url      = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+2025-11-08 00:38:44 +08:00: prisma:error 
+Invalid `prisma.system_logs.create()` invocation:
+
+
+error: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.
+  -->  schema.prisma:8
+   | 
+ 7 |   provider = "postgresql"
+ 8 |   url      = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+2025-11-08 00:48:14 +08:00: 🕐 [Cron] Executing automatic Xero token refresh...
+2025-11-08 00:48:14 +08:00: 
+🔍 [Token Refresh Service] Checking Xero token status...
+2025-11-08 00:48:14 +08:00: prisma:error 
+Invalid `prisma.xeroIntegration.findFirst()` invocation:
+
+
+error: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.
+  -->  schema.prisma:8
+   | 
+ 7 |   provider = "postgresql"
+ 8 |   url      = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+2025-11-08 00:48:14 +08:00: prisma:error 
+Invalid `prisma.system_logs.create()` invocation:
+
+
+error: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.
+  -->  schema.prisma:8
+   | 
+ 7 |   provider = "postgresql"
+ 8 |   url      = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+2025-11-08 00:58:14 +08:00: 🕐 [Cron] Executing automatic Xero token refresh...
+2025-11-08 00:58:14 +08:00: 
+🔍 [Token Refresh Service] Checking Xero token status...
+2025-11-08 00:58:14 +08:00: prisma:error 
+Invalid `prisma.xeroIntegration.findFirst()` invocation:
+
+
+error: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.
+  -->  schema.prisma:8
+   | 
+ 7 |   provider = "postgresql"
+ 8 |   url      = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+2025-11-08 00:58:14 +08:00: prisma:error 
+Invalid `prisma.system_logs.create()` invocation:
+
+
+error: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.
+  -->  schema.prisma:8
+   | 
+ 7 |   provider = "postgresql"
+ 8 |   url      = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+2025-11-08 01:08:14 +08:00: 🕐 [Cron] Executing automatic Xero token refresh...
+2025-11-08 01:08:14 +08:00: 
+🔍 [Token Refresh Service] Checking Xero token status...
+2025-11-08 01:08:14 +08:00: prisma:error 
+Invalid `prisma.xeroIntegration.findFirst()` invocation:
+
+
+error: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.
+  -->  schema.prisma:8
+   | 
+ 7 |   provider = "postgresql"
+ 8 |   url      = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+2025-11-08 01:08:14 +08:00: prisma:error 
+Invalid `prisma.system_logs.create()` invocation:
+
+
+error: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.
+  -->  schema.prisma:8
+   | 
+ 7 |   provider = "postgresql"
+ 8 |   url      = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+2025-11-08 01:18:14 +08:00: 🕐 [Cron] Executing automatic Xero token refresh...
+2025-11-08 01:18:14 +08:00: 
+🔍 [Token Refresh Service] Checking Xero token status...
+2025-11-08 01:18:14 +08:00: prisma:error 
+Invalid `prisma.xeroIntegration.findFirst()` invocation:
+
+
+error: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.
+  -->  schema.prisma:8
+   | 
+ 7 |   provider = "postgresql"
+ 8 |   url      = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+2025-11-08 01:18:14 +08:00: prisma:error 
+Invalid `prisma.system_logs.create()` invocation:
+
+
+error: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.
+  -->  schema.prisma:8
+   | 
+ 7 |   provider = "postgresql"
+ 8 |   url      = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+2025-11-08 01:28:14 +08:00: 🕐 [Cron] Executing automatic Xero token refresh...
+2025-11-08 01:28:14 +08:00: 
+🔍 [Token Refresh Service] Checking Xero token status...
+2025-11-08 01:28:14 +08:00: prisma:error 
+Invalid `prisma.xeroIntegration.findFirst()` invocation:
+
+
+error: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.
+  -->  schema.prisma:8
+   | 
+ 7 |   provider = "postgresql"
+ 8 |   url      = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+2025-11-08 01:28:14 +08:00: prisma:error 
+Invalid `prisma.system_logs.create()` invocation:
+
+
+error: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.
+  -->  schema.prisma:8
+   | 
+ 7 |   provider = "postgresql"
+ 8 |   url      = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+2025-11-08 01:38:14 +08:00: 🕐 [Cron] Executing automatic Xero token refresh...
+2025-11-08 01:38:14 +08:00: 
+🔍 [Token Refresh Service] Checking Xero token status...
+2025-11-08 01:38:14 +08:00: prisma:error 
+Invalid `prisma.xeroIntegration.findFirst()` invocation:
+
+
+error: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.
+  -->  schema.prisma:8
+   | 
+ 7 |   provider = "postgresql"
+ 8 |   url      = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+2025-11-08 01:38:14 +08:00: prisma:error 
+Invalid `prisma.system_logs.create()` invocation:
+
+
+error: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.
+  -->  schema.prisma:8
+   | 
+ 7 |   provider = "postgresql"
+ 8 |   url      = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+2025-11-08 01:48:14 +08:00: 🕐 [Cron] Executing automatic Xero token refresh...
+2025-11-08 01:48:14 +08:00: 
+🔍 [Token Refresh Service] Checking Xero token status...
+2025-11-08 01:48:14 +08:00: prisma:error 
+Invalid `prisma.xeroIntegration.findFirst()` invocation:
+
+
+error: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.
+  -->  schema.prisma:8
+   | 
+ 7 |   provider = "postgresql"
+ 8 |   url      = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+2025-11-08 01:48:14 +08:00: prisma:error 
+Invalid `prisma.system_logs.create()` invocation:
+
+
+error: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.
+  -->  schema.prisma:8
+   | 
+ 7 |   provider = "postgresql"
+ 8 |   url      = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+2025-11-08 09:11:55 +08:00: 🕐 [Cron] Executing automatic Xero token refresh...
+2025-11-08 09:11:55 +08:00: 
+🔍 [Token Refresh Service] Checking Xero token status...
+2025-11-08 09:11:55 +08:00: prisma:error 
+Invalid `prisma.xeroIntegration.findFirst()` invocation:
+
+
+error: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.
+  -->  schema.prisma:8
+   | 
+ 7 |   provider = "postgresql"
+ 8 |   url      = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+2025-11-08 09:11:55 +08:00: prisma:error 
+Invalid `prisma.system_logs.create()` invocation:
+
+
+error: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.
+  -->  schema.prisma:8
+   | 
+ 7 |   provider = "postgresql"
+ 8 |   url      = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+2025-11-08 09:12:24 +08:00: 🔄 NextAuth Redirect callback - URL: https://czl-pc.tail2217a9.ts.net Base URL: https://czl-pc.tail2217a9.ts.net
+2025-11-08 09:12:24 +08:00: ➡️ Redirecting to same origin: https://czl-pc.tail2217a9.ts.net
+2025-11-08 09:12:24 +08:00: 🔍 Authorization attempt for: zack@ampere.com.sg
+2025-11-08 09:12:24 +08:00: 🔍 Environment check: {
+  nodeEnv: 'production',
+  nextauthUrl: 'https://czl-pc.tail2217a9.ts.net',
+  originalNextAuthUrl: 'same',
+  nextauthSecret: '***configured***',
+  databaseUrl: '***configured***'
+}
+2025-11-08 09:12:24 +08:00: 🔎 Searching for user by username: zack@ampere.com.sg
+2025-11-08 09:12:24 +08:00: prisma:error 
+Invalid `prisma.user.findFirst()` invocation:
+
+
+error: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.
+  -->  schema.prisma:8
+   | 
+ 7 |   provider = "postgresql"
+ 8 |   url      = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+2025-11-08 09:12:54 +08:00: 🔄 NextAuth Redirect callback - URL: https://czl-pc.tail2217a9.ts.net Base URL: https://czl-pc.tail2217a9.ts.net
+2025-11-08 09:12:54 +08:00: ➡️ Redirecting to same origin: https://czl-pc.tail2217a9.ts.net
+2025-11-08 09:12:54 +08:00: 🔍 Authorization attempt for: zack@ampere.com.sg
+2025-11-08 09:12:54 +08:00: 🔍 Environment check: {
+  nodeEnv: 'production',
+  nextauthUrl: 'https://czl-pc.tail2217a9.ts.net',
+  originalNextAuthUrl: 'same',
+  nextauthSecret: '***configured***',
+  databaseUrl: '***configured***'
+}
+2025-11-08 09:12:54 +08:00: 🔎 Searching for user by username: zack@ampere.com.sg
+2025-11-08 09:12:54 +08:00: prisma:error 
+Invalid `prisma.user.findFirst()` invocation:
+
+
+error: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.
+  -->  schema.prisma:8
+   | 
+ 7 |   provider = "postgresql"
+ 8 |   url      = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+2025-11-08 09:13:24 +08:00: 🕐 [Cron] Executing automatic Xero token refresh...
+2025-11-08 09:13:24 +08:00: 
+🔍 [Token Refresh Service] Checking Xero token status...
+2025-11-08 09:13:24 +08:00: prisma:error 
+Invalid `prisma.xeroIntegration.findFirst()` invocation:
+
+
+error: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.
+  -->  schema.prisma:8
+   | 
+ 7 |   provider = "postgresql"
+ 8 |   url      = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+2025-11-08 09:13:24 +08:00: prisma:error 
+Invalid `prisma.system_logs.create()` invocation:
+
+
+error: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.
+  -->  schema.prisma:8
+   | 
+ 7 |   provider = "postgresql"
+ 8 |   url      = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+2025-11-08 09:15:20 +08:00:   ▲ Next.js 14.2.28
+2025-11-08 09:15:20 +08:00:   - Local:        http://localhost:3000
+2025-11-08 09:15:20 +08:00: 
+2025-11-08 09:15:20 +08:00:  ✓ Starting...
+2025-11-08 09:15:20 +08:00:  ✓ Ready in 630ms
+2025-11-08 09:16:49 +08:00:   ▲ Next.js 14.2.28
+2025-11-08 09:16:49 +08:00:   - Local:        http://localhost:3000
+2025-11-08 09:16:49 +08:00: 
+2025-11-08 09:16:49 +08:00:  ✓ Starting...
+2025-11-08 09:16:49 +08:00:  ✓ Ready in 494ms
+2025-11-08 09:18:44 +08:00:   ▲ Next.js 14.2.28
+2025-11-08 09:18:44 +08:00:   - Local:        http://localhost:3000
+2025-11-08 09:18:44 +08:00: 
+2025-11-08 09:18:44 +08:00:  ✓ Starting...
+2025-11-08 09:18:44 +08:00:   ▲ Next.js 14.2.28
+2025-11-08 09:18:44 +08:00:   - Local:        http://localhost:3000
+2025-11-08 09:18:44 +08:00: 
+2025-11-08 09:18:44 +08:00:  ✓ Starting...
+2025-11-08 09:18:45 +08:00:   ▲ Next.js 14.2.28
+2025-11-08 09:18:45 +08:00:   - Local:        http://localhost:3000
+2025-11-08 09:18:45 +08:00: 
+2025-11-08 09:18:45 +08:00:  ✓ Starting...
+2025-11-08 09:18:46 +08:00:   ▲ Next.js 14.2.28
+2025-11-08 09:18:46 +08:00:   - Local:        http://localhost:3000
+2025-11-08 09:18:46 +08:00: 
+2025-11-08 09:18:46 +08:00:  ✓ Starting...
+2025-11-08 09:18:46 +08:00:   ▲ Next.js 14.2.28
+2025-11-08 09:18:46 +08:00:   - Local:        http://localhost:3000
+2025-11-08 09:18:46 +08:00: 
+2025-11-08 09:18:46 +08:00:  ✓ Starting...
+2025-11-08 09:18:47 +08:00:   ▲ Next.js 14.2.28
+2025-11-08 09:18:47 +08:00:   - Local:        http://localhost:3000
+2025-11-08 09:18:47 +08:00: 
+2025-11-08 09:18:47 +08:00:  ✓ Starting...
+2025-11-08 09:18:48 +08:00:   ▲ Next.js 14.2.28
+2025-11-08 09:18:48 +08:00:   - Local:        http://localhost:3000
+2025-11-08 09:18:48 +08:00: 
+2025-11-08 09:18:48 +08:00:  ✓ Starting...
+2025-11-08 09:18:48 +08:00:   ▲ Next.js 14.2.28
+2025-11-08 09:18:48 +08:00:   - Local:        http://localhost:3000
+2025-11-08 09:18:48 +08:00: 
+2025-11-08 09:18:48 +08:00:  ✓ Starting...
+2025-11-08 09:18:49 +08:00:   ▲ Next.js 14.2.28
+2025-11-08 09:18:49 +08:00:   - Local:        http://localhost:3000
+2025-11-08 09:18:49 +08:00: 
+2025-11-08 09:18:49 +08:00:  ✓ Starting...
+2025-11-08 09:18:50 +08:00:   ▲ Next.js 14.2.28
+2025-11-08 09:18:50 +08:00:   - Local:        http://localhost:3000
+2025-11-08 09:18:50 +08:00: 
+2025-11-08 09:18:50 +08:00:  ✓ Starting...
+2025-11-08 09:18:50 +08:00:   ▲ Next.js 14.2.28
+2025-11-08 09:18:50 +08:00:   - Local:        http://localhost:3000
+2025-11-08 09:18:50 +08:00: 
+2025-11-08 09:18:50 +08:00:  ✓ Starting...
+2025-11-08 09:18:51 +08:00:   ▲ Next.js 14.2.28
+2025-11-08 09:18:51 +08:00:   - Local:        http://localhost:3000
+2025-11-08 09:18:51 +08:00: 
+2025-11-08 09:18:51 +08:00:  ✓ Starting...
+2025-11-08 09:18:51 +08:00:   ▲ Next.js 14.2.28
+2025-11-08 09:18:51 +08:00:   - Local:        http://localhost:3000
+2025-11-08 09:18:51 +08:00: 
+2025-11-08 09:18:51 +08:00:  ✓ Starting...
+2025-11-08 09:18:52 +08:00:   ▲ Next.js 14.2.28
+2025-11-08 09:18:52 +08:00:   - Local:        http://localhost:3000
+2025-11-08 09:18:52 +08:00: 
+2025-11-08 09:18:52 +08:00:  ✓ Starting...
+2025-11-08 09:18:53 +08:00:   ▲ Next.js 14.2.28
+2025-11-08 09:18:53 +08:00:   - Local:        http://localhost:3000
+2025-11-08 09:18:53 +08:00: 
+2025-11-08 09:18:53 +08:00:  ✓ Starting...
+2025-11-08 09:18:53 +08:00:   ▲ Next.js 14.2.28
+2025-11-08 09:18:53 +08:00:   - Local:        http://localhost:3000
+2025-11-08 09:18:53 +08:00: 
+2025-11-08 09:18:53 +08:00:  ✓ Starting...
+2025-11-08 09:27:01 +08:00:   ▲ Next.js 14.2.28
+2025-11-08 09:27:01 +08:00:   - Local:        http://localhost:3000
+2025-11-08 09:27:01 +08:00: 
+2025-11-08 09:27:01 +08:00:  ✓ Starting...
+2025-11-08 09:27:02 +08:00:   ▲ Next.js 14.2.28
+2025-11-08 09:27:02 +08:00:   - Local:        http://localhost:3000
+2025-11-08 09:27:02 +08:00: 
+2025-11-08 09:27:02 +08:00:  ✓ Starting...
+2025-11-08 09:27:02 +08:00:   ▲ Next.js 14.2.28
+2025-11-08 09:27:02 +08:00:   - Local:        http://localhost:3000
+2025-11-08 09:27:02 +08:00: 
+2025-11-08 09:27:02 +08:00:  ✓ Starting...
+2025-11-08 09:27:03 +08:00:   ▲ Next.js 14.2.28
+2025-11-08 09:27:03 +08:00:   - Local:        http://localhost:3000
+2025-11-08 09:27:03 +08:00: 
+2025-11-08 09:27:03 +08:00:  ✓ Starting...
+2025-11-08 09:27:04 +08:00:   ▲ Next.js 14.2.28
+2025-11-08 09:27:04 +08:00:   - Local:        http://localhost:3000
+2025-11-08 09:27:04 +08:00: 
+2025-11-08 09:27:04 +08:00:  ✓ Starting...
+2025-11-08 09:27:04 +08:00:   ▲ Next.js 14.2.28
+2025-11-08 09:27:04 +08:00:   - Local:        http://localhost:3000
+2025-11-08 09:27:04 +08:00: 
+2025-11-08 09:27:04 +08:00:  ✓ Starting...
+2025-11-08 09:27:05 +08:00:   ▲ Next.js 14.2.28
+2025-11-08 09:27:05 +08:00:   - Local:        http://localhost:3000
+2025-11-08 09:27:05 +08:00: 
+2025-11-08 09:27:05 +08:00:  ✓ Starting...
+2025-11-08 09:27:06 +08:00:   ▲ Next.js 14.2.28
+2025-11-08 09:27:06 +08:00:   - Local:        http://localhost:3000
+2025-11-08 09:27:06 +08:00: 
+2025-11-08 09:27:06 +08:00:  ✓ Starting...
+2025-11-08 09:27:06 +08:00:   ▲ Next.js 14.2.28
+2025-11-08 09:27:06 +08:00:   - Local:        http://localhost:3000
+2025-11-08 09:27:06 +08:00: 
+2025-11-08 09:27:06 +08:00:  ✓ Starting...
+2025-11-08 09:27:07 +08:00:   ▲ Next.js 14.2.28
+2025-11-08 09:27:07 +08:00:   - Local:        http://localhost:3000
+2025-11-08 09:27:07 +08:00: 
+2025-11-08 09:27:07 +08:00:  ✓ Starting...
+2025-11-08 09:27:07 +08:00:   ▲ Next.js 14.2.28
+2025-11-08 09:27:07 +08:00:   - Local:        http://localhost:3000
+2025-11-08 09:27:07 +08:00: 
+2025-11-08 09:27:07 +08:00:  ✓ Starting...
+2025-11-08 09:27:08 +08:00:   ▲ Next.js 14.2.28
+2025-11-08 09:27:08 +08:00:   - Local:        http://localhost:3000
+2025-11-08 09:27:08 +08:00: 
+2025-11-08 09:27:08 +08:00:  ✓ Starting...
+2025-11-08 09:27:09 +08:00:   ▲ Next.js 14.2.28
+2025-11-08 09:27:09 +08:00:   - Local:        http://localhost:3000
+2025-11-08 09:27:09 +08:00: 
+2025-11-08 09:27:09 +08:00:  ✓ Starting...
+2025-11-08 09:27:09 +08:00:   ▲ Next.js 14.2.28
+2025-11-08 09:27:09 +08:00:   - Local:        http://localhost:3000
+2025-11-08 09:27:09 +08:00: 
+2025-11-08 09:27:09 +08:00:  ✓ Starting...
+2025-11-08 09:27:10 +08:00:   ▲ Next.js 14.2.28
+2025-11-08 09:27:10 +08:00:   - Local:        http://localhost:3000
+2025-11-08 09:27:10 +08:00: 
+2025-11-08 09:27:10 +08:00:  ✓ Starting...
+2025-11-08 09:27:10 +08:00:   ▲ Next.js 14.2.28
+2025-11-08 09:27:10 +08:00:   - Local:        http://localhost:3000
+2025-11-08 09:27:10 +08:00: 
+2025-11-08 09:27:10 +08:00:  ✓ Starting...
+2025-11-08 09:36:06 +08:00:   ▲ Next.js 14.2.28
+2025-11-08 09:36:06 +08:00:   - Local:        http://localhost:3000
+2025-11-08 09:36:06 +08:00: 
+2025-11-08 09:36:06 +08:00:  ✓ Starting...
+2025-11-08 09:36:06 +08:00:  ✓ Ready in 456ms
+2025-11-08 09:39:20 +08:00:   ▲ Next.js 14.2.28
+2025-11-08 09:39:20 +08:00:   - Local:        http://localhost:3000
+2025-11-08 09:39:20 +08:00: 
+2025-11-08 09:39:20 +08:00:  ✓ Starting...
+2025-11-08 09:39:21 +08:00:  ✓ Ready in 452ms

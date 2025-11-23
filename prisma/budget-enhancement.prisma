@@ -1,0 +1,207 @@
+// Enhanced Budget Schema for Project Module
+// This adds comprehensive budget tracking with main budget and individual line items
+
+// Add to existing Project model:
+// mainBudget               Decimal?             @db.Decimal(15, 2)
+// mainBudgetWarningThreshold Decimal?          @db.Decimal(5, 2)  // Percentage (e.g., 90 = 90%)
+
+model ProjectBudgetLineItem {
+  id                    String                 @id @default(cuid())
+  projectId             String
+  
+  // Line item details
+  itemName              String                 // e.g., "Electrical Works", "Plumbing", "Supplier ABC"
+  itemType              BudgetLineItemType     @default(TRADE)
+  description           String?
+  
+  // Budget amounts
+  budgetedAmount        Decimal                @db.Decimal(15, 2)
+  budgetedAmountBeforeTax Decimal?            @db.Decimal(15, 2)
+  budgetedTaxAmount     Decimal?               @db.Decimal(15, 2)
+  
+  // Actual spending
+  actualAmount          Decimal                @default(0) @db.Decimal(15, 2)
+  actualAmountBeforeTax Decimal?               @db.Decimal(15, 2)
+  actualTaxAmount       Decimal?               @db.Decimal(15, 2)
+  
+  // Variance tracking
+  variance              Decimal?               @db.Decimal(15, 2)  // budgeted - actual
+  variancePercentage    Decimal?               @db.Decimal(5, 2)   // (variance / budgeted) * 100
+  
+  // Associations
+  supplierId            String?
+  category              ProjectBudgetCategory  @default(GENERAL)
+  customCategoryId      String?
+  
+  // Quotation reference (if created from uploaded quotation)
+  quotationId           String?
+  quotationReference    String?
+  quotationDate         DateTime?
+  quotationFilePath     String?
+  
+  // AI parsing metadata
+  parsedByAI            Boolean                @default(false)
+  aiConfidenceScore     Decimal?               @db.Decimal(3, 2)  // 0.00 to 1.00
+  aiParsedData          Json?                  // Store raw AI extraction
+  
+  // Status and tracking
+  status                BudgetLineItemStatus   @default(DRAFT)
+  isApproved            Boolean                @default(false)
+  approvedById          String?
+  approvedAt            DateTime?
+  
+  // Notes and attachments
+  notes                 String?
+  attachments           Json?                  // Array of file paths
+  
+  // Audit fields
+  createdById           String
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  
+  // Relations
+  Project               Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  Supplier              Supplier?              @relation(fields: [supplierId], references: [id])
+  BudgetCategory        BudgetCategory?        @relation(fields: [customCategoryId], references: [id])
+  Quotation             Quotation?             @relation(fields: [quotationId], references: [id])
+  CreatedBy             User                   @relation("BudgetLineItem_createdBy", fields: [createdById], references: [id])
+  ApprovedBy            User?                  @relation("BudgetLineItem_approvedBy", fields: [approvedById], references: [id])
+  
+  @@index([projectId])
+  @@index([supplierId])
+  @@index([status])
+}
+
+model ProjectBudgetAlert {
+  id                    String                 @id @default(cuid())
+  projectId             String
+  
+  // Alert details
+  alertType             BudgetAlertType
+  severity              AlertSeverity          @default(WARNING)
+  message               String
+  threshold             Decimal?               @db.Decimal(5, 2)  // Percentage threshold
+  currentUtilization    Decimal?               @db.Decimal(5, 2)  // Current budget utilization %
+  
+  // Budget context
+  mainBudget            Decimal?               @db.Decimal(15, 2)
+  totalAllocated        Decimal?               @db.Decimal(15, 2)
+  totalSpent            Decimal?               @db.Decimal(15, 2)
+  
+  // Line item reference (if alert is for specific line item)
+  lineItemId            String?
+  lineItemName          String?
+  
+  // Alert status
+  isRead                Boolean                @default(false)
+  isDismissed           Boolean                @default(false)
+  readAt                DateTime?
+  dismissedAt           DateTime?
+  
+  // Notification tracking
+  notifiedUserIds       Json?                  // Array of user IDs who were notified
+  notifiedAt            DateTime?
+  
+  // Audit
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  
+  // Relations
+  Project               Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  LineItem              ProjectBudgetLineItem? @relation(fields: [lineItemId], references: [id])
+  
+  @@index([projectId])
+  @@index([isRead])
+  @@index([severity])
+}
+
+model BudgetQuotationUpload {
+  id                    String                 @id @default(cuid())
+  projectId             String
+  
+  // File details
+  fileName              String
+  filePath              String
+  fileSize              Int
+  mimeType              String
+  
+  // Processing status
+  status                QuotationUploadStatus  @default(PENDING)
+  processingStartedAt   DateTime?
+  processingCompletedAt DateTime?
+  processingError       String?
+  
+  // AI extraction results
+  extractedData         Json?                  // Raw extracted data
+  confidenceScore       Decimal?               @db.Decimal(3, 2)
+  itemsExtracted        Int                    @default(0)
+  
+  // User review
+  isReviewed            Boolean                @default(false)
+  reviewedById          String?
+  reviewedAt            DateTime?
+  reviewNotes           String?
+  
+  // Created line items
+  createdLineItemIds    Json?                  // Array of created ProjectBudgetLineItem IDs
+  
+  // Audit
+  uploadedById          String
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  
+  // Relations
+  Project               Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  UploadedBy            User                   @relation("QuotationUpload_uploadedBy", fields: [uploadedById], references: [id])
+  ReviewedBy            User?                  @relation("QuotationUpload_reviewedBy", fields: [reviewedById], references: [id])
+  
+  @@index([projectId])
+  @@index([status])
+}
+
+// Enums
+
+enum BudgetLineItemType {
+  TRADE              // Electrical, Plumbing, etc.
+  SUPPLIER           // Specific supplier/contractor
+  MATERIAL           // Materials/goods
+  LABOR              // Labor costs
+  EQUIPMENT          // Equipment rental/purchase
+  SUBCONTRACTOR      // Subcontractor costs
+  CONTINGENCY        // Contingency budget
+  OTHER              // Other expenses
+}
+
+enum BudgetLineItemStatus {
+  DRAFT              // Initial entry, not yet approved
+  PENDING_APPROVAL   // Submitted for approval
+  APPROVED           // Approved and active
+  REJECTED           // Rejected
+  ON_HOLD            // Temporarily on hold
+  COMPLETED          // Work completed
+  CANCELLED          // Cancelled
+}
+
+enum BudgetAlertType {
+  MAIN_BUDGET_EXCEEDED        // Total allocated exceeds main budget
+  MAIN_BUDGET_WARNING         // Approaching main budget limit
+  LINE_ITEM_EXCEEDED          // Line item actual exceeds budgeted
+  LINE_ITEM_WARNING           // Line item approaching budget
+  TOTAL_SPENT_WARNING         // Total spent approaching main budget
+  TOTAL_SPENT_EXCEEDED        // Total spent exceeds main budget
+  VARIANCE_ALERT              // Significant variance detected
+}
+
+enum AlertSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+enum QuotationUploadStatus {
+  PENDING            // Uploaded, waiting for processing
+  PROCESSING         // AI is processing
+  COMPLETED          // Successfully processed
+  FAILED             // Processing failed
+  REVIEW_REQUIRED    // Needs manual review
+}

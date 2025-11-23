@@ -1,0 +1,48 @@
+
+/* CSS Validation Fixes */
+
+/* Fix font-weight conflicts */
+* {
+  font-weight: inherit !important;
+}
+
+h1 { font-weight: 700 !important; }
+h2 { font-weight: 600 !important; }
+h3 { font-weight: 600 !important; }
+h4 { font-weight: 500 !important; }
+h5 { font-weight: 500 !important; }
+h6 { font-weight: 500 !important; }
+
+/* Fix vendor prefix issues */
+* {
+  -webkit-text-size-adjust: 100% !important;
+}
+
+/* Override problematic CSS generation */
+@supports (font-variation-settings: normal) {
+  * {
+    font-variation-settings: normal;
+  }
+}
+
+/* Ensure proper unicode handling */
+@charset "UTF-8";
+
+/* Fix appearance issues */
+button, input, select, textarea {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+}
+
+/* Normalize text decoration */
+* {
+  -webkit-text-decoration: none;
+  text-decoration: none;
+}
+
+/* Fix tab-size issues */
+* {
+  -moz-tab-size: 4;
+  -o-tab-size: 4;
+  tab-size: 4;
+}

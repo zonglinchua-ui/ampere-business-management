@@ -1,0 +1,208 @@
+// Simplified Supplier-Based Budget Schema
+// Focus: Track supplier costs, upload quotations, calculate profit/loss, issue POs
+
+// Add these fields to existing Project model:
+// totalBudget              Decimal?             @db.Decimal(15, 2)  // Main project budget
+// budgetWarningThreshold   Decimal?             @db.Decimal(5, 2)   // Warning at X% (e.g., 90)
+// totalRevenue             Decimal?             @db.Decimal(15, 2)  // Contract value / Revenue
+// estimatedProfit          Decimal?             @db.Decimal(15, 2)  // Calculated profit
+// profitMargin             Decimal?             @db.Decimal(5, 2)   // Profit margin %
+
+model SupplierBudgetItem {
+  id                    String                 @id @default(cuid())
+  projectId             String
+  
+  // Supplier information
+  supplierId            String
+  supplierName          String                 // Cached for display
+  tradeType             String                 // e.g., "Electrical", "Plumbing", "Aircon"
+  description           String?
+  
+  // Budget amounts
+  quotedAmount          Decimal                @db.Decimal(15, 2)  // Amount from quotation
+  quotedAmountBeforeTax Decimal?               @db.Decimal(15, 2)
+  quotedTaxAmount       Decimal?               @db.Decimal(15, 2)
+  
+  // Actual costs (from POs and invoices)
+  actualCost            Decimal                @default(0) @db.Decimal(15, 2)
+  actualCostBeforeTax   Decimal?               @db.Decimal(15, 2)
+  actualTaxAmount       Decimal?               @db.Decimal(15, 2)
+  
+  // Variance
+  variance              Decimal?               @db.Decimal(15, 2)  // quoted - actual
+  variancePercentage    Decimal?               @db.Decimal(5, 2)
+  
+  // Quotation details
+  quotationReference    String?
+  quotationDate         DateTime?
+  quotationFilePath     String?                // Path to uploaded quotation PDF
+  quotationFileName     String?
+  
+  // AI extraction metadata
+  extractedByAI         Boolean                @default(false)
+  aiConfidence          Decimal?               @db.Decimal(3, 2)  // 0.00 to 1.00
+  aiExtractedData       Json?                  // Raw AI output
+  needsReview           Boolean                @default(false)    // Flag for manual review
+  
+  // PO linkage
+  purchaseOrderId       String?                // Linked PO (if issued)
+  poIssued              Boolean                @default(false)
+  poIssuedDate          DateTime?
+  
+  // Status
+  status                SupplierBudgetStatus   @default(QUOTED)
+  isApproved            Boolean                @default(false)
+  approvedById          String?
+  approvedAt            DateTime?
+  
+  // Notes
+  notes                 String?
+  internalNotes         String?                // Private notes
+  
+  // Audit
+  createdById           String
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  
+  // Relations
+  Project               Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  Supplier              Supplier               @relation(fields: [supplierId], references: [id])
+  PurchaseOrder         PurchaseOrder?         @relation(fields: [purchaseOrderId], references: [id])
+  CreatedBy             User                   @relation("SupplierBudget_createdBy", fields: [createdById], references: [id])
+  ApprovedBy            User?                  @relation("SupplierBudget_approvedBy", fields: [approvedById], references: [id])
+  
+  @@index([projectId])
+  @@index([supplierId])
+  @@index([status])
+  @@index([poIssued])
+}
+
+model ProjectBudgetSummary {
+  id                    String                 @id @default(cuid())
+  projectId             String                 @unique
+  
+  // Revenue
+  contractValue         Decimal                @db.Decimal(15, 2)
+  contractValueBeforeTax Decimal?              @db.Decimal(15, 2)
+  contractTaxAmount     Decimal?               @db.Decimal(15, 2)
+  
+  // Budget (total of all supplier quotes)
+  totalBudget           Decimal                @db.Decimal(15, 2)
+  totalBudgetBeforeTax  Decimal?               @db.Decimal(15, 2)
+  totalBudgetTaxAmount  Decimal?               @db.Decimal(15, 2)
+  
+  // Actual costs (from POs and invoices)
+  totalActualCost       Decimal                @default(0) @db.Decimal(15, 2)
+  totalActualCostBeforeTax Decimal?            @db.Decimal(15, 2)
+  totalActualTaxAmount  Decimal?               @db.Decimal(15, 2)
+  
+  // Profit calculations
+  estimatedProfit       Decimal                @db.Decimal(15, 2)  // contract - budget
+  estimatedProfitMargin Decimal                @db.Decimal(5, 2)   // (profit / contract) * 100
+  actualProfit          Decimal?               @db.Decimal(15, 2)  // contract - actual
+  actualProfitMargin    Decimal?               @db.Decimal(5, 2)
+  
+  // Budget utilization
+  budgetUtilization     Decimal                @db.Decimal(5, 2)   // (budget / contract) * 100
+  costUtilization       Decimal?               @db.Decimal(5, 2)   // (actual / contract) * 100
+  
+  // Supplier counts
+  totalSuppliers        Int                    @default(0)
+  suppliersWithPO       Int                    @default(0)
+  suppliersWithQuotation Int                   @default(0)
+  
+  // Warnings
+  hasWarnings           Boolean                @default(false)
+  warningCount          Int                    @default(0)
+  criticalWarningCount  Int                    @default(0)
+  
+  // Last calculation
+  lastCalculatedAt      DateTime               @default(now())
+  lastCalculatedById    String?
+  
+  // Audit
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  
+  // Relations
+  Project               Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  LastCalculatedBy      User?                  @relation(fields: [lastCalculatedById], references: [id])
+  
+  @@index([projectId])
+}
+
+model BudgetAlert {
+  id                    String                 @id @default(cuid())
+  projectId             String
+  
+  // Alert details
+  alertType             BudgetAlertType
+  severity              AlertSeverity          @default(WARNING)
+  title                 String
+  message               String
+  
+  // Context
+  supplierBudgetItemId  String?                // If alert is for specific supplier
+  supplierName          String?
+  
+  // Thresholds
+  threshold             Decimal?               @db.Decimal(5, 2)
+  currentValue          Decimal?               @db.Decimal(15, 2)
+  limitValue            Decimal?               @db.Decimal(15, 2)
+  
+  // Status
+  isRead                Boolean                @default(false)
+  isDismissed           Boolean                @default(false)
+  isResolved            Boolean                @default(false)
+  readAt                DateTime?
+  dismissedAt           DateTime?
+  resolvedAt            DateTime?
+  
+  // Notifications
+  notifiedUsers         Json?                  // Array of user IDs
+  notifiedAt            DateTime?
+  
+  // Audit
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  
+  // Relations
+  Project               Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  SupplierBudgetItem    SupplierBudgetItem?    @relation(fields: [supplierBudgetItemId], references: [id])
+  
+  @@index([projectId])
+  @@index([isRead])
+  @@index([severity])
+  @@index([isResolved])
+}
+
+// Enums
+
+enum SupplierBudgetStatus {
+  QUOTED             // Quotation received
+  PENDING_APPROVAL   // Waiting for approval
+  APPROVED           // Approved, ready for PO
+  PO_ISSUED          // PO has been issued
+  IN_PROGRESS        // Work in progress
+  COMPLETED          // Work completed
+  INVOICED           // Invoice received
+  PAID               // Fully paid
+  CANCELLED          // Cancelled
+}
+
+enum BudgetAlertType {
+  BUDGET_EXCEEDED           // Total budget exceeds contract value
+  BUDGET_WARNING            // Budget approaching contract value
+  COST_EXCEEDED             // Actual cost exceeds budget
+  COST_WARNING              // Actual cost approaching budget
+  PROFIT_LOSS               // Project showing loss
+  PROFIT_WARNING            // Profit margin below threshold
+  SUPPLIER_OVER_BUDGET      // Specific supplier over budget
+  MISSING_QUOTATION         // Supplier assigned but no quotation
+}
+
+enum AlertSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}

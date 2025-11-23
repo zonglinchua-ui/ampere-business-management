@@ -1,0 +1,3034 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id                String  @id
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  User              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model AuditLog {
+  id         String     @id
+  action     String
+  entityType EntityType
+  entityId   String
+  oldValues  Json?
+  newValues  Json?
+  userId     String
+  userEmail  String
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime   @default(now())
+  User       User       @relation(fields: [userId], references: [id])
+}
+
+model BudgetCategory {
+  id                  String                @id @default(cuid())
+  name                String
+  code                String                @unique
+  description         String?
+  color               String?
+  icon                String?
+  isActive            Boolean               @default(true)
+  isDefault           Boolean               @default(false)
+  createdById         String
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  User                User                  @relation(fields: [createdById], references: [id])
+  InvoiceMetadata     InvoiceMetadata[]
+  ProjectBudget       ProjectBudget[]
+  ProjectTransaction  ProjectTransaction[]
+  PurchaseOrderItem   PurchaseOrderItem[]
+  SupplierInvoiceItem SupplierInvoiceItem[]
+}
+
+model Customer {
+  id                              String                  @id
+  name                            String
+  email                           String?
+  phone                           String?
+  address                         String?
+  city                            String?
+  state                           String?
+  country                         String                  @default("Singapore")
+  postalCode                      String?
+  contactPerson                   String?
+  companyReg                      String?
+  website                         String?
+  notes                           String?
+  customerType                    CustomerType            @default(ENTERPRISE)
+  bankName                        String?
+  bankAccountNumber               String?
+  bankAccountName                 String?
+  bankSwiftCode                   String?
+  bankAddress                     String?
+  isActive                        Boolean                 @default(true)
+  createdAt                       DateTime                @default(now())
+  updatedAt                       DateTime
+  createdById                     String
+  customerNumber                  String?                 @unique
+  isXeroSynced                    Boolean                 @default(false)
+  lastXeroSync                    DateTime?
+  xeroContactId                   String?                 @unique
+  xeroAccountNumber               String?
+  xeroAccountsPayableTaxType      String?
+  xeroAccountsReceivableTaxType   String?
+  xeroAddresses                   Json?
+  xeroBankAccountDetails          String?
+  xeroBatchPayments               Json?
+  xeroContactPersons              Json?
+  xeroContactStatus               String?
+  xeroDefaultCurrency             String?
+  xeroPhones                      Json?
+  xeroSkypeUserName               String?
+  xeroTaxNumber                   String?
+  xeroUpdatedDateUTC              DateTime?
+  accountNumber                   String?
+  primaryFirstName                String?
+  primaryLastName                 String?
+  primaryEmail                    String?
+  phoneCountry                    String?                 @default("+65")
+  phoneArea                       String?
+  phoneNumber                     String?
+  internalNotes                   String?
+  billingAddressLine1             String?
+  billingAddressLine2             String?
+  billingAddressLine3             String?
+  billingAddressLine4             String?
+  billingCity                     String?
+  billingState                    String?
+  billingPostcode                 String?
+  billingCountry                  String?                 @default("Singapore")
+  deliveryAddressLine1            String?
+  deliveryAddressLine2            String?
+  deliveryAddressLine3            String?
+  deliveryAddressLine4            String?
+  deliveryCity                    String?
+  deliveryState                   String?
+  deliveryPostcode                String?
+  deliveryCountry                 String?                 @default("Singapore")
+  financialDetailsNote            String?
+  taxId                           String?
+  currency                        String?                 @default("SGD")
+  salesAccountId                  String?
+  invoiceDue                      String?                 @default("of_following_month")
+  amountSetting                   String?                 @default("use_org_settings")
+  salesTaxSetting                 String?                 @default("OUTPUT2")
+  discountRate                    Decimal?                @default(0) @db.Decimal(5, 2)
+  creditLimit                     Decimal?                @db.Decimal(15, 2)
+  blockInvoiceOverlimit           Boolean                 @default(false)
+  brandingTheme                   String?
+  xeroNetworkKey                  String?
+  defaultCurrency                 String?
+  emailAddress                    String?
+  fax                             String?
+  firstName                       String?
+  isCustomer                      Boolean?                @default(true)
+  isSupplier                      Boolean?
+  lastName                        String?
+  mailingAttention                String?
+  mailingCity                     String?
+  mailingCountry                  String?
+  mailingLine1                    String?
+  mailingLine2                    String?
+  mailingLine3                    String?
+  mailingLine4                    String?
+  mailingPostalCode               String?
+  mailingRegion                   String?
+  mobile                          String?
+  purchasesDefaultAccountCode     String?
+  salesDefaultAccountCode         String?
+  skypeUserName                   String?
+  streetAttention                 String?
+  streetCity                      String?
+  streetCountry                   String?
+  streetLine1                     String?
+  streetLine2                     String?
+  streetLine3                     String?
+  streetLine4                     String?
+  streetPostalCode                String?
+  streetRegion                    String?
+  taxNumber                       String?
+  xeroUpdatedDateUtc              String?
+  isDeleted                       Boolean                 @default(false) @map("is_deleted")
+  deletedAt                       DateTime?               @map("deleted_at")
+  deletedBy                       String?                 @map("deleted_by")
+  brandingPresetId                String?
+  reminderCadence                 InvoiceReminderCadence? @default(GENTLE)
+  reminderOffsets                 Int[]                   @default([])
+  lastReminderSentAt              DateTime?
+  User_Customer_createdByIdToUser User                    @relation("Customer_createdByIdToUser", fields: [createdById], references: [id])
+  User_Customer_deletedByToUser   User?                   @relation("Customer_deletedByToUser", fields: [deletedBy], references: [id])
+  BrandingPreset                  InvoiceBrandingPreset?  @relation(fields: [brandingPresetId], references: [id])
+  CustomerInvoice                 CustomerInvoice[]
+  LegacyInvoice                   LegacyInvoice[]
+  Payment                         Payment[]
+  Project                         Project[]
+  ProjectTransaction              ProjectTransaction[]
+  PurchaseOrder                   PurchaseOrder[]
+  Quotation                       Quotation[]
+  ServiceContract                 ServiceContract[]
+  ServiceJob                      ServiceJob[]
+  Task                            Task[]
+  Tender                          Tender[]
+  ProcurementDocuments            ProcurementDocument[]   @relation("CustomerProcurementDocs")
+}
+
+model CustomerInvoice {
+  id                     String                @id
+  invoiceNumber          String                @unique
+  projectId              String?
+  quotationId            String?
+  customerId             String
+  subtotal               Decimal               @db.Decimal(15, 2)
+  taxAmount              Decimal?              @db.Decimal(15, 2)
+  discountAmount         Decimal?              @db.Decimal(15, 2)
+  totalAmount            Decimal               @db.Decimal(15, 2)
+  currency               String                @default("SGD")
+  status                 CustomerInvoiceStatus @default(DRAFT)
+  issueDate              DateTime
+  dueDate                DateTime
+  paidDate               DateTime?
+  description            String?
+  terms                  String?
+  notes                  String?
+  xeroInvoiceId          String?               @unique
+  isXeroSynced           Boolean               @default(false)
+  lastXeroSync           DateTime?
+  createdById            String
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime
+  amountDue              Decimal?              @db.Decimal(15, 2)
+  amountPaid             Decimal?              @db.Decimal(15, 2)
+  xeroType               String?
+  isProgressClaimInvoice Boolean?              @default(false)
+  User                   User                  @relation(fields: [createdById], references: [id])
+  Customer               Customer              @relation(fields: [customerId], references: [id])
+  Project                Project?              @relation(fields: [projectId], references: [id])
+  Quotation              Quotation?            @relation(fields: [quotationId], references: [id])
+  CustomerInvoiceItem    CustomerInvoiceItem[]
+  Document               Document[]
+  Payment                Payment[]
+  ProgressClaim          ProgressClaim[]
+  Comment             Comment[]
+}
+
+model CustomerInvoiceItem {
+  id                String          @id
+  customerInvoiceId String
+  description       String
+  category          ItemCategory    @default(SERVICES)
+  quantity          Decimal         @db.Decimal(10, 2)
+  unitPrice         Decimal         @db.Decimal(15, 2)
+  discount          Decimal?        @db.Decimal(5, 2)
+  taxRate           Decimal?        @db.Decimal(5, 2)
+  subtotal          Decimal         @db.Decimal(15, 2)
+  discountAmount    Decimal?        @db.Decimal(15, 2)
+  taxAmount         Decimal?        @db.Decimal(15, 2)
+  totalPrice        Decimal         @db.Decimal(15, 2)
+  unit              String?         @default("pcs")
+  notes             String?
+  order             Int             @default(0)
+  accountCode       String?         @default("200")
+  taxType           String?         @default("OUTPUT2")
+  CustomerInvoice   CustomerInvoice @relation(fields: [customerInvoiceId], references: [id], onDelete: Cascade)
+}
+
+model Document {
+  id                String           @id
+  filename          String
+  originalName      String
+  mimetype          String
+  size              Int
+  cloudStoragePath  String
+  description       String?
+  category          DocumentCategory @default(GENERAL)
+  projectId         String?
+  supplierId        String?
+  tenderId          String?
+  quotationId       String?
+  customerInvoiceId String?
+  purchaseOrderId   String?
+  uploadedById      String?
+  isActive          Boolean          @default(true)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime
+  supplierInvoiceId String?
+  CustomerInvoice   CustomerInvoice? @relation(fields: [customerInvoiceId], references: [id])
+  Project           Project?         @relation(fields: [projectId], references: [id])
+  PurchaseOrder     PurchaseOrder?   @relation(fields: [purchaseOrderId], references: [id])
+  Quotation         Quotation?       @relation(fields: [quotationId], references: [id])
+  Supplier          Supplier?        @relation(fields: [supplierId], references: [id])
+  SupplierInvoice   SupplierInvoice? @relation(fields: [supplierInvoiceId], references: [id])
+  Tender            Tender?          @relation(fields: [tenderId], references: [id])
+  User              User?            @relation(fields: [uploadedById], references: [id])
+}
+
+model LegacyInvoice {
+  id                 String                  @id
+  invoiceNumber      String                  @unique
+  projectId          String
+  customerId         String
+  amount             Decimal                 @db.Decimal(15, 2)
+  taxAmount          Decimal?                @db.Decimal(15, 2)
+  totalAmount        Decimal                 @db.Decimal(15, 2)
+  status             InvoiceStatus           @default(DRAFT)
+  issueDate          DateTime
+  dueDate            DateTime
+  description        String?
+  createdById        String
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime
+  brandingPresetId   String?
+  reminderCadence    InvoiceReminderCadence? @default(GENTLE)
+  reminderOffsets    Int[]                   @default([])
+  lastReminderSentAt DateTime?
+  User               User                    @relation(fields: [createdById], references: [id])
+  Customer           Customer                @relation(fields: [customerId], references: [id])
+  Project            Project                 @relation(fields: [projectId], references: [id])
+  BrandingPreset     InvoiceBrandingPreset?  @relation(fields: [brandingPresetId], references: [id])
+}
+
+model InvoiceBrandingPreset {
+  id           String          @id @default(cuid())
+  name         String
+  logoUrl      String?
+  primaryColor String?
+  accentColor  String?
+  terms        String?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  Customers    Customer[]
+  Invoices     LegacyInvoice[]
+}
+
+enum InvoiceReminderCadence {
+  GENTLE
+  FIRM
+  CUSTOM
+}
+
+model Payment {
+  id                               String           @id
+  paymentNumber                    String           @unique
+  customerInvoiceId                String?
+  amount                           Decimal          @db.Decimal(15, 2)
+  currency                         String           @default("SGD")
+  paymentMethod                    PaymentMethod    @default(BANK_TRANSFER)
+  paymentDate                      DateTime
+  reference                        String?
+  notes                            String?
+  status                           PaymentStatus    @default(PENDING)
+  xeroPaymentId                    String?
+  isXeroSynced                     Boolean          @default(false)
+  lastXeroSync                     DateTime?
+  processedById                    String?
+  createdById                      String
+  createdAt                        DateTime         @default(now())
+  updatedAt                        DateTime
+  supplierInvoiceId                String?
+  customerId                       String?
+  xeroBankAccountCode              String?
+  xeroBankAccountId                String?
+  xeroContactId                    String?
+  xeroCurrencyRate                 Decimal?         @db.Decimal(10, 6)
+  xeroInvoiceId                    String?
+  xeroPaymentType                  String?
+  User_Payment_createdByIdToUser   User             @relation("Payment_createdByIdToUser", fields: [createdById], references: [id])
+  Customer                         Customer?        @relation(fields: [customerId], references: [id])
+  CustomerInvoice                  CustomerInvoice? @relation(fields: [customerInvoiceId], references: [id])
+  User_Payment_processedByIdToUser User?            @relation("Payment_processedByIdToUser", fields: [processedById], references: [id])
+  SupplierInvoice                  SupplierInvoice? @relation(fields: [supplierInvoiceId], references: [id])
+}
+
+model Project {
+  id                               String                 @id
+  projectNumber                    String                 @unique
+  name                             String
+  description                      String?
+  projectType                      ProjectType            @default(REGULAR)
+  workType                         ProjectWorkType?
+  status                           ProjectStatus          @default(PLANNING)
+  priority                         Priority               @default(MEDIUM)
+  startDate                        DateTime?
+  endDate                          DateTime?
+  estimatedBudget                  Decimal?               @db.Decimal(15, 2)
+  actualCost                       Decimal?               @db.Decimal(15, 2)
+  progress                         Int                    @default(0)
+  customerId                       String
+  managerId                        String?
+  createdById                      String
+  isActive                         Boolean                @default(true)
+  createdAt                        DateTime               @default(now())
+  updatedAt                        DateTime
+  salespersonId                    String?
+  contractValue                    Decimal?               @db.Decimal(15, 2)
+  contractValueBeforeTax           Decimal?               @db.Decimal(15, 2)
+  contractTaxAmount                Decimal?               @db.Decimal(15, 2)
+  contractDocumentPath             String?
+  contractDocumentName             String?
+  address                          String?
+  latitude                         Float?
+  longitude                        Float?
+  city                             String?
+  country                          String?                @default("Singapore")
+  postalCode                       String?
+  BcaProjectForm                   BcaProjectForm[]
+  CustomerInvoice                  CustomerInvoice[]
+  Document                         Document[]
+  InvoiceMetadata                  InvoiceMetadata[]
+  LegacyInvoice                    LegacyInvoice[]
+  User_Project_createdByIdToUser   User                   @relation("Project_createdByIdToUser", fields: [createdById], references: [id])
+  Customer                         Customer               @relation(fields: [customerId], references: [id])
+  User_Project_managerIdToUser     User?                  @relation("Project_managerIdToUser", fields: [managerId], references: [id])
+  User_Project_salespersonIdToUser User?                  @relation("Project_salespersonIdToUser", fields: [salespersonId], references: [id])
+  CompanyReference                 CompanyReference[]
+  ProjectBudget                    ProjectBudget[]
+  ProjectDocument                  ProjectDocument[]
+  ProjectSupplier                  ProjectSupplier[]
+  ProjectTransaction               ProjectTransaction[]
+  PurchaseOrder                    PurchaseOrder[]
+  ProjectNotification              ProjectNotification[]
+  Quotation                        Quotation[]
+  ServiceContract                  ServiceContract[]
+  ServiceJob                       ServiceJob[]
+  SupplierContract                 SupplierContract[]
+  SupplierInvoice                  SupplierInvoice[]
+  Task                             Task[]
+  VariationOrder                   VariationOrder[]
+  ProgressClaim                    ProgressClaim[]
+  Comment                          Comment[]
+  SupplierBudgetItem               SupplierBudgetItem[]
+  ProjectBudgetSummary             ProjectBudgetSummary?
+  BudgetAlert                      BudgetAlert[]
+  ProcurementDocuments             ProcurementDocument[]  @relation("ProcurementDocuments")
+  ProcurementPORequests            ProcurementPORequest[] @relation("ProjectPORequests")
+}
+
+model ProjectBudget {
+  id                      String                @id
+  projectId               String
+  category                ProjectBudgetCategory @default(GENERAL)
+  budgetedAmount          Decimal               @db.Decimal(15, 2)
+  budgetedAmountBeforeTax Decimal?              @db.Decimal(15, 2)
+  budgetedTaxAmount       Decimal?              @db.Decimal(15, 2)
+  actualAmount            Decimal               @default(0) @db.Decimal(15, 2)
+  actualAmountBeforeTax   Decimal?              @db.Decimal(15, 2)
+  actualTaxAmount         Decimal?              @db.Decimal(15, 2)
+  description             String?
+  createdById             String
+  createdAt               DateTime              @default(now())
+  updatedAt               DateTime
+  customCategoryId        String?
+  User                    User                  @relation(fields: [createdById], references: [id])
+  BudgetCategory          BudgetCategory?       @relation(fields: [customCategoryId], references: [id])
+  Project                 Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, category, customCategoryId])
+}
+
+model ProjectDocument {
+  id                                       String                        @id
+  projectId                                String
+  documentType                             ProjectDocumentType
+  title                                    String
+  description                              String?
+  status                                   ProjectDocumentStatus         @default(DRAFT)
+  category                                 ProjectDocumentCategory
+  version                                  Int                           @default(1)
+  cloudStoragePath                         String?
+  filename                                 String?
+  originalName                             String?
+  mimetype                                 String?
+  size                                     Int?
+  templateType                             TemplateType?
+  templateData                             Json?
+  requiresApproval                         Boolean                       @default(false)
+  submittedAt                              DateTime?
+  approvedAt                               DateTime?
+  rejectedAt                               DateTime?
+  rejectionReason                          String?
+  createdById                              String
+  approvedById                             String?
+  submittedById                            String?
+  isActive                                 Boolean                       @default(true)
+  isLatestVersion                          Boolean                       @default(true)
+  parentDocumentId                         String?
+  createdAt                                DateTime                      @default(now())
+  updatedAt                                DateTime
+  hasPhotos                                Boolean                       @default(false)
+  photoCount                               Int                           @default(0)
+  photoDescriptions                        Json?
+  documentNumber                           String                        @unique
+  User_ProjectDocument_approvedByIdToUser  User?                         @relation("ProjectDocument_approvedByIdToUser", fields: [approvedById], references: [id])
+  User_ProjectDocument_createdByIdToUser   User                          @relation("ProjectDocument_createdByIdToUser", fields: [createdById], references: [id])
+  ProjectDocument                          ProjectDocument?              @relation("ProjectDocumentToProjectDocument", fields: [parentDocumentId], references: [id])
+  other_ProjectDocument                    ProjectDocument[]             @relation("ProjectDocumentToProjectDocument")
+  Project                                  Project                       @relation(fields: [projectId], references: [id])
+  User_ProjectDocument_submittedByIdToUser User?                         @relation("ProjectDocument_submittedByIdToUser", fields: [submittedById], references: [id])
+  ProjectDocumentActivity                  ProjectDocumentActivity[]
+  ProjectDocumentNotification              ProjectDocumentNotification[]
+
+  @@unique([projectId, documentType, version])
+  @@index([createdAt])
+  @@index([projectId, category])
+  @@index([projectId, status])
+}
+
+model ProjectDocumentActivity {
+  id              String          @id
+  documentId      String
+  action          String
+  description     String?
+  oldValue        String?
+  newValue        String?
+  userId          String
+  userEmail       String
+  createdAt       DateTime        @default(now())
+  ProjectDocument ProjectDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+}
+
+model ProjectDocumentNotification {
+  id              String                   @id
+  documentId      String
+  userId          String
+  type            DocumentNotificationType
+  message         String
+  isRead          Boolean                  @default(false)
+  sentAt          DateTime?
+  createdAt       DateTime                 @default(now())
+  ProjectDocument ProjectDocument          @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  User            User                     @relation(fields: [userId], references: [id])
+}
+
+model ProjectDocumentTemplate {
+  id              String                  @id
+  name            String
+  templateType    TemplateType
+  category        ProjectDocumentCategory
+  description     String?
+  templateContent Json
+  isActive        Boolean                 @default(true)
+  isDefault       Boolean                 @default(false)
+  createdById     String
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime
+  User            User                    @relation(fields: [createdById], references: [id])
+
+  @@unique([templateType, isDefault])
+}
+
+model ProjectSupplier {
+  id            String                @id
+  projectId     String
+  supplierId    String
+  role          String
+  startDate     DateTime?
+  endDate       DateTime?
+  contractValue Decimal?              @db.Decimal(15, 2)
+  status        SupplierProjectStatus @default(ASSIGNED)
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime
+  Project       Project               @relation(fields: [projectId], references: [id])
+  Supplier      Supplier              @relation(fields: [supplierId], references: [id])
+
+  @@unique([projectId, supplierId])
+}
+
+model ProjectTransaction {
+  id               String                 @id
+  projectId        String
+  transactionType  ProjectTransactionType
+  amount           Decimal                @db.Decimal(15, 2)
+  description      String
+  notes            String?
+  category         ProjectBudgetCategory  @default(GENERAL)
+  date             DateTime
+  supplierId       String?
+  customerId       String?
+  reference        String?
+  attachmentPath   String?
+  financeId        String?
+  createdById      String
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime
+  customCategoryId String?
+  User             User                   @relation(fields: [createdById], references: [id])
+  BudgetCategory   BudgetCategory?        @relation(fields: [customCategoryId], references: [id])
+  Customer         Customer?              @relation(fields: [customerId], references: [id])
+  Project          Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  Supplier         Supplier?              @relation(fields: [supplierId], references: [id])
+
+  @@index([projectId, date])
+}
+
+model PurchaseOrder {
+  id                                    String                  @id
+  poNumber                              String                  @unique
+  supplierId                            String?
+  projectId                             String?
+  requesterId                           String
+  subtotal                              Decimal                 @db.Decimal(15, 2)
+  taxAmount                             Decimal?                @db.Decimal(15, 2)
+  totalAmount                           Decimal                 @db.Decimal(15, 2)
+  currency                              String                  @default("SGD")
+  status                                PurchaseOrderStatus     @default(DRAFT)
+  issueDate                             DateTime?
+  deliveryDate                          DateTime?
+  terms                                 String?
+  notes                                 String?
+  xeroOrderId                           String?
+  isXeroSynced                          Boolean                 @default(false)
+  lastXeroSync                          DateTime?
+  approvedById                          String?
+  approvedAt                            DateTime?
+  createdById                           String
+  createdAt                             DateTime                @default(now())
+  updatedAt                             DateTime                @updatedAt
+  type                                  PurchaseOrderType       @default(OUTGOING)
+  customerId                            String?
+  documentPath                          String?
+  deliveryAddress                       String?
+  Document                              Document[]
+  User_PurchaseOrder_approvedByIdToUser User?                   @relation("PurchaseOrder_approvedByIdToUser", fields: [approvedById], references: [id])
+  User_PurchaseOrder_createdByIdToUser  User                    @relation("PurchaseOrder_createdByIdToUser", fields: [createdById], references: [id])
+  Customer                              Customer?               @relation(fields: [customerId], references: [id])
+  Project                               Project?                @relation(fields: [projectId], references: [id])
+  User_PurchaseOrder_requesterIdToUser  User                    @relation("PurchaseOrder_requesterIdToUser", fields: [requesterId], references: [id])
+  Supplier                              Supplier?               @relation(fields: [supplierId], references: [id])
+  PurchaseOrderActivity                 PurchaseOrderActivity[]
+  PurchaseOrderItem                     PurchaseOrderItem[]
+  SupplierInvoice                       SupplierInvoice[]
+  SupplierBudgetItem                    SupplierBudgetItem[]
+  Comment                               Comment[]
+}
+
+model PurchaseOrderActivity {
+  id              String        @id
+  purchaseOrderId String
+  action          String
+  description     String?
+  oldValue        String?
+  newValue        String?
+  userId          String
+  userEmail       String
+  createdAt       DateTime      @default(now())
+  PurchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+}
+
+model PurchaseOrderItem {
+  id               String          @id
+  purchaseOrderId  String
+  description      String
+  category         ItemCategory    @default(MATERIALS)
+  quantity         Decimal         @db.Decimal(10, 2)
+  unitPrice        Decimal         @db.Decimal(15, 2)
+  discount         Decimal?        @db.Decimal(5, 2)
+  taxRate          Decimal?        @db.Decimal(5, 2)
+  subtotal         Decimal         @db.Decimal(15, 2)
+  discountAmount   Decimal?        @db.Decimal(15, 2)
+  taxAmount        Decimal?        @db.Decimal(15, 2)
+  totalPrice       Decimal         @db.Decimal(15, 2)
+  unit             String?         @default("pcs")
+  notes            String?
+  order            Int             @default(0)
+  budgetCategoryId String?
+  BudgetCategory   BudgetCategory? @relation(fields: [budgetCategoryId], references: [id])
+  PurchaseOrder    PurchaseOrder   @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+}
+
+model Quotation {
+  id                                        String              @id
+  quotationNumber                           String
+  version                                   Int                 @default(1)
+  title                                     String
+  description                               String?
+  clientReference                           String?
+  tenderId                                  String?
+  customerId                                String
+  projectId                                 String?
+  salespersonId                             String?
+  subtotal                                  Decimal             @db.Decimal(15, 2)
+  taxAmount                                 Decimal?            @db.Decimal(15, 2)
+  discountAmount                            Decimal?            @db.Decimal(15, 2)
+  totalAmount                               Decimal             @db.Decimal(15, 2)
+  currency                                  String              @default("SGD")
+  status                                    QuotationStatus     @default(DRAFT)
+  validUntil                                DateTime
+  terms                                     String?
+  notes                                     String?
+  templateType                              String              @default("standard")
+  isSuperseded                              Boolean             @default(false)
+  parentQuotationId                         String?
+  approvalValue                             Decimal?            @db.Decimal(15, 2)
+  requiresApproval                          Boolean             @default(false)
+  createdById                               String
+  approvedById                              String?
+  approvedAt                                DateTime?
+  rejectedById                              String?
+  rejectedAt                                DateTime?
+  rejectionReason                           String?
+  createdAt                                 DateTime            @default(now())
+  updatedAt                                 DateTime
+  additionalTerms                           String?
+  paymentTerms                              Json?
+  validityDays                              Int?                @default(30)
+  isVariationOrder                          Boolean             @default(false)
+  variationOrderType                        VariationOrderType?
+  customerApprovedAt                        DateTime?
+  customerApprovedById                      String?
+  isCustomerApproved                        Boolean             @default(false)
+  CustomerInvoice                           CustomerInvoice[]
+  Document                                  Document[]
+  User_Quotation_approvedByIdToUser         User?               @relation("Quotation_approvedByIdToUser", fields: [approvedById], references: [id])
+  User_Quotation_createdByIdToUser          User                @relation("Quotation_createdByIdToUser", fields: [createdById], references: [id])
+  User_Quotation_customerApprovedByIdToUser User?               @relation("Quotation_customerApprovedByIdToUser", fields: [customerApprovedById], references: [id])
+  Customer                                  Customer            @relation(fields: [customerId], references: [id])
+  Quotation                                 Quotation?          @relation("QuotationToQuotation", fields: [parentQuotationId], references: [id])
+  other_Quotation                           Quotation[]         @relation("QuotationToQuotation")
+  Project                                   Project?            @relation(fields: [projectId], references: [id])
+  User_Quotation_rejectedByIdToUser         User?               @relation("Quotation_rejectedByIdToUser", fields: [rejectedById], references: [id])
+  User_Quotation_salespersonIdToUser        User?               @relation("Quotation_salespersonIdToUser", fields: [salespersonId], references: [id])
+  Tender                                    Tender?             @relation(fields: [tenderId], references: [id])
+  QuotationActivity                         QuotationActivity[]
+  QuotationApproval                         QuotationApproval[]
+  QuotationItem                             QuotationItem[]
+  VariationOrder                            VariationOrder[]
+  ProgressClaim                             ProgressClaim[]
+
+  @@unique([quotationNumber, version])
+}
+
+model QuotationActivity {
+  id          String    @id
+  quotationId String
+  action      String
+  description String?
+  oldValue    String?
+  newValue    String?
+  userId      String
+  userEmail   String
+  createdAt   DateTime  @default(now())
+  Quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+}
+
+model QuotationApproval {
+  id            String         @id
+  quotationId   String
+  approverId    String
+  status        ApprovalStatus @default(PENDING)
+  comments      String?
+  approvalLevel Int            @default(1)
+  approvedAt    DateTime?
+  createdAt     DateTime       @default(now())
+  User          User           @relation(fields: [approverId], references: [id])
+  Quotation     Quotation      @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+}
+
+model QuotationItem {
+  id             String       @id
+  quotationId    String
+  description    String
+  category       ItemCategory @default(MATERIALS)
+  quantity       Decimal      @db.Decimal(10, 2)
+  unitPrice      Decimal      @db.Decimal(15, 2)
+  discount       Decimal?     @db.Decimal(5, 2)
+  taxRate        Decimal?     @db.Decimal(5, 2)
+  subtotal       Decimal      @db.Decimal(15, 2)
+  discountAmount Decimal?     @db.Decimal(15, 2)
+  taxAmount      Decimal?     @db.Decimal(15, 2)
+  totalPrice     Decimal      @db.Decimal(15, 2)
+  unit           String?      @default("pcs")
+  notes          String?
+  order          Int          @default(0)
+  Quotation      Quotation    @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+}
+
+model QuotationItemLibrary {
+  id               String       @id
+  description      String
+  category         ItemCategory @default(MATERIALS)
+  unit             String       @default("pcs")
+  averageUnitPrice Decimal      @db.Decimal(15, 2)
+  lastUnitPrice    Decimal      @db.Decimal(15, 2)
+  usageCount       Int          @default(0)
+  createdById      String
+  lastUsedAt       DateTime     @default(now())
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime
+  User             User         @relation(fields: [createdById], references: [id])
+
+  @@unique([description, category, unit])
+}
+
+model QuotationTemplate {
+  id              String   @id
+  name            String
+  templateType    String
+  description     String?
+  headerContent   String?
+  footerContent   String?
+  termsConditions String?
+  isActive        Boolean  @default(true)
+  isDefault       Boolean  @default(false)
+  createdById     String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime
+  User            User     @relation(fields: [createdById], references: [id])
+}
+
+model VariationOrder {
+  id                   String               @id
+  variationNumber      String               @unique
+  projectId            String
+  quotationId          String?
+  title                String
+  description          String?
+  amount               Decimal              @db.Decimal(15, 2)
+  approvedAmount       Decimal?             @db.Decimal(15, 2)
+  submittedDate        DateTime?
+  approvedDate         DateTime?
+  rejectedDate         DateTime?
+  approvedById         String?
+  createdById          String
+  rejectionReason      String?
+  contractDocumentPath String?
+  isActive             Boolean              @default(true)
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime
+  type                 VariationOrderType   @default(ADDITION)
+  status               VariationOrderStatus @default(DRAFT)
+  User_approvedBy      User?                @relation("VariationOrder_approvedBy", fields: [approvedById], references: [id])
+  User_createdBy       User                 @relation("VariationOrder_createdBy", fields: [createdById], references: [id])
+  Project              Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  Quotation            Quotation?           @relation(fields: [quotationId], references: [id])
+
+  @@index([projectId])
+  @@index([status])
+  @@index([quotationId])
+}
+
+model ServiceContract {
+  id                                     String                    @id @default(cuid())
+  contractNo                             String                    @unique
+  customerId                             String
+  projectId                              String?
+  managerId                              String?
+  serviceType                            ServiceType
+  frequency                              ServiceFrequency
+  startDate                              DateTime
+  endDate                                DateTime
+  contractValue                          Decimal?                  @db.Decimal(15, 2)
+  filePath                               String?
+  createdById                            String
+  createdAt                              DateTime                  @default(now())
+  updatedAt                              DateTime                  @updatedAt
+  title                                  String
+  status                                 ServiceContractStatus     @default(Active)
+  User_ServiceContract_createdByIdToUser User                      @relation("ServiceContractCreator", fields: [createdById], references: [id])
+  User_ServiceContract_managerIdToUser   User?                     @relation("ServiceContractManager", fields: [managerId], references: [id])
+  Customer                               Customer                  @relation(fields: [customerId], references: [id])
+  Project                                Project?                  @relation(fields: [projectId], references: [id])
+  ServiceContractSupplier                ServiceContractSupplier[]
+  ServiceJob                             ServiceJob[]
+  ServiceNotification                    ServiceNotification[]
+}
+
+model ServiceContractSupplier {
+  id         String          @id @default(cuid())
+  contractId String
+  supplierId String
+  assignedAt DateTime        @default(now())
+  contract   ServiceContract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  supplier   Supplier        @relation("ServiceContractSuppliers", fields: [supplierId], references: [id], onDelete: Cascade)
+
+  @@unique([contractId, supplierId])
+  @@index([contractId])
+  @@index([supplierId])
+}
+
+model ServiceInvoice {
+  id          String               @id
+  jobId       String
+  invoiceNo   String               @unique
+  invoiceType ServiceInvoiceType
+  amount      Decimal              @db.Decimal(12, 2)
+  status      ServiceInvoiceStatus @default(Draft)
+  xeroId      String?
+  filePath    String?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime
+  ServiceJob  ServiceJob           @relation(fields: [jobId], references: [id], onDelete: Cascade)
+}
+
+model ServiceJob {
+  id                 String            @id
+  contractId         String
+  customerId         String
+  projectId          String?
+  assignedToType     JobAssigneeType
+  assignedToId       String
+  scheduledDate      DateTime
+  status             ServiceJobStatus  @default(Scheduled)
+  completionNotes    String?
+  completedAt        DateTime?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime
+  assignedUserId     String?
+  assignedSupplierId String?
+  ServiceInvoice     ServiceInvoice[]
+  AssignedSupplier   Supplier?         @relation("AssignedSupplier", fields: [assignedSupplierId], references: [id])
+  AssignedUser       User?             @relation("AssignedUser", fields: [assignedUserId], references: [id])
+  ServiceContract    ServiceContract   @relation(fields: [contractId], references: [id])
+  Customer           Customer          @relation(fields: [customerId], references: [id])
+  Project            Project?          @relation(fields: [projectId], references: [id])
+  ServiceJobSheet    ServiceJobSheet[]
+  SupplierReport     SupplierReport[]
+}
+
+model ServiceJobSheet {
+  id                 String     @id
+  jobId              String
+  jobSheetNumber     String?    @unique // Global running number: CS-25-10-XXXX
+  filePath           String // Generated job sheet
+  endorsedFilePath   String? // Customer-endorsed job sheet (uploaded)
+  endorsedUploadedAt DateTime? // When the endorsed document was uploaded
+  clientSignature    String?
+  generatedAt        DateTime   @default(now())
+  ServiceJob         ServiceJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+}
+
+model Session {
+  id           String   @id
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  User         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Supplier {
+  id                              String                    @id
+  name                            String
+  email                           String?
+  phone                           String?
+  address                         String?
+  city                            String?
+  state                           String?
+  country                         String                    @default("Singapore")
+  postalCode                      String?
+  contactPerson                   String?
+  companyReg                      String?
+  website                         String?
+  notes                           String?
+  supplierType                    SupplierType              @default(SUPPLIER)
+  paymentTerms                    PaymentTerms              @default(NET_30)
+  contractDetails                 String?
+  bankName                        String?
+  bankAccountNumber               String?
+  bankAccountName                 String?
+  bankSwiftCode                   String?
+  bankAddress                     String?
+  isActive                        Boolean                   @default(true)
+  isApproved                      Boolean                   @default(false)
+  createdAt                       DateTime                  @default(now())
+  updatedAt                       DateTime
+  createdById                     String
+  supplierNumber                  String?                   @unique
+  isXeroSynced                    Boolean                   @default(false)
+  lastXeroSync                    DateTime?
+  xeroContactId                   String?                   @unique
+  xeroAccountNumber               String?
+  xeroAccountsPayableTaxType      String?
+  xeroAccountsReceivableTaxType   String?
+  xeroAddresses                   Json?
+  xeroBankAccountDetails          String?
+  xeroBatchPayments               Json?
+  xeroContactPersons              Json?
+  xeroContactStatus               String?
+  xeroDefaultCurrency             String?
+  xeroPhones                      Json?
+  xeroSkypeUserName               String?
+  xeroTaxNumber                   String?
+  xeroUpdatedDateUTC              DateTime?
+  accountNumber                   String?
+  primaryFirstName                String?
+  primaryLastName                 String?
+  primaryEmail                    String?
+  phoneCountry                    String?                   @default("+65")
+  phoneArea                       String?
+  phoneNumber                     String?
+  internalNotes                   String?
+  billingAddressLine1             String?
+  billingAddressLine2             String?
+  billingAddressLine3             String?
+  billingAddressLine4             String?
+  billingCity                     String?
+  billingState                    String?
+  billingPostcode                 String?
+  billingCountry                  String?                   @default("Singapore")
+  deliveryAddressLine1            String?
+  deliveryAddressLine2            String?
+  deliveryAddressLine3            String?
+  deliveryAddressLine4            String?
+  deliveryCity                    String?
+  deliveryState                   String?
+  deliveryPostcode                String?
+  deliveryCountry                 String?                   @default("Singapore")
+  financialDetailsNote            String?
+  taxId                           String?
+  currency                        String?                   @default("SGD")
+  purchaseAccountId               String?
+  billDue                         String?                   @default("of_following_month")
+  amountSetting                   String?                   @default("use_org_settings")
+  purchaseTaxSetting              String?                   @default("INPUT2")
+  defaultCurrency                 String?
+  emailAddress                    String?
+  fax                             String?
+  firstName                       String?
+  isCustomer                      Boolean?
+  isSupplier                      Boolean?                  @default(true)
+  lastName                        String?
+  mailingAttention                String?
+  mailingCity                     String?
+  mailingCountry                  String?
+  mailingLine1                    String?
+  mailingLine2                    String?
+  mailingLine3                    String?
+  mailingLine4                    String?
+  mailingPostalCode               String?
+  mailingRegion                   String?
+  mobile                          String?
+  purchasesDefaultAccountCode     String?
+  salesDefaultAccountCode         String?
+  skypeUserName                   String?
+  streetAttention                 String?
+  streetCity                      String?
+  streetCountry                   String?
+  streetLine1                     String?
+  streetLine2                     String?
+  streetLine3                     String?
+  streetLine4                     String?
+  streetPostalCode                String?
+  streetRegion                    String?
+  taxNumber                       String?
+  xeroUpdatedDateUtc              String?
+  isDeleted                       Boolean                   @default(false) @map("is_deleted")
+  deletedAt                       DateTime?                 @map("deleted_at")
+  deletedBy                       String?                   @map("deleted_by")
+  complianceRiskScore             Int?
+  financialRiskScore              Int?
+  deliveryRiskScore               Int?
+  overallRiskScore                Int?
+  riskLevel                       RiskLevel?                @default(MEDIUM)
+  riskEvaluatedAt                 DateTime?
+  Document                        Document[]
+  ProjectSupplier                 ProjectSupplier[]
+  ProjectTransaction              ProjectTransaction[]
+  PurchaseOrder                   PurchaseOrder[]
+  ServiceContractSuppliers        ServiceContractSupplier[] @relation("ServiceContractSuppliers")
+  ServiceJob_AssignedSupplier     ServiceJob[]              @relation("AssignedSupplier")
+  User_Supplier_createdByIdToUser User                      @relation("Supplier_createdByIdToUser", fields: [createdById], references: [id])
+  User_Supplier_deletedByToUser   User?                     @relation("Supplier_deletedByToUser", fields: [deletedBy], references: [id])
+  SupplierContract                SupplierContract[]
+  SupplierInvoice                 SupplierInvoice[]
+  SupplierReport                  SupplierReport[]
+  User_User_supplierIdToSupplier  User[]                    @relation("User_supplierIdToSupplier")
+  SupplierBudgetItem              SupplierBudgetItem[]
+  ProcurementDocuments            ProcurementDocument[]   @relation("SupplierProcurementDocs")
+  ProcurementPORequests           ProcurementPORequest[]  @relation("SupplierPORequests")
+  ComplianceDocuments             SupplierComplianceDocument[]
+}
+
+model SupplierComplianceDocument {
+  id                  String                        @id @default(cuid())
+  supplierId          String
+  name                String
+  type                ComplianceDocumentType
+  fileUrl             String?
+  verificationStatus  ComplianceVerificationStatus  @default(PENDING)
+  verificationNotes   String?
+  expiresAt           DateTime?
+  riskScore           Int?
+  createdAt           DateTime                      @default(now())
+  updatedAt           DateTime                      @updatedAt
+  Supplier            Supplier                      @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  @@index([supplierId])
+  @@index([expiresAt])
+}
+
+enum ComplianceDocumentType {
+  INSURANCE
+  LICENSE
+  SAFETY
+  CERTIFICATION
+  FINANCIAL
+  CUSTOM
+}
+
+enum ComplianceVerificationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+  EXPIRED
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model SupplierContract {
+  id             String         @id
+  title          String
+  contractNumber String         @unique
+  description    String?
+  supplierId     String
+  projectId      String?
+  contractValue  Decimal        @db.Decimal(15, 2)
+  startDate      DateTime
+  endDate        DateTime
+  status         ContractStatus @default(DRAFT)
+  paymentTerms   PaymentTerms   @default(NET_30)
+  notes          String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime
+  Project        Project?       @relation(fields: [projectId], references: [id])
+  Supplier       Supplier       @relation(fields: [supplierId], references: [id])
+}
+
+model SupplierInvoice {
+  id                                             String                    @id
+  invoiceNumber                                  String
+  supplierInvoiceRef                             String?
+  supplierId                                     String
+  projectId                                      String?
+  purchaseOrderId                                String?
+  subtotal                                       Decimal                   @db.Decimal(15, 2)
+  taxAmount                                      Decimal?                  @db.Decimal(15, 2)
+  totalAmount                                    Decimal                   @db.Decimal(15, 2)
+  currency                                       String                    @default("SGD")
+  status                                         SupplierInvoiceStatus     @default(DRAFT)
+  invoiceDate                                    DateTime
+  dueDate                                        DateTime
+  receivedDate                                   DateTime?
+  approvedDate                                   DateTime?
+  paidDate                                       DateTime?
+  description                                    String?
+  notes                                          String?
+  documentPath                                   String?
+  xeroInvoiceId                                  String?                   @unique
+  isXeroSynced                                   Boolean                   @default(false)
+  lastXeroSync                                   DateTime?
+  projectApprovalRequired                        Boolean                   @default(true)
+  projectApprovedById                            String?
+  projectApprovedAt                              DateTime?
+  financeApprovedById                            String?
+  financeApprovedAt                              DateTime?
+  createdById                                    String
+  createdAt                                      DateTime                  @default(now())
+  updatedAt                                      DateTime
+  xeroType                                       String?
+  Document                                       Document[]
+  Payment                                        Payment[]
+  User_SupplierInvoice_createdByIdToUser         User                      @relation("SupplierInvoice_createdByIdToUser", fields: [createdById], references: [id])
+  User_SupplierInvoice_financeApprovedByIdToUser User?                     @relation("SupplierInvoice_financeApprovedByIdToUser", fields: [financeApprovedById], references: [id])
+  User_SupplierInvoice_projectApprovedByIdToUser User?                     @relation("SupplierInvoice_projectApprovedByIdToUser", fields: [projectApprovedById], references: [id])
+  Project                                        Project?                  @relation(fields: [projectId], references: [id])
+  PurchaseOrder                                  PurchaseOrder?            @relation(fields: [purchaseOrderId], references: [id])
+  Supplier                                       Supplier                  @relation(fields: [supplierId], references: [id])
+  SupplierInvoiceActivity                        SupplierInvoiceActivity[]
+  SupplierInvoiceItem                            SupplierInvoiceItem[]
+
+  @@unique([supplierId, invoiceNumber])
+}
+
+model SupplierInvoiceActivity {
+  id                String          @id
+  supplierInvoiceId String
+  action            String
+  description       String?
+  oldValue          String?
+  newValue          String?
+  userId            String
+  userEmail         String
+  createdAt         DateTime        @default(now())
+  SupplierInvoice   SupplierInvoice @relation(fields: [supplierInvoiceId], references: [id], onDelete: Cascade)
+}
+
+model SupplierInvoiceItem {
+  id                String          @id
+  supplierInvoiceId String
+  description       String
+  category          ItemCategory    @default(SERVICES)
+  quantity          Decimal         @db.Decimal(10, 2)
+  unitPrice         Decimal         @db.Decimal(15, 2)
+  discount          Decimal?        @db.Decimal(5, 2)
+  taxRate           Decimal?        @db.Decimal(5, 2)
+  subtotal          Decimal         @db.Decimal(15, 2)
+  discountAmount    Decimal?        @db.Decimal(15, 2)
+  taxAmount         Decimal?        @db.Decimal(15, 2)
+  totalPrice        Decimal         @db.Decimal(15, 2)
+  unit              String?         @default("pcs")
+  notes             String?
+  order             Int             @default(0)
+  budgetCategoryId  String?
+  BudgetCategory    BudgetCategory? @relation(fields: [budgetCategoryId], references: [id])
+  SupplierInvoice   SupplierInvoice @relation(fields: [supplierInvoiceId], references: [id], onDelete: Cascade)
+}
+
+model InvoiceMetadata {
+  id                  String          @id @default(cuid())
+  xeroInvoiceId       String?         @unique
+  projectId           String?
+  poNumber            String?
+  vendorInvoiceUpload String?
+  notes               String?
+  tags                String[]        @default([])
+  createdById         String
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+  budgetCategoryId    String?
+  BudgetCategory      BudgetCategory? @relation(fields: [budgetCategoryId], references: [id])
+  User                User            @relation(fields: [createdById], references: [id])
+  Project             Project?        @relation(fields: [projectId], references: [id])
+
+  @@index([xeroInvoiceId])
+  @@index([projectId])
+  @@index([budgetCategoryId])
+}
+
+model SupplierReport {
+  id         String     @id
+  jobId      String
+  supplierId String
+  filePath   String
+  uploadedAt DateTime   @default(now())
+  ServiceJob ServiceJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  Supplier   Supplier   @relation(fields: [supplierId], references: [id])
+}
+
+model Task {
+  id                         String             @id
+  title                      String
+  description                String?
+  priority                   TaskPriority       @default(MEDIUM)
+  status                     TaskStatus         @default(TODO)
+  dueDate                    DateTime?
+  completedAt                DateTime?
+  assignerId                 String
+  assigneeId                 String
+  projectId                  String?
+  customerId                 String?
+  tenderId                   String?
+  isArchived                 Boolean            @default(false)
+  createdAt                  DateTime           @default(now())
+  updatedAt                  DateTime
+  User_Task_assigneeIdToUser User               @relation("Task_assigneeIdToUser", fields: [assigneeId], references: [id])
+  User_Task_assignerIdToUser User               @relation("Task_assignerIdToUser", fields: [assignerId], references: [id])
+  Customer                   Customer?          @relation(fields: [customerId], references: [id])
+  Project                    Project?           @relation(fields: [projectId], references: [id])
+  Tender                     Tender?            @relation(fields: [tenderId], references: [id])
+  TaskAttachment             TaskAttachment[]
+  TaskComment                TaskComment[]
+  TaskNotification           TaskNotification[]
+}
+
+model TaskAttachment {
+  id               String   @id
+  taskId           String
+  filename         String
+  originalName     String
+  mimetype         String
+  size             Int
+  cloudStoragePath String
+  uploadedById     String
+  createdAt        DateTime @default(now())
+  Task             Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  User             User     @relation(fields: [uploadedById], references: [id])
+}
+
+model TaskComment {
+  id         String   @id
+  taskId     String
+  userId     String
+  comment    String
+  isInternal Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime
+  Task       Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  User       User     @relation(fields: [userId], references: [id])
+}
+
+model TaskNotification {
+  id        String           @id
+  taskId    String
+  userId    String
+  type      NotificationType
+  message   String
+  isRead    Boolean          @default(false)
+  sentAt    DateTime?
+  createdAt DateTime         @default(now())
+  Task      Task             @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  User      User             @relation(fields: [userId], references: [id])
+}
+
+model Comment {
+  id               String             @id @default(cuid())
+  entityType       CommentEntityType
+  invoiceId        String?
+  purchaseOrderId  String?
+  projectId        String?
+  content          String
+  createdById      String
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  createdBy        User              @relation(fields: [createdById], references: [id])
+  Invoice          CustomerInvoice?  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  PurchaseOrder    PurchaseOrder?    @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  Project          Project?          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  CommentMention   CommentMention[]
+
+  @@index([entityType, invoiceId])
+  @@index([entityType, purchaseOrderId])
+  @@index([entityType, projectId])
+}
+
+model CommentMention {
+  id         String   @id @default(cuid())
+  commentId  String
+  userId     String
+  createdAt  DateTime @default(now())
+  Comment    Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  User       User     @relation(fields: [userId], references: [id])
+
+  @@unique([commentId, userId])
+}
+
+model ProjectNotification {
+  id          String           @id
+  projectId   String
+  userId      String
+  type        NotificationType
+  message     String
+  metadata    Json?
+  isRead      Boolean          @default(false)
+  isDismissed Boolean          @default(false)
+  readAt      DateTime?
+  dismissedAt DateTime?
+  sentAt      DateTime?
+  createdAt   DateTime         @default(now())
+  Project     Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  User        User             @relation(fields: [userId], references: [id])
+
+  @@index([projectId])
+  @@index([userId])
+  @@index([isRead])
+}
+
+model ServiceNotification {
+  id              String           @id
+  contractId      String
+  userId          String
+  type            NotificationType
+  message         String
+  metadata        Json?
+  isRead          Boolean          @default(false)
+  isDismissed     Boolean          @default(false)
+  readAt          DateTime?
+  dismissedAt     DateTime?
+  sentAt          DateTime?
+  createdAt       DateTime         @default(now())
+  ServiceContract ServiceContract  @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  User            User             @relation(fields: [userId], references: [id])
+
+  @@index([contractId])
+  @@index([userId])
+  @@index([isRead])
+}
+
+model Tender {
+  id                              String           @id
+  title                           String
+  tenderNumber                    String           @unique
+  description                     String?
+  customerId                      String
+  estimatedValue                  Decimal?         @db.Decimal(15, 2)
+  submissionDeadline              DateTime
+  openDate                        DateTime         @default(now())
+  closeDate                       DateTime?
+  status                          TenderStatus     @default(OPEN)
+  priority                        Priority         @default(MEDIUM)
+  requirements                    String?
+  contactPerson                   String?
+  contactEmail                    String?
+  contactPhone                    String?
+  location                        String?
+  category                        TenderCategory   @default(GENERAL)
+  isActive                        Boolean          @default(true)
+  createdById                     String
+  assignedToId                    String?
+  createdAt                       DateTime         @default(now())
+  updatedAt                       DateTime
+  salespersonId                   String?
+  nasDocumentPath                 String?
+  Document                        Document[]
+  Quotation                       Quotation[]
+  Task                            Task[]
+  User_Tender_assignedToIdToUser  User?            @relation("Tender_assignedToIdToUser", fields: [assignedToId], references: [id])
+  User_Tender_createdByIdToUser   User             @relation("Tender_createdByIdToUser", fields: [createdById], references: [id])
+  Customer                        Customer         @relation(fields: [customerId], references: [id])
+  User_Tender_salespersonIdToUser User?            @relation("Tender_salespersonIdToUser", fields: [salespersonId], references: [id])
+  TenderActivity                  TenderActivity[]
+  ProgressClaim                   ProgressClaim[]
+}
+
+model TenderActivity {
+  id          String   @id
+  tenderId    String
+  action      String
+  description String?
+  oldValue    String?
+  newValue    String?
+  userId      String
+  userEmail   String
+  createdAt   DateTime @default(now())
+  Tender      Tender   @relation(fields: [tenderId], references: [id])
+}
+
+model User {
+  id                                                        String                        @id
+  name                                                      String?
+  email                                                     String                        @unique
+  emailVerified                                             DateTime?
+  image                                                     String?
+  password                                                  String?
+  firstName                                                 String?
+  lastName                                                  String?
+  role                                                      UserRole                      @default(PROJECT_MANAGER)
+  companyName                                               String?
+  supplierId                                                String?
+  isActive                                                  Boolean                       @default(true)
+  createdAt                                                 DateTime                      @default(now())
+  updatedAt                                                 DateTime
+  lastLoginAt                                               DateTime?
+  userId                                                    String?                       @unique
+  phone                                                     String?
+  whatsappNotifications                                     Boolean                       @default(true)
+  whatsappAlertPreferences                                  Json?
+  Account                                                   Account[]
+  AuditLog                                                  AuditLog[]
+  BcaAuditLog                                               BcaAuditLog[]
+  BcaExportPackage                                          BcaExportPackage[]
+  BcaNotification                                           BcaNotification[]
+  BcaWorkheadApplication_approvedBy                         BcaWorkheadApplication[]      @relation("BcaWorkheadApplication_approvedBy")
+  BcaWorkheadApplication_createdBy                          BcaWorkheadApplication[]      @relation("BcaWorkheadApplication_createdBy")
+  BcaWorkheadApplication_submittedBy                        BcaWorkheadApplication[]      @relation("BcaWorkheadApplication_submittedBy")
+  BudgetCategory                                            BudgetCategory[]
+  Customer_Customer_createdByIdToUser                       Customer[]                    @relation("Customer_createdByIdToUser")
+  Customer_Customer_deletedByToUser                         Customer[]                    @relation("Customer_deletedByToUser")
+  CustomerInvoice                                           CustomerInvoice[]
+  Document                                                  Document[]
+  InvoiceMetadata                                           InvoiceMetadata[]
+  LegacyInvoice                                             LegacyInvoice[]
+  Payment_Payment_createdByIdToUser                         Payment[]                     @relation("Payment_createdByIdToUser")
+  Payment_Payment_processedByIdToUser                       Payment[]                     @relation("Payment_processedByIdToUser")
+  Project_Project_createdByIdToUser                         Project[]                     @relation("Project_createdByIdToUser")
+  Project_Project_managerIdToUser                           Project[]                     @relation("Project_managerIdToUser")
+  Project_Project_salespersonIdToUser                       Project[]                     @relation("Project_salespersonIdToUser")
+  ProjectBudget                                             ProjectBudget[]
+  ProjectDocument_ProjectDocument_approvedByIdToUser        ProjectDocument[]             @relation("ProjectDocument_approvedByIdToUser")
+  ProjectDocument_ProjectDocument_createdByIdToUser         ProjectDocument[]             @relation("ProjectDocument_createdByIdToUser")
+  ProjectDocument_ProjectDocument_submittedByIdToUser       ProjectDocument[]             @relation("ProjectDocument_submittedByIdToUser")
+  ProjectDocumentNotification                               ProjectDocumentNotification[]
+  ProjectDocumentTemplate                                   ProjectDocumentTemplate[]
+  ProjectTransaction                                        ProjectTransaction[]
+  PurchaseOrder_PurchaseOrder_approvedByIdToUser            PurchaseOrder[]               @relation("PurchaseOrder_approvedByIdToUser")
+  PurchaseOrder_PurchaseOrder_createdByIdToUser             PurchaseOrder[]               @relation("PurchaseOrder_createdByIdToUser")
+  PurchaseOrder_PurchaseOrder_requesterIdToUser             PurchaseOrder[]               @relation("PurchaseOrder_requesterIdToUser")
+  Quotation_Quotation_approvedByIdToUser                    Quotation[]                   @relation("Quotation_approvedByIdToUser")
+  Quotation_Quotation_createdByIdToUser                     Quotation[]                   @relation("Quotation_createdByIdToUser")
+  Quotation_Quotation_customerApprovedByIdToUser            Quotation[]                   @relation("Quotation_customerApprovedByIdToUser")
+  Quotation_Quotation_rejectedByIdToUser                    Quotation[]                   @relation("Quotation_rejectedByIdToUser")
+  Quotation_Quotation_salespersonIdToUser                   Quotation[]                   @relation("Quotation_salespersonIdToUser")
+  QuotationApproval                                         QuotationApproval[]
+  QuotationItemLibrary                                      QuotationItemLibrary[]
+  QuotationTemplate                                         QuotationTemplate[]
+  ServiceContract_ServiceContractCreator                    ServiceContract[]             @relation("ServiceContractCreator")
+  ServiceContract_ServiceContractManager                    ServiceContract[]             @relation("ServiceContractManager")
+  ServiceJob_AssignedUser                                   ServiceJob[]                  @relation("AssignedUser")
+  Session                                                   Session[]
+  Supplier_Supplier_createdByIdToUser                       Supplier[]                    @relation("Supplier_createdByIdToUser")
+  Supplier_Supplier_deletedByToUser                         Supplier[]                    @relation("Supplier_deletedByToUser")
+  SupplierInvoice_SupplierInvoice_createdByIdToUser         SupplierInvoice[]             @relation("SupplierInvoice_createdByIdToUser")
+  SupplierInvoice_SupplierInvoice_financeApprovedByIdToUser SupplierInvoice[]             @relation("SupplierInvoice_financeApprovedByIdToUser")
+  SupplierInvoice_SupplierInvoice_projectApprovedByIdToUser SupplierInvoice[]             @relation("SupplierInvoice_projectApprovedByIdToUser")
+  Task_Task_assigneeIdToUser                                Task[]                        @relation("Task_assigneeIdToUser")
+  Task_Task_assignerIdToUser                                Task[]                        @relation("Task_assignerIdToUser")
+  TaskAttachment                                            TaskAttachment[]
+  TaskComment                                               TaskComment[]
+  TaskNotification                                          TaskNotification[]
+  TableViews                                                TableView[]
+  ProjectNotification                                       ProjectNotification[]
+  ServiceNotification                                       ServiceNotification[]
+  Tender_Tender_assignedToIdToUser                          Tender[]                      @relation("Tender_assignedToIdToUser")
+  Tender_Tender_createdByIdToUser                           Tender[]                      @relation("Tender_createdByIdToUser")
+  Tender_Tender_salespersonIdToUser                         Tender[]                      @relation("Tender_salespersonIdToUser")
+  Supplier_User_supplierIdToSupplier                        Supplier?                     @relation("User_supplierIdToSupplier", fields: [supplierId], references: [id])
+  VariationOrder_approvedBy                                 VariationOrder[]              @relation("VariationOrder_approvedBy")
+  VariationOrder_createdBy                                  VariationOrder[]              @relation("VariationOrder_createdBy")
+  CompanyProfile                                            CompanyProfile[]
+  XeroIntegration                                           XeroIntegration[]
+  user_preferences                                          user_preferences?
+  xero_logs                                                 xero_logs[]
+  xero_sync_conflicts                                       xero_sync_conflicts[]
+  ProgressClaim_ProgressClaimCreatedBy                      ProgressClaim[]               @relation("ProgressClaimCreatedBy")
+  ProgressClaim_ProgressClaimApprovedBy                     ProgressClaim[]               @relation("ProgressClaimApprovedBy")
+  SupplierBudgetItem_createdBy                              SupplierBudgetItem[]          @relation("SupplierBudget_createdBy")
+  SupplierBudgetItem_approvedBy                             SupplierBudgetItem[]          @relation("SupplierBudget_approvedBy")
+  ProjectBudgetSummary                                      ProjectBudgetSummary[]
+  ProcurementDocsUploaded                                   ProcurementDocument[]         @relation("ProcurementDocUploadedBy")
+  ProcurementDocsApproved                                   ProcurementDocument[]         @relation("ProcurementDocApprovedBy")
+  PORequestsCreated                                         ProcurementPORequest[]        @relation("PORequestedBy")
+  PORequestsApproved                                        ProcurementPORequest[]        @relation("POApprovedBy")
+  ProcurementApprovalsGiven                                 ProcurementApprovalHistory[]  @relation("ProcurementApprover")
+  Comment                                                   Comment[]
+  CommentMention                                            CommentMention[]
+}
+
+model TableView {
+  id               String   @id @default(cuid())
+  tableId          String
+  name             String
+  columnVisibility Json
+  isDefault        Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  userId           String
+  User             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tableId, name])
+  @@index([userId, tableId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model XeroIntegration {
+  id           String    @id
+  tenantId     String    @unique
+  tenantName   String?
+  accessToken  String
+  refreshToken String
+  expiresAt    DateTime
+  scopes       String[]
+  isActive     Boolean   @default(true)
+  connectedAt  DateTime  @default(now())
+  lastSyncAt   DateTime?
+  createdById  String
+  User         User      @relation(fields: [createdById], references: [id])
+}
+
+model system_logs {
+  id         String    @id
+  type       LogType
+  userId     String?
+  username   String?
+  role       String?
+  action     String
+  message    String
+  module     String
+  endpoint   String?
+  errorCode  String?
+  status     LogStatus
+  ipAddress  String?
+  viewed     Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+  archived   Boolean   @default(false)
+  archivedAt DateTime?
+
+  @@index([archived])
+  @@index([createdAt])
+  @@index([module])
+  @@index([status])
+  @@index([type])
+  @@index([viewed])
+}
+
+model user_preferences {
+  id              String          @id
+  userId          String          @unique
+  digestEnabled   Boolean         @default(false)
+  digestFrequency DigestFrequency @default(WEEKLY)
+  digestTime      String          @default("09:00")
+  digestDays      String[]        @default([])
+  lastDigestSent  DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime
+  User            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model xero_logs {
+  id                  String                @id
+  timestamp           DateTime
+  userId              String
+  direction           String
+  entity              String
+  status              String
+  recordsProcessed    Int                   @default(0)
+  recordsSucceeded    Int                   @default(0)
+  recordsFailed       Int                   @default(0)
+  message             String
+  details             String?
+  errorMessage        String?
+  errorStack          String?
+  duration            Int?
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime
+  User                User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  xero_sync_conflicts xero_sync_conflicts[]
+
+  @@index([entity])
+  @@index([status])
+  @@index([timestamp])
+  @@index([userId])
+}
+
+model xero_sync_conflicts {
+  id           String    @id
+  syncLogId    String
+  entity       String
+  entityId     String
+  entityName   String
+  conflictType String
+  localData    String
+  xeroData     String
+  status       String    @default("PENDING")
+  resolution   String?
+  resolvedById String?
+  resolvedAt   DateTime?
+  notes        String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime
+  User         User?     @relation(fields: [resolvedById], references: [id])
+  xero_logs    xero_logs @relation(fields: [syncLogId], references: [id], onDelete: Cascade)
+
+  @@index([entity])
+  @@index([status])
+  @@index([syncLogId])
+}
+
+model xero_sync_log {
+  id             String   @id
+  correlationId  String
+  entityType     String
+  entityId       String
+  xeroId         String?
+  operation      String
+  syncOrigin     String
+  beforeSnapshot Json?
+  afterSnapshot  Json?
+  changeHash     String?
+  status         String
+  errorMessage   String?
+  userId         String
+  timestamp      DateTime @default(now())
+
+  @@index([correlationId])
+  @@index([entityType, entityId])
+  @@index([status])
+  @@index([timestamp])
+  @@index([xeroId])
+}
+
+model xero_sync_state {
+  id                 String    @id
+  entityType         String
+  entityId           String
+  xeroId             String?
+  lastLocalHash      String?
+  lastRemoteHash     String?
+  lastSyncedAt       DateTime?
+  lastLocalModified  DateTime?
+  lastRemoteModified DateTime?
+  syncOrigin         String?
+  correlationId      String?
+  status             String    @default("ACTIVE")
+  conflictData       Json?
+  metadata           Json?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime
+
+  @@unique([entityType, entityId])
+  @@index([correlationId])
+  @@index([entityType, status])
+  @@index([status])
+  @@index([xeroId])
+}
+
+model xero_sync_mappings {
+  id             String             @id @default(uuid())
+  entity_type    XeroSyncEntityType @map("entity_type")
+  local_id       String             @map("local_id")
+  xero_id        String             @map("xero_id")
+  last_synced_at DateTime           @default(now()) @map("last_synced_at")
+  sync_direction XeroSyncDirection  @map("sync_direction")
+  change_hash    String             @map("change_hash")
+  status         XeroSyncStatus     @default(ACTIVE)
+  last_error     String?            @map("last_error")
+  metadata       Json?
+  created_at     DateTime           @default(now()) @map("created_at")
+  updated_at     DateTime           @updatedAt @map("updated_at")
+
+  @@unique([entity_type, local_id, xero_id])
+  @@index([entity_type, xero_id])
+  @@index([entity_type, local_id])
+  @@index([status])
+  @@map("xero_sync_mappings")
+}
+
+model BcaWorkheadApplication {
+  id                 String               @id @default(cuid())
+  applicationNumber  String               @unique
+  workheadCode       String
+  workheadName       String
+  applicationType    BcaApplicationType
+  status             BcaApplicationStatus @default(DRAFT)
+  submissionDate     DateTime?
+  approvalDate       DateTime?
+  expiryDate         DateTime?
+  renewalDueDate     DateTime?
+  totalContractValue Decimal              @db.Decimal(15, 2)
+  projectCount       Int                  @default(0)
+  complianceScore    Int?                 @default(0)
+  notes              String?
+  createdById        String
+  submittedById      String?
+  approvedById       String?
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  AuditLogs          BcaAuditLog[]
+  ComplianceChecks   BcaComplianceCheck[]
+  ExportPackages     BcaExportPackage[]
+  ProjectForms       BcaProjectForm[]
+  User_approvedBy    User?                @relation("BcaWorkheadApplication_approvedBy", fields: [approvedById], references: [id])
+  User_createdBy     User                 @relation("BcaWorkheadApplication_createdBy", fields: [createdById], references: [id])
+  User_submittedBy   User?                @relation("BcaWorkheadApplication_submittedBy", fields: [submittedById], references: [id])
+}
+
+model BcaProjectForm {
+  id                   String                 @id @default(cuid())
+  applicationId        String
+  projectId            String
+  formType             BcaFormType
+  formNumber           String
+  status               BcaFormStatus          @default(INCOMPLETE)
+  isOngoing            Boolean                @default(false)
+  contractValue        Decimal                @db.Decimal(15, 2)
+  completionPercentage Int?
+  startDate            DateTime?
+  completionDate       DateTime?
+  clientName           String?
+  clientRepresentative String?
+  clientSignature      String?
+  remarks              String?
+  generatedData        Json?
+  cloudStoragePath     String?
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+  Attachments          BcaFormAttachment[]
+  Application          BcaWorkheadApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  Project              Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model BcaFormAttachment {
+  id               String            @id @default(cuid())
+  formId           String
+  attachmentType   BcaAttachmentType
+  filename         String
+  originalName     String
+  mimetype         String
+  size             Int
+  cloudStoragePath String
+  isRequired       Boolean           @default(true)
+  isProvided       Boolean           @default(false)
+  uploadDate       DateTime?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  Form             BcaProjectForm    @relation(fields: [formId], references: [id], onDelete: Cascade)
+}
+
+model BcaWorkheadData {
+  id                  String    @id @default(cuid())
+  workheadCode        String    @unique
+  workheadName        String
+  description         String?
+  minContractValue    Decimal?  @db.Decimal(15, 2)
+  minProjectCount     Int?
+  eligibilityCriteria Json?
+  isActive            Boolean   @default(true)
+  lastFetchDate       DateTime?
+  sourceUrl           String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+}
+
+model BcaCompanyInfo {
+  id                String    @id @default(cuid())
+  companyUen        String    @unique
+  companyName       String
+  registeredAddress String?
+  contactPerson     String?
+  contactEmail      String?
+  contactPhone      String?
+  currentWorkheads  Json?
+  expiryDates       Json?
+  lastFetchDate     DateTime?
+  sourceUrl         String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
+model BcaComplianceCheck {
+  id               String                 @id @default(cuid())
+  applicationId    String
+  checkType        String
+  checkDescription String
+  status           BcaCheckStatus
+  errorMessage     String?
+  warningMessage   String?
+  checkedAt        DateTime               @default(now())
+  Application      BcaWorkheadApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+}
+
+model BcaNotification {
+  id               String              @id @default(cuid())
+  userId           String
+  notificationType BcaNotificationType
+  title            String
+  message          String
+  applicationId    String?
+  isRead           Boolean             @default(false)
+  isEmailSent      Boolean             @default(false)
+  emailSentAt      DateTime?
+  createdAt        DateTime            @default(now())
+  User             User                @relation(fields: [userId], references: [id])
+}
+
+model BcaAuditLog {
+  id            String                  @id @default(cuid())
+  applicationId String?
+  action        String
+  entityType    String
+  entityId      String?
+  oldValues     Json?
+  newValues     Json?
+  userId        String
+  userEmail     String
+  ipAddress     String?
+  userAgent     String?
+  createdAt     DateTime                @default(now())
+  Application   BcaWorkheadApplication? @relation(fields: [applicationId], references: [id])
+  User          User                    @relation(fields: [userId], references: [id])
+}
+
+model BcaExportPackage {
+  id               String                 @id @default(cuid())
+  applicationId    String
+  packageType      BcaExportType
+  filename         String
+  cloudStoragePath String
+  size             Int
+  generatedById    String
+  generatedAt      DateTime               @default(now())
+  Application      BcaWorkheadApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  User             User                   @relation(fields: [generatedById], references: [id])
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ContractStatus {
+  DRAFT
+  ACTIVE
+  EXPIRED
+  RENEWED
+  TERMINATED
+}
+
+enum CustomerInvoiceStatus {
+  DRAFT
+  APPROVED
+  SENT
+  PAID
+  PARTIALLY_PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum CustomerType {
+  ENTERPRISE
+  SME
+  GOVERNMENT
+  INDIVIDUAL
+}
+
+enum DigestFrequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
+enum DocumentCategory {
+  CONTRACT
+  PROPOSAL
+  REPORT
+  DRAWING
+  SPECIFICATION
+  CERTIFICATE
+  INVOICE
+  GENERAL
+}
+
+enum DocumentNotificationType {
+  DOCUMENT_ASSIGNED
+  DOCUMENT_DUE_SOON
+  DOCUMENT_OVERDUE
+  DOCUMENT_SUBMITTED
+  DOCUMENT_APPROVED
+  DOCUMENT_REJECTED
+  DOCUMENT_UPDATED
+  APPROVAL_REQUIRED
+}
+
+enum EntityType {
+  CUSTOMER
+  PROJECT
+  INVOICE
+  DOCUMENT
+  USER
+  SUPPLIER
+  SUPPLIER_INVOICE
+  SUPPLIER_CONTRACT
+  TENDER
+  QUOTATION
+  PROGRESS_CLAIM
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum ItemCategory {
+  MATERIALS
+  SERVICES
+  SUBCONTRACTORS
+  MISCELLANEOUS
+  SUBTITLE
+}
+
+enum JobAssigneeType {
+  Staff
+  Supplier
+}
+
+enum LogStatus {
+  SUCCESS
+  FAILED
+  WARNING
+  CRITICAL
+}
+
+enum LogType {
+  ERROR
+  ACTIVITY
+  NOTIFICATION
+}
+
+enum NotificationType {
+  TASK_ASSIGNED
+  TASK_DUE_SOON
+  TASK_OVERDUE
+  TASK_COMPLETED
+  TASK_COMMENTED
+  TASK_STATUS_CHANGED
+  PROJECT_INVOICE_REMINDER
+  SERVICE_INVOICE_REMINDER
+  PROJECT_OVER_BUDGET
+  PROJECT_MILESTONE_REACHED
+}
+
+enum CommentEntityType {
+  INVOICE
+  PURCHASE_ORDER
+  PROJECT_BUDGET
+}
+
+enum PaymentMethod {
+  CASH
+  BANK_TRANSFER
+  CHEQUE
+  CREDIT_CARD
+  PAYPAL
+  CRYPTO
+  OTHER
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentTerms {
+  NET_15
+  NET_30
+  NET_60
+  NET_90
+  IMMEDIATE
+  CUSTOM
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum ProjectBudgetCategory {
+  GENERAL
+  MATERIALS
+  LABOR
+  EQUIPMENT
+  SUBCONTRACTOR
+  PERMITS
+  TRANSPORTATION
+  OVERHEAD
+  CONTINGENCY
+  OTHER
+}
+
+enum ProjectDocumentCategory {
+  PRE_CONSTRUCTION
+  CONSTRUCTION
+  HANDOVER_COMPLETION
+  POST_COMPLETION
+}
+
+enum ProjectDocumentStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  ARCHIVED
+}
+
+enum ProjectDocumentType {
+  PRE_CONSTRUCTION_SURVEY
+  SITE_SAFETY_PLAN
+  RISK_ASSESSMENT
+  WORK_METHOD_STATEMENT
+  PERMIT_TO_WORK
+  HOT_WORK_PERMIT
+  LIFTING_PERMIT
+  CONFINED_SPACE_PERMIT
+  WORKER_LIST
+  DAILY_SITE_REPORT
+  INSPECTION_TEST_PLAN
+  QUALITY_CHECKLIST
+  MATERIAL_DELIVERY_NOTE
+  PROGRESS_PHOTOS
+  VARIATION_ORDER
+  INCIDENT_REPORT
+  ACCIDENT_REPORT
+  TOOLBOX_MEETING
+  OPERATION_MAINTENANCE_MANUAL
+  TESTING_COMMISSIONING_REPORT
+  AS_BUILT_DRAWINGS
+  HANDOVER_FORM
+  DEFECT_LIABILITY_REPORT
+  NON_CONFORMANCE_REPORT
+  FINAL_COMPLETION_CERTIFICATE
+  WARRANTY_CERTIFICATE
+  SERVICE_AGREEMENT
+  GENERAL
+  DELIVERY_ORDER_JOB_COMPLETION
+  PROGRESS_CLAIM
+}
+
+enum ProjectStatus {
+  PLANNING
+  IN_PROGRESS
+  ON_HOLD
+  COMPLETED
+  CANCELLED
+}
+
+enum ProjectTransactionType {
+  INCOME
+  EXPENSE
+}
+
+enum ProjectType {
+  REGULAR
+  MAINTENANCE
+}
+
+enum ProjectWorkType {
+  REINSTATEMENT
+  MEP
+  ELECTRICAL_ONLY
+  ACMV_ONLY
+  PLUMBING_SANITARY
+  FIRE_PROTECTION
+  CIVIL_STRUCTURAL
+  INTERIOR_FITOUT
+  EXTERNAL_WORKS
+  GENERAL_CONSTRUCTION
+  OTHER
+}
+
+enum PurchaseOrderStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  ISSUED
+  ACKNOWLEDGED
+  DELIVERED
+  COMPLETED
+  CANCELLED
+}
+
+enum PurchaseOrderType {
+  OUTGOING
+  INCOMING
+}
+
+enum QuotationStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  SENT
+  ACCEPTED
+  EXPIRED
+  CONVERTED
+  SUPERSEDED
+}
+
+enum ServiceFrequency {
+  Monthly
+  Quarterly
+  BiAnnual
+  Annual
+  Custom
+}
+
+enum ServiceInvoiceStatus {
+  Draft
+  PendingApproval
+  Approved
+  Rejected
+  Paid
+}
+
+enum ServiceInvoiceType {
+  Client
+  Supplier
+}
+
+enum ServiceJobStatus {
+  Scheduled
+  InProgress
+  Completed
+  Endorsed
+  Overdue
+}
+
+enum ServiceContractStatus {
+  Active
+  Expired
+  Cancelled
+  OnHold
+}
+
+enum ServiceType {
+  Electrical
+  Mechanical
+  Plumbing
+  Sanitary
+  Other
+}
+
+enum SupplierInvoiceStatus {
+  DRAFT
+  RECEIVED
+  PENDING_PROJECT_APPROVAL
+  PROJECT_APPROVED
+  PENDING_FINANCE_APPROVAL
+  FINANCE_APPROVED
+  APPROVED
+  PAID
+  REJECTED
+  DISPUTED
+}
+
+enum SupplierProjectStatus {
+  ASSIGNED
+  ACTIVE
+  COMPLETED
+  SUSPENDED
+  TERMINATED
+}
+
+enum SupplierType {
+  SUPPLIER
+  CONTRACTOR
+  CONSULTANT
+  SERVICE_PROVIDER
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  REVIEW
+  COMPLETED
+  CANCELLED
+}
+
+enum TemplateType {
+  RISK_ASSESSMENT
+  WORK_METHOD_STATEMENT
+  INCIDENT_REPORT
+  HANDOVER_FORM
+  OPERATION_MAINTENANCE_MANUAL
+  TOOLBOX_MEETING
+  INSPECTION_CHECKLIST
+  PRE_CONSTRUCTION_SURVEY
+  SITE_SAFETY_PLAN
+  PERMIT_TO_WORK
+  HOT_WORK_PERMIT
+  LIFTING_PERMIT
+  CONFINED_SPACE_PERMIT
+  WORKER_LIST
+  DAILY_SITE_REPORT
+  INSPECTION_TEST_PLAN
+  QUALITY_CHECKLIST
+  MATERIAL_DELIVERY_NOTE
+  PROGRESS_PHOTOS
+  VARIATION_ORDER
+  ACCIDENT_REPORT
+  TESTING_COMMISSIONING_REPORT
+  AS_BUILT_DRAWINGS
+  DEFECT_LIABILITY_REPORT
+  NON_CONFORMANCE_REPORT
+  FINAL_COMPLETION_CERTIFICATE
+  WARRANTY_CERTIFICATE
+  SERVICE_AGREEMENT
+}
+
+enum TenderCategory {
+  CONSTRUCTION
+  ENGINEERING
+  SUPPLY
+  CONSULTING
+  MAINTENANCE
+  INSTALLATION
+  GENERAL
+  REINSTATEMENT
+}
+
+enum TenderStatus {
+  OPEN
+  SUBMITTED
+  AWARDED
+  WON
+  LOST
+  CANCELLED
+  EXPIRED
+}
+
+enum UserRole {
+  SUPERADMIN
+  PROJECT_MANAGER
+  FINANCE
+  SUPPLIER
+  SALES
+}
+
+enum XeroSyncEntityType {
+  CONTACT
+  INVOICE
+  PAYMENT
+}
+
+enum XeroSyncDirection {
+  PULL
+  PUSH
+  BOTH
+}
+
+enum XeroSyncStatus {
+  ACTIVE
+  ARCHIVED
+  ERROR
+  CONFLICT
+}
+
+enum VariationOrderType {
+  ADDITION
+  DEDUCTION
+  MODIFICATION
+}
+
+enum VariationOrderStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum BcaApplicationType {
+  NEW
+  RENEWAL
+  UPGRADE
+}
+
+enum BcaApplicationStatus {
+  DRAFT
+  READY
+  SUBMITTED
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
+enum BcaFormType {
+  D1_COMPLETED
+  D2_ONGOING
+}
+
+enum BcaFormStatus {
+  INCOMPLETE
+  COMPLETE
+  PENDING_SIGNATURE
+  SIGNED
+}
+
+enum BcaAttachmentType {
+  LETTER_OF_AWARD
+  CONTRACT_AGREEMENT
+  PURCHASE_ORDER
+  WORKS_ORDER
+  QUOTATION
+  CERTIFICATE_OF_COMPLETION
+  HANDOVER_CERTIFICATE
+  FINAL_STATEMENT
+  PAYMENT_CERTIFICATE
+  FINAL_INVOICE
+  OTHER
+}
+
+enum BcaCheckStatus {
+  PASS
+  FAIL
+  WARNING
+}
+
+enum BcaNotificationType {
+  WORKHEAD_EXPIRY
+  INCOMPLETE_SUBMISSION
+  DATA_UPDATE_REMINDER
+  SUBMISSION_READY
+  APPROVAL_RECEIVED
+}
+
+enum BcaExportType {
+  ZIP_PACKAGE
+  MERGED_PDF
+  FORMS_ONLY
+  ATTACHMENTS_ONLY
+}
+
+model CompanyProfile {
+  id                    String             @id
+  companyName           String
+  registrationNumber    String?
+  businessType          String?
+  yearEstablished       Int?
+  address               String?
+  city                  String?
+  state                 String?
+  country               String             @default("Singapore")
+  postalCode            String?
+  phone                 String?
+  fax                   String?
+  email                 String?
+  website               String?
+  introduction          String?            @db.Text
+  vision                String?            @db.Text
+  mission               String?            @db.Text
+  coreValues            String?            @db.Text
+  logoPath              String?
+  organizationChartPath String?
+  qaqcDocumentPath      String?
+  certifications        String?            @db.Text
+  accreditations        String?            @db.Text
+  keyPersonnel          String?            @db.Text
+  technicalCapabilities String?            @db.Text
+  equipment             String?            @db.Text
+  safetyRecords         String?            @db.Text
+  isActive              Boolean            @default(true)
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime
+  createdById           String
+  User                  User               @relation(fields: [createdById], references: [id])
+  CompanyReference      CompanyReference[]
+}
+
+model CompanyReference {
+  id               String         @id
+  companyProfileId String
+  projectId        String
+  achievements     String?        @db.Text
+  highlights       String?        @db.Text
+  customNotes      String?        @db.Text
+  isFeatured       Boolean        @default(false)
+  displayOrder     Int            @default(0)
+  includeInProfile Boolean        @default(true)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime
+  Project          Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  CompanyProfile   CompanyProfile @relation(fields: [companyProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([companyProfileId, projectId])
+}
+
+model ProgressClaim {
+  id                           String              @id
+  claimNumber                  String              @unique
+  projectId                    String
+  quotationId                  String?
+  tenderId                     String?
+  claimDate                    DateTime            @default(now())
+  status                       ProgressClaimStatus @default(DRAFT)
+  claimTitle                   String
+  description                  String?
+  previousClaimedAmount        Decimal             @default(0) @db.Decimal(15, 2)
+  currentClaimAmount           Decimal             @default(0) @db.Decimal(15, 2)
+  cumulativeAmount             Decimal             @default(0) @db.Decimal(15, 2)
+  retentionPercentage          Decimal?            @default(0) @db.Decimal(5, 2)
+  retentionAmount              Decimal?            @default(0) @db.Decimal(15, 2)
+  gstRate                      Decimal?            @default(9) @db.Decimal(5, 2)
+  gstAmount                    Decimal?            @default(0) @db.Decimal(15, 2)
+  subTotal                     Decimal?            @default(0) @db.Decimal(15, 2)
+  netClaimAmount               Decimal             @default(0) @db.Decimal(15, 2)
+  submittedToClientAt          DateTime?
+  approvedByClientAt           DateTime?
+  rejectedByClientAt           DateTime?
+  approvalNotes                String?
+  rejectionReason              String?
+  customerApprovedAmount       Decimal?            @db.Decimal(15, 2)
+  customerApprovedDocumentUrl  String?
+  customerApprovedDocumentName String?
+  invoiceId                    String?
+  invoicedAt                   DateTime?
+  createdById                  String
+  approvedByClientUserId       String?
+  createdAt                    DateTime            @default(now())
+  updatedAt                    DateTime
+  Project                      Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  Quotation                    Quotation?          @relation(fields: [quotationId], references: [id], onDelete: SetNull)
+  Tender                       Tender?             @relation(fields: [tenderId], references: [id], onDelete: SetNull)
+  CreatedBy                    User                @relation("ProgressClaimCreatedBy", fields: [createdById], references: [id])
+  ApprovedByClient             User?               @relation("ProgressClaimApprovedBy", fields: [approvedByClientUserId], references: [id])
+  CustomerInvoice              CustomerInvoice?    @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  items                        ProgressClaimItem[]
+}
+
+model ProgressClaimItem {
+  id                    String        @id
+  progressClaimId       String
+  itemNumber            Int           @default(0)
+  description           String
+  unit                  String        @default("pcs")
+  unitRate              Decimal       @db.Decimal(15, 2)
+  totalQuantity         Decimal       @db.Decimal(10, 2)
+  totalAmount           Decimal       @db.Decimal(15, 2)
+  previousClaimedQty    Decimal       @default(0) @db.Decimal(10, 2)
+  previousClaimedPct    Decimal       @default(0) @db.Decimal(5, 2)
+  previousClaimedAmount Decimal       @default(0) @db.Decimal(15, 2)
+  currentClaimQty       Decimal       @default(0) @db.Decimal(10, 2)
+  currentClaimPct       Decimal       @default(0) @db.Decimal(5, 2)
+  currentClaimAmount    Decimal       @default(0) @db.Decimal(15, 2)
+  cumulativeQty         Decimal       @default(0) @db.Decimal(10, 2)
+  cumulativePct         Decimal       @default(0) @db.Decimal(5, 2)
+  cumulativeAmount      Decimal       @default(0) @db.Decimal(15, 2)
+  notes                 String?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime
+  ProgressClaim         ProgressClaim @relation(fields: [progressClaimId], references: [id], onDelete: Cascade)
+}
+
+enum ProgressClaimStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+  INVOICED
+  CANCELLED
+}
+
+// WhatsApp Alerts Settings
+model WhatsAppAlertSettings {
+  id              String   @id @default(cuid())
+  alertType       String   @unique
+  enabled         Boolean  @default(true)
+  timingConfig    Json?
+  recipientConfig Json?
+  thresholdConfig Json?
+  messageTemplate String   @db.Text
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([alertType])
+  @@index([enabled])
+}
+
+model WhatsAppRoleRecipients {
+  id           String   @id @default(cuid())
+  roleName     String   @unique
+  phoneNumbers String[]
+  enabled      Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([roleName])
+}
+
+model WhatsAppGlobalSettings {
+  id                 String   @id @default(cuid())
+  quietHoursStart    String?
+  quietHoursEnd      String?
+  defaultCountryCode String   @default("+65")
+  maxMessagesPerHour Int      @default(100)
+  testMode           Boolean  @default(false)
+  testPhoneNumber    String?
+  wahaApiUrl         String?
+  wahaApiKey         String?
+  wahaSession        String   @default("default")
+  enabled            Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model WhatsAppNotificationLog {
+  id             String                     @id @default(cuid())
+  alertType      String
+  recipientPhone String
+  recipientName  String?
+  recipientRole  String?
+  message        String                     @db.Text
+  status         WhatsAppNotificationStatus @default(QUEUED)
+  errorMessage   String?                    @db.Text
+  sentAt         DateTime?
+  retryCount     Int                        @default(0)
+  metadata       Json?
+  createdAt      DateTime                   @default(now())
+
+  @@index([alertType])
+  @@index([status])
+  @@index([recipientPhone])
+  @@index([createdAt])
+}
+
+enum WhatsAppNotificationStatus {
+  QUEUED
+  SENT
+  FAILED
+  SKIPPED
+}
+
+// ============================================
+// Supplier-Based Budget Module
+// ============================================
+
+model SupplierBudgetItem {
+  id        String @id @default(cuid())
+  projectId String
+
+  // Supplier information
+  supplierId   String
+  supplierName String
+  tradeType    String
+  description  String?
+
+  // Budget amounts
+  quotedAmount          Decimal  @db.Decimal(15, 2)
+  quotedAmountBeforeTax Decimal? @db.Decimal(15, 2)
+  quotedTaxAmount       Decimal? @db.Decimal(15, 2)
+
+  // Actual costs
+  actualCost          Decimal  @default(0) @db.Decimal(15, 2)
+  actualCostBeforeTax Decimal? @db.Decimal(15, 2)
+  actualTaxAmount     Decimal? @db.Decimal(15, 2)
+
+  // Variance
+  variance           Decimal? @db.Decimal(15, 2)
+  variancePercentage Decimal? @db.Decimal(5, 2)
+
+  // Quotation details
+  quotationReference String?
+  quotationDate      DateTime?
+  quotationFilePath  String?
+  quotationFileName  String?
+
+  // AI extraction metadata
+  extractedByAI   Boolean  @default(false)
+  aiConfidence    Decimal? @db.Decimal(3, 2)
+  aiExtractedData Json?
+  needsReview     Boolean  @default(false)
+
+  // PO linkage
+  purchaseOrderId String?
+  poIssued        Boolean   @default(false)
+  poIssuedDate    DateTime?
+
+  // Status
+  status       SupplierBudgetStatus @default(QUOTED)
+  isApproved   Boolean              @default(false)
+  approvedById String?
+  approvedAt   DateTime?
+
+  // Notes
+  notes         String?
+  internalNotes String?
+
+  // Audit
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  Project       Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  Supplier      Supplier       @relation(fields: [supplierId], references: [id])
+  PurchaseOrder PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id])
+  CreatedBy     User           @relation("SupplierBudget_createdBy", fields: [createdById], references: [id])
+  ApprovedBy    User?          @relation("SupplierBudget_approvedBy", fields: [approvedById], references: [id])
+  BudgetAlert   BudgetAlert[]
+
+  @@index([projectId])
+  @@index([supplierId])
+  @@index([status])
+  @@index([poIssued])
+}
+
+model ProjectBudgetSummary {
+  id        String @id @default(cuid())
+  projectId String @unique
+
+  // Revenue
+  contractValue          Decimal  @db.Decimal(15, 2)
+  contractValueBeforeTax Decimal? @db.Decimal(15, 2)
+  contractTaxAmount      Decimal? @db.Decimal(15, 2)
+
+  // Budget
+  totalBudget          Decimal  @db.Decimal(15, 2)
+  totalBudgetBeforeTax Decimal? @db.Decimal(15, 2)
+  totalBudgetTaxAmount Decimal? @db.Decimal(15, 2)
+
+  // Actual costs
+  totalActualCost          Decimal  @default(0) @db.Decimal(15, 2)
+  totalActualCostBeforeTax Decimal? @db.Decimal(15, 2)
+  totalActualTaxAmount     Decimal? @db.Decimal(15, 2)
+
+  // Profit calculations
+  estimatedProfit       Decimal  @db.Decimal(15, 2)
+  estimatedProfitMargin Decimal  @db.Decimal(5, 2)
+  actualProfit          Decimal? @db.Decimal(15, 2)
+  actualProfitMargin    Decimal? @db.Decimal(5, 2)
+
+  // Budget utilization
+  budgetUtilization Decimal  @db.Decimal(5, 2)
+  costUtilization   Decimal? @db.Decimal(5, 2)
+
+  // Supplier counts
+  totalSuppliers         Int @default(0)
+  suppliersWithPO        Int @default(0)
+  suppliersWithQuotation Int @default(0)
+
+  // Warnings
+  hasWarnings          Boolean @default(false)
+  warningCount         Int     @default(0)
+  criticalWarningCount Int     @default(0)
+
+  // Last calculation
+  lastCalculatedAt   DateTime @default(now())
+  lastCalculatedById String?
+
+  // Audit
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  Project          Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  LastCalculatedBy User?   @relation(fields: [lastCalculatedById], references: [id])
+
+  @@index([projectId])
+}
+
+model BudgetAlert {
+  id        String @id @default(cuid())
+  projectId String
+
+  // Alert details
+  alertType BudgetAlertType
+  severity  AlertSeverity   @default(WARNING)
+  title     String
+  message   String
+
+  // Context
+  supplierBudgetItemId String?
+  supplierName         String?
+
+  // Thresholds
+  threshold    Decimal? @db.Decimal(5, 2)
+  currentValue Decimal? @db.Decimal(15, 2)
+  limitValue   Decimal? @db.Decimal(15, 2)
+
+  // Status
+  isRead      Boolean   @default(false)
+  isDismissed Boolean   @default(false)
+  isResolved  Boolean   @default(false)
+  readAt      DateTime?
+  dismissedAt DateTime?
+  resolvedAt  DateTime?
+
+  // Notifications
+  notifiedUsers Json?
+  notifiedAt    DateTime?
+
+  // Audit
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  Project            Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  SupplierBudgetItem SupplierBudgetItem? @relation(fields: [supplierBudgetItemId], references: [id])
+
+  @@index([projectId])
+  @@index([isRead])
+  @@index([severity])
+  @@index([isResolved])
+}
+
+// Budget Enums
+
+enum SupplierBudgetStatus {
+  QUOTED
+  PENDING_APPROVAL
+  APPROVED
+  PO_ISSUED
+  IN_PROGRESS
+  COMPLETED
+  INVOICED
+  PAID
+  CANCELLED
+}
+
+enum BudgetAlertType {
+  BUDGET_EXCEEDED
+  BUDGET_WARNING
+  COST_EXCEEDED
+  COST_WARNING
+  PROFIT_LOSS
+  PROFIT_WARNING
+  SUPPLIER_OVER_BUDGET
+  MISSING_QUOTATION
+}
+
+enum AlertSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+// ============================================================================
+// Procurement Document Management System
+// ============================================================================
+
+enum ProcurementDocumentType {
+  CUSTOMER_PO
+  SUPPLIER_QUOTATION
+  SUPPLIER_INVOICE
+  SUPPLIER_PO
+  CLIENT_INVOICE
+  VARIATION_ORDER
+}
+
+enum ProcurementDocumentStatus {
+  UPLOADED
+  PENDING_EXTRACTION
+  EXTRACTING
+  EXTRACTED
+  FAILED
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+  LINKED
+  PAID
+  CANCELLED
+}
+
+enum ProcurementPaymentTerms {
+  NET_7
+  NET_15
+  NET_30
+  NET_45
+  NET_60
+  NET_90
+  IMMEDIATE
+  CUSTOM
+}
+
+model ProcurementDocument {
+  id             String                    @id @default(cuid())
+  projectId      String
+  documentType   ProcurementDocumentType
+  documentNumber String?
+  documentDate   DateTime?
+  status         ProcurementDocumentStatus @default(UPLOADED)
+
+  // File Information
+  fileName         String
+  originalFileName String
+  filePath         String
+  centralFilePath  String?
+  fileSize         Int
+  mimeType         String
+
+  // Related Entities
+  supplierId String?
+  customerId String?
+
+  // Extracted Data
+  extractedData        Json?
+  extractionConfidence Float?
+  projectMismatch      Boolean? @default(false)
+
+  // Financial Data
+  totalAmount    Decimal? @db.Decimal(15, 2)
+  currency       String?  @default("SGD")
+  taxAmount      Decimal? @db.Decimal(15, 2)
+  subtotalAmount Decimal? @db.Decimal(15, 2)
+
+  // Payment Terms
+  paymentTerms       ProcurementPaymentTerms?
+  customPaymentTerms String?
+  dueDate            DateTime?
+
+  // Terms & Conditions
+  termsAndConditions String?
+
+  // Linking
+  linkedQuotationId String?
+  linkedPOId        String?
+  linkedVOId        String?
+  parentDocumentId  String?
+
+  // Approval Workflow
+  requiresApproval Boolean         @default(false)
+  approvalStatus   ApprovalStatus?
+  approvedById     String?
+  approvedAt       DateTime?
+  rejectionReason  String?
+
+  // Metadata
+  notes        String?
+  uploadedById String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  Project    Project   @relation("ProcurementDocuments", fields: [projectId], references: [id], onDelete: Cascade)
+  Supplier   Supplier? @relation("SupplierProcurementDocs", fields: [supplierId], references: [id])
+  Customer   Customer? @relation("CustomerProcurementDocs", fields: [customerId], references: [id])
+  UploadedBy User      @relation("ProcurementDocUploadedBy", fields: [uploadedById], references: [id])
+  ApprovedBy User?     @relation("ProcurementDocApprovedBy", fields: [approvedById], references: [id])
+
+  // Self-referencing relations
+  LinkedQuotation  ProcurementDocument?  @relation("QuotationToPO", fields: [linkedQuotationId], references: [id], onDelete: SetNull)
+  LinkedPOs        ProcurementDocument[] @relation("QuotationToPO")
+  LinkedPO         ProcurementDocument?  @relation("POToInvoice", fields: [linkedPOId], references: [id], onDelete: SetNull)
+  LinkedInvoices   ProcurementDocument[] @relation("POToInvoice")
+  LinkedVO         ProcurementDocument?  @relation("VOToRevisedPO", fields: [linkedVOId], references: [id], onDelete: SetNull)
+  LinkedRevisedPOs ProcurementDocument[] @relation("VOToRevisedPO")
+  ParentDocument   ProcurementDocument?  @relation("ProcurementDocRevisions", fields: [parentDocumentId], references: [id], onDelete: SetNull)
+  Revisions        ProcurementDocument[] @relation("ProcurementDocRevisions")
+
+  // Line Items
+  LineItems ProcurementDocumentLineItem[]
+
+  // PO Generation Requests
+  POGenerationRequests ProcurementPORequest[] @relation("QuotationPORequests")
+  GeneratedFromRequest ProcurementPORequest[] @relation("GeneratedPO")
+
+  // Approval History
+  ApprovalHistory ProcurementApprovalHistory[]
+
+  @@index([projectId])
+  @@index([documentType])
+  @@index([status])
+  @@index([supplierId])
+  @@index([customerId])
+  @@index([documentNumber])
+  @@index([linkedQuotationId])
+  @@index([linkedPOId])
+  @@index([linkedVOId])
+  @@index([approvalStatus])
+  @@index([createdAt])
+}
+
+model ProcurementDocumentLineItem {
+  id         String @id @default(cuid())
+  documentId String
+  lineNumber Int
+
+  // Item Details
+  description String
+  quantity    Decimal? @db.Decimal(10, 2)
+  unitPrice   Decimal? @db.Decimal(15, 2)
+  unit        String?
+  amount      Decimal  @db.Decimal(15, 2)
+
+  // Additional Info
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  Document ProcurementDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId])
+}
+
+model ProcurementPORequest {
+  id          String @id @default(cuid())
+  quotationId String
+  projectId   String
+  supplierId  String
+
+  // PO Details
+  poNumber        String
+  poDate          DateTime
+  deliveryDate    DateTime?
+  deliveryAddress String?
+
+  // Financial
+  totalAmount Decimal  @db.Decimal(15, 2)
+  currency    String   @default("SGD")
+  taxAmount   Decimal? @db.Decimal(15, 2)
+
+  // Terms
+  paymentTerms       ProcurementPaymentTerms
+  customPaymentTerms String?
+  termsAndConditions String?
+
+  // Approval
+  status          ApprovalStatus @default(PENDING)
+  approvedById    String?
+  approvedAt      DateTime?
+  rejectionReason String?
+
+  // Generated PO
+  generatedPOId String?
+
+  // Metadata
+  requestedById String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  Quotation   ProcurementDocument  @relation("QuotationPORequests", fields: [quotationId], references: [id], onDelete: Cascade)
+  Project     Project              @relation("ProjectPORequests", fields: [projectId], references: [id], onDelete: Cascade)
+  Supplier    Supplier             @relation("SupplierPORequests", fields: [supplierId], references: [id])
+  RequestedBy User                 @relation("PORequestedBy", fields: [requestedById], references: [id])
+  ApprovedBy  User?                @relation("POApprovedBy", fields: [approvedById], references: [id])
+  GeneratedPO ProcurementDocument? @relation("GeneratedPO", fields: [generatedPOId], references: [id], onDelete: SetNull)
+
+  // Approval History
+  ApprovalHistory ProcurementApprovalHistory[]
+
+  @@index([quotationId])
+  @@index([projectId])
+  @@index([supplierId])
+  @@index([status])
+  @@index([generatedPOId])
+}
+
+model ProcurementApprovalHistory {
+  id          String  @id @default(cuid())
+  documentId  String?
+  poRequestId String?
+
+  // Approval Details
+  action       ApprovalStatus
+  comments     String?
+  approvedById String
+  approvedAt   DateTime       @default(now())
+
+  // Relations
+  Document   ProcurementDocument?  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  PORequest  ProcurementPORequest? @relation(fields: [poRequestId], references: [id], onDelete: Cascade)
+  ApprovedBy User                  @relation("ProcurementApprover", fields: [approvedById], references: [id])
+
+  @@index([documentId])
+  @@index([poRequestId])
+}

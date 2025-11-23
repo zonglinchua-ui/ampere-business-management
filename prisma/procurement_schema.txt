@@ -1,0 +1,255 @@
+// ============================================================================
+// Procurement Document Management System
+// Add this to the end of schema.prisma
+// ============================================================================
+
+// Enums for Procurement System
+
+enum ProcurementDocumentType {
+  CUSTOMER_PO
+  SUPPLIER_QUOTATION
+  SUPPLIER_INVOICE
+  SUPPLIER_PO
+  CLIENT_INVOICE
+  VARIATION_ORDER
+}
+
+enum ProcurementDocumentStatus {
+  UPLOADED
+  EXTRACTED
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+  LINKED
+  PAID
+  CANCELLED
+}
+
+enum ProcurementPaymentTerms {
+  NET_7
+  NET_15
+  NET_30
+  NET_45
+  NET_60
+  NET_90
+  IMMEDIATE
+  CUSTOM
+}
+
+// Main Models
+
+model ProcurementDocument {
+  id                    String          @id @default(cuid())
+  projectId             String
+  documentType          ProcurementDocumentType
+  documentNumber        String?
+  documentDate          DateTime?
+  status                ProcurementDocumentStatus  @default(UPLOADED)
+  
+  // File Information
+  fileName              String
+  originalFileName      String
+  filePath              String
+  centralFilePath       String?
+  fileSize              Int
+  mimeType              String
+  
+  // Related Entities
+  supplierId            String?
+  customerId            String?
+  
+  // Extracted Data
+  extractedData         Json?
+  extractionConfidence  Float?
+  
+  // Financial Data
+  totalAmount           Decimal?        @db.Decimal(15, 2)
+  currency              String?         @default("SGD")
+  taxAmount             Decimal?        @db.Decimal(15, 2)
+  subtotalAmount        Decimal?        @db.Decimal(15, 2)
+  
+  // Payment Terms
+  paymentTerms          ProcurementPaymentTerms?
+  customPaymentTerms    String?
+  dueDate               DateTime?
+  
+  // Terms & Conditions
+  termsAndConditions    String?
+  
+  // Linking
+  linkedQuotationId     String?
+  linkedPOId            String?
+  linkedVOId            String?
+  parentDocumentId      String?
+  
+  // Approval Workflow
+  requiresApproval      Boolean         @default(false)
+  approvalStatus        ApprovalStatus?
+  approvedById          String?
+  approvedAt            DateTime?
+  rejectionReason       String?
+  
+  // Metadata
+  notes                 String?
+  uploadedById          String
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+  
+  // Relations
+  Project               Project         @relation("ProcurementDocuments", fields: [projectId], references: [id], onDelete: Cascade)
+  Supplier              Supplier?       @relation("SupplierProcurementDocs", fields: [supplierId], references: [id])
+  Customer              Customer?       @relation("CustomerProcurementDocs", fields: [customerId], references: [id])
+  UploadedBy            User            @relation("ProcurementDocUploadedBy", fields: [uploadedById], references: [id])
+  ApprovedBy            User?           @relation("ProcurementDocApprovedBy", fields: [approvedById], references: [id])
+  
+  // Self-referencing relations
+  LinkedQuotation       ProcurementDocument?  @relation("QuotationToPO", fields: [linkedQuotationId], references: [id], onDelete: SetNull)
+  LinkedPOs             ProcurementDocument[] @relation("QuotationToPO")
+  LinkedPO              ProcurementDocument?  @relation("POToInvoice", fields: [linkedPOId], references: [id], onDelete: SetNull)
+  LinkedInvoices        ProcurementDocument[] @relation("POToInvoice")
+  LinkedVO              ProcurementDocument?  @relation("VOToRevisedPO", fields: [linkedVOId], references: [id], onDelete: SetNull)
+  LinkedRevisedPOs      ProcurementDocument[] @relation("VOToRevisedPO")
+  ParentDocument        ProcurementDocument?  @relation("ProcurementDocRevisions", fields: [parentDocumentId], references: [id], onDelete: SetNull)
+  Revisions             ProcurementDocument[] @relation("ProcurementDocRevisions")
+  
+  // Line Items
+  LineItems             ProcurementDocumentLineItem[]
+  
+  // PO Generation Requests
+  POGenerationRequests  ProcurementPORequest[] @relation("QuotationPORequests")
+  GeneratedFromRequest  ProcurementPORequest[] @relation("GeneratedPO")
+  
+  // Approval History
+  ApprovalHistory       ProcurementApprovalHistory[]
+  
+  @@index([projectId])
+  @@index([documentType])
+  @@index([status])
+  @@index([supplierId])
+  @@index([customerId])
+  @@index([documentNumber])
+  @@index([linkedQuotationId])
+  @@index([linkedPOId])
+  @@index([linkedVOId])
+  @@index([approvalStatus])
+  @@index([createdAt])
+}
+
+model ProcurementDocumentLineItem {
+  id          String          @id @default(cuid())
+  documentId  String
+  lineNumber  Int
+  
+  // Item Details
+  description String
+  quantity    Decimal?        @db.Decimal(10, 2)
+  unitPrice   Decimal?        @db.Decimal(15, 2)
+  unit        String?
+  amount      Decimal         @db.Decimal(15, 2)
+  
+  // Additional Info
+  notes       String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  
+  // Relations
+  Document    ProcurementDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  
+  @@index([documentId])
+}
+
+model ProcurementPORequest {
+  id                  String          @id @default(cuid())
+  quotationId         String
+  projectId           String
+  supplierId          String
+  
+  // PO Details
+  poNumber            String
+  poDate              DateTime
+  deliveryDate        DateTime?
+  deliveryAddress     String?
+  
+  // Financial
+  totalAmount         Decimal         @db.Decimal(15, 2)
+  currency            String          @default("SGD")
+  taxAmount           Decimal?        @db.Decimal(15, 2)
+  
+  // Terms
+  paymentTerms        ProcurementPaymentTerms
+  customPaymentTerms  String?
+  termsAndConditions  String?
+  
+  // Approval
+  status              ApprovalStatus  @default(PENDING)
+  approvedById        String?
+  approvedAt          DateTime?
+  rejectionReason     String?
+  
+  // Generated PO
+  generatedPOId       String?
+  
+  // Metadata
+  requestedById       String
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+  
+  // Relations
+  Quotation           ProcurementDocument @relation("QuotationPORequests", fields: [quotationId], references: [id], onDelete: Cascade)
+  Project             Project         @relation("ProjectPORequests", fields: [projectId], references: [id], onDelete: Cascade)
+  Supplier            Supplier        @relation("SupplierPORequests", fields: [supplierId], references: [id])
+  RequestedBy         User            @relation("PORequestedBy", fields: [requestedById], references: [id])
+  ApprovedBy          User?           @relation("POApprovedBy", fields: [approvedById], references: [id])
+  GeneratedPO         ProcurementDocument? @relation("GeneratedPO", fields: [generatedPOId], references: [id], onDelete: SetNull)
+  
+  // Approval History
+  ApprovalHistory     ProcurementApprovalHistory[]
+  
+  @@index([quotationId])
+  @@index([projectId])
+  @@index([supplierId])
+  @@index([status])
+  @@index([generatedPOId])
+}
+
+model ProcurementApprovalHistory {
+  id            String                @id @default(cuid())
+  documentId    String?
+  poRequestId   String?
+  
+  // Approval Details
+  action        ApprovalStatus
+  comments      String?
+  approvedById  String
+  approvedAt    DateTime              @default(now())
+  
+  // Relations
+  Document      ProcurementDocument?      @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  PORequest     ProcurementPORequest?  @relation(fields: [poRequestId], references: [id], onDelete: Cascade)
+  ApprovedBy    User                  @relation("ProcurementApprover", fields: [approvedById], references: [id])
+  
+  @@index([documentId])
+  @@index([poRequestId])
+}
+
+// ============================================================================
+// Relations to add to existing models:
+// ============================================================================
+
+// In Project model, add:
+//   ProcurementDocuments      ProcurementDocument[]   @relation("ProcurementDocuments")
+//   ProcurementPORequests     ProcurementPORequest[]  @relation("ProjectPORequests")
+
+// In Supplier model, add:
+//   ProcurementDocuments      ProcurementDocument[]   @relation("SupplierProcurementDocs")
+//   ProcurementPORequests     ProcurementPORequest[]  @relation("SupplierPORequests")
+
+// In Customer model, add:
+//   ProcurementDocuments      ProcurementDocument[]   @relation("CustomerProcurementDocs")
+
+// In User model, add:
+//   ProcurementDocsUploaded   ProcurementDocument[]   @relation("ProcurementDocUploadedBy")
+//   ProcurementDocsApproved   ProcurementDocument[]   @relation("ProcurementDocApprovedBy")
+//   PORequestsCreated         ProcurementPORequest[]  @relation("PORequestedBy")
+//   PORequestsApproved        ProcurementPORequest[]  @relation("POApprovedBy")
+//   ProcurementApprovalsGiven ProcurementApprovalHistory[] @relation("ProcurementApprover")

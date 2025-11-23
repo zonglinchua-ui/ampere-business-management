@@ -1,0 +1,57 @@
+﻿
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: ampere-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ampere_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ampere_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ampere_user -d ampere_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  waha:
+    image: devlikeapro/waha:latest
+    container_name: ampere-waha
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      WAHA_API_KEY: ${WAHA_API_KEY}
+      WAHA_DASHBOARD_USERNAME: admin
+      WAHA_DASHBOARD_PASSWORD: ${WAHA_DASHBOARD_PASSWORD}
+    volumes:
+      - waha_data:/app/.waha
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ampere-ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+
+  redis:
+    image: redis:7-alpine
+    container_name: ampere-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+
+volumes:
+  postgres_data:
+  waha_data:
+  ollama_data:
+  redis_data:
