@@ -22,6 +22,10 @@ export interface VarianceResult {
 
 export function calculateVariance(totalBudget: number, totalActual: number) {
   if (totalBudget === 0) {
+    if (totalActual <= 0) {
+      return { variancePct: 0, overBudgetAmount: 0 }
+    }
+
     return { variancePct: 100, overBudgetAmount: totalActual }
   }
   const overBudgetAmount = Math.max(0, totalActual - totalBudget)

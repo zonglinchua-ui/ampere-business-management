@@ -9,6 +9,23 @@ describe('variance calculations', () => {
     assert.equal(overBudgetAmount, 200)
   })
 
+  it('returns zero variance when both budget and actuals are zero', async () => {
+    const { variancePct, overBudgetAmount } = calculateVariance(0, 0)
+    assert.equal(variancePct, 0)
+    assert.equal(overBudgetAmount, 0)
+
+    const result = await triggerVarianceAlert({
+      projectId: 'p0',
+      totalBudget: 0,
+      totalActual: 0,
+      skipPersistence: true,
+      disableNotifications: true
+    })
+
+    assert.equal(result.triggered, false)
+    assert.equal(result.variancePct, 0)
+  })
+
   it('skips alerts when variance below threshold', async () => {
     const result = await triggerVarianceAlert({
       projectId: 'p1',
