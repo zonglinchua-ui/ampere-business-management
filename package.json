@@ -6,7 +6,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "tsx tests/comments.test.tsx"
+    "test": "tsx tests/comments.test.tsx",
+    "test:all": "tsx tests/run-all-tests.ts",
+    "test:comments": "tsx tests/comments.test.tsx",
+    "test:api": "tsx tests/api-handlers.test.ts",
+    "test:schema": "tsx tests/schema-validation.test.ts"
   },
   "prisma": {
     "seed": "tsx --require dotenv/config scripts/seed.ts"
