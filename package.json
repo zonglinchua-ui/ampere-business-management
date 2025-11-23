@@ -13,6 +13,7 @@
     "test:schema": "tsx tests/schema-validation.test.ts",
     "test:tsx": "tsx --test \"tests/**/*.{test,ts,tsx}\""
   },
+
   "prisma": {
     "seed": "tsx --require dotenv/config scripts/seed.ts"
   },

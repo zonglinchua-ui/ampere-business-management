@@ -8,6 +8,15 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
+import { Input } from "@/components/ui/input"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import { 
   Briefcase, 
   Calendar,
@@ -29,7 +38,8 @@ import {
   History,
   Plus,
   ExternalLink,
-  Trash2
+  Trash2,
+  Upload
 } from "lucide-react"
 import {
   AlertDialog,
@@ -104,6 +114,7 @@ interface TenderDetails {
   activities: TenderActivity[]
   quotations: TenderQuotation[]
   documents: TenderDocument[]
+  planSheets?: PlanSheet[]
 }
 
 interface TenderActivity {
@@ -137,6 +148,19 @@ interface TenderDocument {
   createdAt: string
 }
 
+interface PlanSheet {
+  id: string
+  name: string
+  fileKey: string
+  fileUrl?: string
+  pageCount?: number | null
+  dpi?: number | null
+  scale?: number | null
+  units?: string | null
+  createdAt: string
+  updatedAt: string
+}
+
 export default function TenderDetailsPage() {
   const router = useRouter()
   const params = useParams()
@@ -147,6 +171,10 @@ export default function TenderDetailsPage() {
   const [tender, setTender] = useState<TenderDetails | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [planFile, setPlanFile] = useState<File | null>(null)
+  const [planScale, setPlanScale] = useState<string>("")
+  const [planUnits, setPlanUnits] = useState<string>("mm")
+  const [planUploading, setPlanUploading] = useState(false)
 
   // Check if current user is super admin
   const isSuperAdmin = session?.user?.role === 'SUPERADMIN'
@@ -298,6 +326,69 @@ export default function TenderDetailsPage() {
       toast.error('Failed to delete tender')
     } finally {
       setDeleting(false)
+    }
+  }
+
+  const handlePlanUpload = async () => {
+    if (!planFile) {
+      toast.error('Please select a plan PDF to upload')
+      return
+    }
+
+    if (!tenderId) {
+      toast.error('Tender ID is missing')
+      return
+    }
+
+    setPlanUploading(true)
+
+    try {
+      const formData = new FormData()
+      formData.append('file', planFile)
+      formData.append('tenderId', tenderId)
+
+      if (planScale) {
+        formData.append('scale', planScale)
+      }
+
+      if (planUnits) {
+        formData.append('units', planUnits)
+      }
+
+      const response = await fetch('/api/takeoff/plans', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ error: 'Failed to upload plan' }))
+        toast.error(error.error || 'Failed to upload plan')
+        return
+      }
+
+      const newPlan: PlanSheet = await response.json()
+
+      setTender((prev) => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          planSheets: [newPlan, ...(prev.planSheets || [])],
+        }
+      })
+
+      const fileInput = document.getElementById('plan-file-input') as HTMLInputElement | null
+      if (fileInput) {
+        fileInput.value = ''
+      }
+
+      setPlanFile(null)
+      setPlanScale('')
+      toast.success('Plan uploaded successfully')
+    } catch (err) {
+      console.error('[Plan Upload] Failed to upload plan', err)
+      toast.error('Failed to upload plan')
+    } finally {
+      setPlanUploading(false)
     }
   }
 
@@ -857,12 +948,115 @@ export default function TenderDetailsPage() {
           </TabsContent>
 
           <TabsContent value="documents">
-            <TenderFileManager
-              tenderId={tender.id}
-              tenderNumber={tender.tenderNumber}
-              tenderTitle={tender.title}
-              customerName={tender.client.name}
-            />
+            <div className="space-y-6">
+              <TenderFileManager
+                tenderId={tender.id}
+                tenderNumber={tender.tenderNumber}
+                tenderTitle={tender.title}
+                customerName={tender.client.name}
+              />
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Add drawings</CardTitle>
+                  <CardDescription>Upload plan sheets and track their scale readiness.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="grid gap-4 md:grid-cols-12">
+                    <div className="md:col-span-5 space-y-2">
+                      <Input
+                        id="plan-file-input"
+                        type="file"
+                        accept="application/pdf"
+                        onChange={(event) => setPlanFile(event.target.files?.[0] || null)}
+                      />
+                      <p className="text-xs text-muted-foreground">PDF plan sheets are supported.</p>
+                    </div>
+                    <div className="md:col-span-5 grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <Input
+                        type="number"
+                        inputMode="numeric"
+                        placeholder="Scale (e.g., 100)"
+                        value={planScale}
+                        onChange={(event) => setPlanScale(event.target.value)}
+                      />
+                      <Input
+                        placeholder="Units (e.g., mm)"
+                        value={planUnits}
+                        onChange={(event) => setPlanUnits(event.target.value)}
+                      />
+                    </div>
+                    <div className="md:col-span-2 flex items-end">
+                      <Button onClick={handlePlanUpload} disabled={planUploading} className="w-full">
+                        <Upload className="h-4 w-4 mr-2" />
+                        {planUploading ? 'Uploading...' : 'Upload plan'}
+                      </Button>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Sheet name</TableHead>
+                          <TableHead className="hidden md:table-cell">Pages</TableHead>
+                          <TableHead className="hidden md:table-cell">DPI</TableHead>
+                          <TableHead>Scale status</TableHead>
+                          <TableHead>Download</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {tender.planSheets && tender.planSheets.length > 0 ? (
+                          tender.planSheets.map((plan) => (
+                            <TableRow key={plan.id}>
+                              <TableCell>
+                                <div className="flex flex-col">
+                                  <span className="font-medium">{plan.name}</span>
+                                  <span className="text-xs text-muted-foreground">
+                                    Uploaded {format(new Date(plan.createdAt), "PPpp")}
+                                  </span>
+                                </div>
+                              </TableCell>
+                              <TableCell className="hidden md:table-cell">{plan.pageCount ?? '–'}</TableCell>
+                              <TableCell className="hidden md:table-cell">{plan.dpi ?? '–'}</TableCell>
+                              <TableCell>
+                                {plan.scale ? (
+                                  <Badge variant="secondary">1:{plan.scale} {plan.units || ''}</Badge>
+                                ) : (
+                                  <Badge variant="outline">Scale needed</Badge>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                {plan.fileUrl ? (
+                                  <a
+                                    href={plan.fileUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="text-sm text-red-600 hover:underline"
+                                  >
+                                    View
+                                  </a>
+                                ) : (
+                                  <span className="text-sm text-muted-foreground">Not available</span>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        ) : (
+                          <TableRow>
+                            <TableCell colSpan={5} className="text-center text-muted-foreground">
+                              No plan sheets uploaded yet.
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           <TabsContent value="activity">

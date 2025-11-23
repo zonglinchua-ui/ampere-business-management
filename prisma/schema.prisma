@@ -229,6 +229,7 @@ model CustomerInvoice {
   Document               Document[]
   Payment                Payment[]
   ProgressClaim          ProgressClaim[]
+  Comment                Comment[]
   Comment             Comment[]
 }
 
@@ -420,6 +421,8 @@ model Project {
   SupplierBudgetItem               SupplierBudgetItem[]
   ProjectBudgetSummary             ProjectBudgetSummary?
   BudgetAlert                      BudgetAlert[]
+  Comments                         Comment[]
+  TenderTakeoffPackages            TenderTakeoffPackage[]
   ProcurementDocuments             ProcurementDocument[]  @relation("ProcurementDocuments")
   ProcurementPORequests            ProcurementPORequest[] @relation("ProjectPORequests")
 }
@@ -926,36 +929,36 @@ model Session {
 }
 
 model Supplier {
-  id                              String                    @id
+  id                              String                       @id
   name                            String
   email                           String?
   phone                           String?
   address                         String?
   city                            String?
   state                           String?
-  country                         String                    @default("Singapore")
+  country                         String                       @default("Singapore")
   postalCode                      String?
   contactPerson                   String?
   companyReg                      String?
   website                         String?
   notes                           String?
-  supplierType                    SupplierType              @default(SUPPLIER)
-  paymentTerms                    PaymentTerms              @default(NET_30)
+  supplierType                    SupplierType                 @default(SUPPLIER)
+  paymentTerms                    PaymentTerms                 @default(NET_30)
   contractDetails                 String?
   bankName                        String?
   bankAccountNumber               String?
   bankAccountName                 String?
   bankSwiftCode                   String?
   bankAddress                     String?
-  isActive                        Boolean                   @default(true)
-  isApproved                      Boolean                   @default(false)
-  createdAt                       DateTime                  @default(now())
+  isActive                        Boolean                      @default(true)
+  isApproved                      Boolean                      @default(false)
+  createdAt                       DateTime                     @default(now())
   updatedAt                       DateTime
   createdById                     String
-  supplierNumber                  String?                   @unique
-  isXeroSynced                    Boolean                   @default(false)
+  supplierNumber                  String?                      @unique
+  isXeroSynced                    Boolean                      @default(false)
   lastXeroSync                    DateTime?
-  xeroContactId                   String?                   @unique
+  xeroContactId                   String?                      @unique
   xeroAccountNumber               String?
   xeroAccountsPayableTaxType      String?
   xeroAccountsReceivableTaxType   String?
@@ -973,7 +976,7 @@ model Supplier {
   primaryFirstName                String?
   primaryLastName                 String?
   primaryEmail                    String?
-  phoneCountry                    String?                   @default("+65")
+  phoneCountry                    String?                      @default("+65")
   phoneArea                       String?
   phoneNumber                     String?
   internalNotes                   String?
@@ -984,7 +987,7 @@ model Supplier {
   billingCity                     String?
   billingState                    String?
   billingPostcode                 String?
-  billingCountry                  String?                   @default("Singapore")
+  billingCountry                  String?                      @default("Singapore")
   deliveryAddressLine1            String?
   deliveryAddressLine2            String?
   deliveryAddressLine3            String?
@@ -992,20 +995,20 @@ model Supplier {
   deliveryCity                    String?
   deliveryState                   String?
   deliveryPostcode                String?
-  deliveryCountry                 String?                   @default("Singapore")
+  deliveryCountry                 String?                      @default("Singapore")
   financialDetailsNote            String?
   taxId                           String?
-  currency                        String?                   @default("SGD")
+  currency                        String?                      @default("SGD")
   purchaseAccountId               String?
-  billDue                         String?                   @default("of_following_month")
-  amountSetting                   String?                   @default("use_org_settings")
-  purchaseTaxSetting              String?                   @default("INPUT2")
+  billDue                         String?                      @default("of_following_month")
+  amountSetting                   String?                      @default("use_org_settings")
+  purchaseTaxSetting              String?                      @default("INPUT2")
   defaultCurrency                 String?
   emailAddress                    String?
   fax                             String?
   firstName                       String?
   isCustomer                      Boolean?
-  isSupplier                      Boolean?                  @default(true)
+  isSupplier                      Boolean?                     @default(true)
   lastName                        String?
   mailingAttention                String?
   mailingCity                     String?
@@ -1031,46 +1034,46 @@ model Supplier {
   streetRegion                    String?
   taxNumber                       String?
   xeroUpdatedDateUtc              String?
-  isDeleted                       Boolean                   @default(false) @map("is_deleted")
-  deletedAt                       DateTime?                 @map("deleted_at")
-  deletedBy                       String?                   @map("deleted_by")
+  isDeleted                       Boolean                      @default(false) @map("is_deleted")
+  deletedAt                       DateTime?                    @map("deleted_at")
+  deletedBy                       String?                      @map("deleted_by")
   complianceRiskScore             Int?
   financialRiskScore              Int?
   deliveryRiskScore               Int?
   overallRiskScore                Int?
-  riskLevel                       RiskLevel?                @default(MEDIUM)
+  riskLevel                       RiskLevel?                   @default(MEDIUM)
   riskEvaluatedAt                 DateTime?
   Document                        Document[]
   ProjectSupplier                 ProjectSupplier[]
   ProjectTransaction              ProjectTransaction[]
   PurchaseOrder                   PurchaseOrder[]
-  ServiceContractSuppliers        ServiceContractSupplier[] @relation("ServiceContractSuppliers")
-  ServiceJob_AssignedSupplier     ServiceJob[]              @relation("AssignedSupplier")
-  User_Supplier_createdByIdToUser User                      @relation("Supplier_createdByIdToUser", fields: [createdById], references: [id])
-  User_Supplier_deletedByToUser   User?                     @relation("Supplier_deletedByToUser", fields: [deletedBy], references: [id])
+  ServiceContractSuppliers        ServiceContractSupplier[]    @relation("ServiceContractSuppliers")
+  ServiceJob_AssignedSupplier     ServiceJob[]                 @relation("AssignedSupplier")
+  User_Supplier_createdByIdToUser User                         @relation("Supplier_createdByIdToUser", fields: [createdById], references: [id])
+  User_Supplier_deletedByToUser   User?                        @relation("Supplier_deletedByToUser", fields: [deletedBy], references: [id])
   SupplierContract                SupplierContract[]
   SupplierInvoice                 SupplierInvoice[]
   SupplierReport                  SupplierReport[]
-  User_User_supplierIdToSupplier  User[]                    @relation("User_supplierIdToSupplier")
+  User_User_supplierIdToSupplier  User[]                       @relation("User_supplierIdToSupplier")
   SupplierBudgetItem              SupplierBudgetItem[]
-  ProcurementDocuments            ProcurementDocument[]   @relation("SupplierProcurementDocs")
-  ProcurementPORequests           ProcurementPORequest[]  @relation("SupplierPORequests")
+  ProcurementDocuments            ProcurementDocument[]        @relation("SupplierProcurementDocs")
+  ProcurementPORequests           ProcurementPORequest[]       @relation("SupplierPORequests")
   ComplianceDocuments             SupplierComplianceDocument[]
 }
 
 model SupplierComplianceDocument {
-  id                  String                        @id @default(cuid())
-  supplierId          String
-  name                String
-  type                ComplianceDocumentType
-  fileUrl             String?
-  verificationStatus  ComplianceVerificationStatus  @default(PENDING)
-  verificationNotes   String?
-  expiresAt           DateTime?
-  riskScore           Int?
-  createdAt           DateTime                      @default(now())
-  updatedAt           DateTime                      @updatedAt
-  Supplier            Supplier                      @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  id                 String                       @id @default(cuid())
+  supplierId         String
+  name               String
+  type               ComplianceDocumentType
+  fileUrl            String?
+  verificationStatus ComplianceVerificationStatus @default(PENDING)
+  verificationNotes  String?
+  expiresAt          DateTime?
+  riskScore          Int?
+  createdAt          DateTime                     @default(now())
+  updatedAt          DateTime                     @updatedAt
+  Supplier           Supplier                     @relation(fields: [supplierId], references: [id], onDelete: Cascade)
 
   @@index([supplierId])
   @@index([expiresAt])
@@ -1294,20 +1297,20 @@ model TaskNotification {
 }
 
 model Comment {
-  id               String             @id @default(cuid())
-  entityType       CommentEntityType
-  invoiceId        String?
-  purchaseOrderId  String?
-  projectId        String?
-  content          String
-  createdById      String
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
-  createdBy        User              @relation(fields: [createdById], references: [id])
-  Invoice          CustomerInvoice?  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-  PurchaseOrder    PurchaseOrder?    @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
-  Project          Project?          @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  CommentMention   CommentMention[]
+  id              String            @id @default(cuid())
+  entityType      CommentEntityType
+  invoiceId       String?
+  purchaseOrderId String?
+  projectId       String?
+  content         String
+  createdById     String
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  createdBy       User              @relation(fields: [createdById], references: [id])
+  Invoice         CustomerInvoice?  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  PurchaseOrder   PurchaseOrder?    @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  Project         Project?          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  CommentMention  CommentMention[]
 
   @@index([entityType, invoiceId])
   @@index([entityType, purchaseOrderId])
@@ -1315,12 +1318,12 @@ model Comment {
 }
 
 model CommentMention {
-  id         String   @id @default(cuid())
-  commentId  String
-  userId     String
-  createdAt  DateTime @default(now())
-  Comment    Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  User       User     @relation(fields: [userId], references: [id])
+  id        String   @id @default(cuid())
+  commentId String
+  userId    String
+  createdAt DateTime @default(now())
+  Comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  User      User     @relation(fields: [userId], references: [id])
 
   @@unique([commentId, userId])
 }
@@ -1368,40 +1371,58 @@ model ServiceNotification {
 }
 
 model Tender {
-  id                              String           @id
+  id                              String                 @id
   title                           String
-  tenderNumber                    String           @unique
+  tenderNumber                    String                 @unique
   description                     String?
   customerId                      String
-  estimatedValue                  Decimal?         @db.Decimal(15, 2)
+  estimatedValue                  Decimal?               @db.Decimal(15, 2)
   submissionDeadline              DateTime
-  openDate                        DateTime         @default(now())
+  openDate                        DateTime               @default(now())
   closeDate                       DateTime?
-  status                          TenderStatus     @default(OPEN)
-  priority                        Priority         @default(MEDIUM)
+  status                          TenderStatus           @default(OPEN)
+  priority                        Priority               @default(MEDIUM)
   requirements                    String?
   contactPerson                   String?
   contactEmail                    String?
   contactPhone                    String?
   location                        String?
-  category                        TenderCategory   @default(GENERAL)
-  isActive                        Boolean          @default(true)
+  category                        TenderCategory         @default(GENERAL)
+  isActive                        Boolean                @default(true)
   createdById                     String
   assignedToId                    String?
-  createdAt                       DateTime         @default(now())
+  createdAt                       DateTime               @default(now())
   updatedAt                       DateTime
   salespersonId                   String?
   nasDocumentPath                 String?
+  PlanSheet                       PlanSheet[]
   Document                        Document[]
   Quotation                       Quotation[]
   Task                            Task[]
-  User_Tender_assignedToIdToUser  User?            @relation("Tender_assignedToIdToUser", fields: [assignedToId], references: [id])
-  User_Tender_createdByIdToUser   User             @relation("Tender_createdByIdToUser", fields: [createdById], references: [id])
-  Customer                        Customer         @relation(fields: [customerId], references: [id])
-  User_Tender_salespersonIdToUser User?            @relation("Tender_salespersonIdToUser", fields: [salespersonId], references: [id])
+  User_Tender_assignedToIdToUser  User?                  @relation("Tender_assignedToIdToUser", fields: [assignedToId], references: [id])
+  User_Tender_createdByIdToUser   User                   @relation("Tender_createdByIdToUser", fields: [createdById], references: [id])
+  Customer                        Customer               @relation(fields: [customerId], references: [id])
+  User_Tender_salespersonIdToUser User?                  @relation("Tender_salespersonIdToUser", fields: [salespersonId], references: [id])
   TenderActivity                  TenderActivity[]
   ProgressClaim                   ProgressClaim[]
   TenderTakeoffPackage            TenderTakeoffPackage[]
+}
+
+model PlanSheet {
+  id        String   @id @default(cuid())
+  tenderId  String
+  name      String
+  fileKey   String
+  pageCount Int?
+  dpi       Int?
+  scale     Float?
+  units     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  Tender Tender @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+
+  @@index([tenderId])
 }
 
 model TenderActivity {
@@ -1452,6 +1473,140 @@ model DetectedElement {
   version        Int
   createdAt      DateTime  @default(now())
   PlanSheet      PlanSheet @relation(fields: [planSheetId], references: [id])
+  id          String   @id @default(cuid())
+  tenderId    String?
+  projectId   String?
+  name        String
+  description String?
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  Tender       Tender?       @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+  Project      Project?      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  CreatedBy    User          @relation("TenderTakeoffPackageCreatedBy", fields: [createdById], references: [id])
+  PlanSheets   PlanSheet[]
+  CostMappings CostMapping[]
+
+  @@index([tenderId])
+  @@index([projectId])
+}
+
+model PlanSheet {
+  id               String           @id @default(cuid())
+  packageId        String
+  name             String
+  description      String?
+  filePath         String
+  fileName         String
+  originalFileName String?
+  mimeType         String?
+  size             Int?
+  scaleRatio       String?
+  scaleUnit        MeasurementUnit?
+  pageNumber       Int?
+  uploadedById     String
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  Package          TenderTakeoffPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  UploadedBy       User                 @relation("PlanSheetUploadedBy", fields: [uploadedById], references: [id])
+  DetectedElements DetectedElement[]
+  Measurements     Measurement[]
+
+  @@index([packageId])
+}
+
+model DetectedElement {
+  id             String             @id @default(cuid())
+  planSheetId    String
+  elementType    TakeoffElementType
+  geometry       Json?
+  sourceGeometry Json?
+  confidence     Float?
+  label          String?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  PlanSheet    PlanSheet     @relation(fields: [planSheetId], references: [id], onDelete: Cascade)
+  Measurements Measurement[]
+  CostMappings CostMapping[]
+
+  @@index([planSheetId])
+  @@index([elementType])
+}
+
+model Measurement {
+  id                String          @id @default(cuid())
+  planSheetId       String
+  detectedElementId String?
+  measurementType   MeasurementType
+  unit              MeasurementUnit
+  value             Decimal         @db.Decimal(18, 4)
+  notes             String?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  PlanSheet       PlanSheet        @relation(fields: [planSheetId], references: [id], onDelete: Cascade)
+  DetectedElement DetectedElement? @relation(fields: [detectedElementId], references: [id], onDelete: SetNull)
+  CostMappings    CostMapping[]
+
+  @@index([planSheetId])
+  @@index([detectedElementId])
+  @@index([measurementType])
+}
+
+model CostCode {
+  id          String         @id @default(cuid())
+  code        String         @unique
+  name        String
+  description String?
+  category    String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  Assemblies  CostAssembly[]
+  CostMapping CostMapping[]
+}
+
+model CostAssembly {
+  id          String           @id @default(cuid())
+  code        String           @unique
+  name        String
+  description String?
+  costCodeId  String?
+  unit        MeasurementUnit?
+  rate        Decimal?         @db.Decimal(15, 2)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  CostCode     CostCode?     @relation(fields: [costCodeId], references: [id], onDelete: SetNull)
+  CostMappings CostMapping[]
+
+  @@index([costCodeId])
+}
+
+model CostMapping {
+  id                String   @id @default(cuid())
+  packageId         String?
+  detectedElementId String?
+  measurementId     String?
+  costCodeId        String?
+  costAssemblyId    String?
+  notes             String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  TenderTakeoffPackage TenderTakeoffPackage? @relation(fields: [packageId], references: [id], onDelete: SetNull)
+  DetectedElement      DetectedElement?      @relation(fields: [detectedElementId], references: [id], onDelete: SetNull)
+  Measurement          Measurement?          @relation(fields: [measurementId], references: [id], onDelete: SetNull)
+  CostCode             CostCode?             @relation(fields: [costCodeId], references: [id], onDelete: SetNull)
+  CostAssembly         CostAssembly?         @relation(fields: [costAssemblyId], references: [id], onDelete: SetNull)
+
+  @@index([packageId])
+  @@index([detectedElementId])
+  @@index([measurementId])
+  @@index([costCodeId])
+  @@index([costAssemblyId])
 }
 
 model User {
@@ -1532,6 +1687,8 @@ model User {
   Tender_Tender_assignedToIdToUser                          Tender[]                      @relation("Tender_assignedToIdToUser")
   Tender_Tender_createdByIdToUser                           Tender[]                      @relation("Tender_createdByIdToUser")
   Tender_Tender_salespersonIdToUser                         Tender[]                      @relation("Tender_salespersonIdToUser")
+  TenderTakeoffPackagesCreated                              TenderTakeoffPackage[]        @relation("TenderTakeoffPackageCreatedBy")
+  PlanSheetsUploaded                                        PlanSheet[]                   @relation("PlanSheetUploadedBy")
   Supplier_User_supplierIdToSupplier                        Supplier?                     @relation("User_supplierIdToSupplier", fields: [supplierId], references: [id])
   VariationOrder_approvedBy                                 VariationOrder[]              @relation("VariationOrder_approvedBy")
   VariationOrder_createdBy                                  VariationOrder[]              @relation("VariationOrder_createdBy")
@@ -2308,6 +2465,32 @@ enum TemplateType {
   FINAL_COMPLETION_CERTIFICATE
   WARRANTY_CERTIFICATE
   SERVICE_AGREEMENT
+}
+
+enum TakeoffElementType {
+  WALL
+  DOOR
+  WINDOW
+  COLUMN
+  BEAM
+  SLAB
+  ROOM
+  GENERIC
+}
+
+enum MeasurementType {
+  LINEAR
+  AREA
+  COUNT
+}
+
+enum MeasurementUnit {
+  METER
+  FOOT
+  SQUARE_METER
+  SQUARE_FOOT
+  COUNT
+  ITEM
 }
 
 enum TenderCategory {

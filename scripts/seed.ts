@@ -1,5 +1,6 @@
 
 import { prisma } from '@/lib/db'
+import { Prisma } from '@prisma/client'
 import bcrypt from 'bcryptjs'
 import { v4 as uuidv4 } from 'uuid'
 
@@ -27,6 +28,13 @@ async function main() {
   await prisma.quotationTemplate.deleteMany()
   await prisma.quotationItem.deleteMany()
   await prisma.quotation.deleteMany()
+  await prisma.costMapping.deleteMany()
+  await prisma.measurement.deleteMany()
+  await prisma.detectedElement.deleteMany()
+  await prisma.planSheet.deleteMany()
+  await prisma.tenderTakeoffPackage.deleteMany()
+  await prisma.costAssembly.deleteMany()
+  await prisma.costCode.deleteMany()
   await prisma.tenderActivity.deleteMany()
   await prisma.tender.deleteMany()
   await prisma.supplierContract.deleteMany()
@@ -149,6 +157,83 @@ async function main() {
   }
 
   console.log('📊 Created system budget categories')
+
+  const costCodes = [
+    { code: 'CC-100', name: 'Site Preparation', description: 'Excavation, temporary facilities, and mobilization.', category: 'General Conditions' },
+    { code: 'CC-200', name: 'Concrete Works', description: 'Formwork, reinforcement, and concrete placement.', category: 'Structural' },
+    { code: 'CC-300', name: 'Electrical Rough-In', description: 'Conduit, cable trays, and panel setup.', category: 'MEP' }
+  ]
+
+  for (const costCode of costCodes) {
+    await prisma.costCode.upsert({
+      where: { code: costCode.code },
+      update: {
+        name: costCode.name,
+        description: costCode.description,
+        category: costCode.category,
+        updatedAt: new Date()
+      },
+      create: {
+        code: costCode.code,
+        name: costCode.name,
+        description: costCode.description,
+        category: costCode.category
+      }
+    })
+  }
+
+  const costAssemblies = [
+    {
+      code: 'ASM-100',
+      name: 'Concrete Footing Assembly',
+      description: 'Includes excavation, rebar placement, and concrete pour.',
+      costCodeCode: 'CC-200',
+      unit: 'SQUARE_METER',
+      rate: '120.00'
+    },
+    {
+      code: 'ASM-200',
+      name: 'Electrical Riser Installation',
+      description: 'Risers, conduits, and panel connections.',
+      costCodeCode: 'CC-300',
+      unit: 'METER',
+      rate: '85.00'
+    },
+    {
+      code: 'ASM-300',
+      name: 'Site Hoarding Setup',
+      description: 'Temporary hoarding and safety signage.',
+      costCodeCode: 'CC-100',
+      unit: 'ITEM',
+      rate: '1500.00'
+    }
+  ]
+
+  for (const assembly of costAssemblies) {
+    const costCode = await prisma.costCode.findUnique({ where: { code: assembly.costCodeCode } })
+
+    await prisma.costAssembly.upsert({
+      where: { code: assembly.code },
+      update: {
+        name: assembly.name,
+        description: assembly.description,
+        costCodeId: costCode?.id,
+        unit: assembly.unit as Prisma.MeasurementUnit,
+        rate: new Prisma.Decimal(assembly.rate),
+        updatedAt: new Date()
+      },
+      create: {
+        code: assembly.code,
+        name: assembly.name,
+        description: assembly.description,
+        costCodeId: costCode?.id,
+        unit: assembly.unit as Prisma.MeasurementUnit,
+        rate: new Prisma.Decimal(assembly.rate)
+      }
+    })
+  }
+
+  console.log('🧾 Seeded cost codes and assemblies')
 
   console.log('🎉 Database seeding completed successfully!')
   console.log('\n📋 Test Accounts Created:')
