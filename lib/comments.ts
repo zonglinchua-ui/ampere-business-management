@@ -45,7 +45,9 @@ export function ensureMentionMarkup(content: string, selectedMentions: ParsedMen
     if (!mention.display) return
     const token = `@${mention.display}`
     if (updatedContent.includes(token) && !updatedContent.includes(`@[${mention.display}](${mention.id})`)) {
-      updatedContent = updatedContent.replaceAll(token, `@[${mention.display}](${mention.id})`)
+      const escapedToken = token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+      const tokenRegex = new RegExp(escapedToken, "g")
+      updatedContent = updatedContent.replace(tokenRegex, `@[${mention.display}](${mention.id})`)
     }
   })
   return updatedContent

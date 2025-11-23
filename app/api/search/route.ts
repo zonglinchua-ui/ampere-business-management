@@ -18,7 +18,7 @@ interface SearchContext {
   recent: boolean
 }
 
-export function createSearchHandler({
+function createSearchHandler({
   prismaClient,
   getSession,
   rateLimit = checkRateLimit,

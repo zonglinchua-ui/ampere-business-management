@@ -2,7 +2,6 @@ import { readFile } from 'fs/promises';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { existsSync } from 'fs';
-import sharp from 'sharp';
 import { prisma } from '@/lib/db';
 
 const execAsync = promisify(exec);
@@ -79,17 +78,9 @@ async function convertImageToPNG(filePath: string, mimeType: string): Promise<st
     console.log('Image is already PNG, using as-is');
     return filePath;
   }
-  
-  console.log('Converting image to PNG using sharp...');
-  const pngPath = filePath.replace(/\.(jpg|jpeg|webp|gif|bmp)$/i, '.png');
-  
-  await sharp(filePath)
-    .png()
-    .resize(2000, 2000, { fit: 'inside', withoutEnlargement: true })
-    .toFile(pngPath);
-  
-  console.log('Image converted to PNG:', pngPath);
-  return pngPath;
+
+  console.warn('Sharp is unavailable; skipping image conversion for', filePath);
+  return filePath;
 }
 
 function parseMarkdownResponse(text: string): ExtractedDocumentData {

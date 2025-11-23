@@ -2,6 +2,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
+import { Session } from 'next-auth';
 import { z } from 'zod';
 
 const tableViewSchema = z.object({
@@ -13,12 +14,12 @@ const tableViewSchema = z.object({
 });
 
 type TableViewDeps = {
-  getSession: typeof getServerSession;
+  getSession: () => Promise<Session | null>;
   client: typeof prisma;
 };
 
 const defaultDeps: TableViewDeps = {
-  getSession: (options) => getServerSession(options),
+  getSession: () => getServerSession(authOptions),
   client: prisma,
 };
 
@@ -27,7 +28,7 @@ export async function GET(
   deps: TableViewDeps = defaultDeps
 ) {
   try {
-    const session = await deps.getSession(authOptions);
+    const session = await deps.getSession();
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -62,7 +63,7 @@ export async function POST(
   deps: TableViewDeps = defaultDeps
 ) {
   try {
-    const session = await deps.getSession(authOptions);
+    const session = await deps.getSession();
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

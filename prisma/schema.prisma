@@ -230,6 +230,7 @@ model CustomerInvoice {
   Payment                Payment[]
   ProgressClaim          ProgressClaim[]
   Comment                Comment[]
+  Comment             Comment[]
 }
 
 model CustomerInvoiceItem {
@@ -416,6 +417,7 @@ model Project {
   Task                             Task[]
   VariationOrder                   VariationOrder[]
   ProgressClaim                    ProgressClaim[]
+  Comment                          Comment[]
   SupplierBudgetItem               SupplierBudgetItem[]
   ProjectBudgetSummary             ProjectBudgetSummary?
   BudgetAlert                      BudgetAlert[]

@@ -1,11 +1,31 @@
 import { prisma } from "@/lib/db"
-import { Prisma } from "@prisma/client"
+
+export const COMPLIANCE_DOCUMENT_TYPES = [
+  "INSURANCE",
+  "LICENSE",
+  "SAFETY",
+  "CERTIFICATION",
+  "FINANCIAL",
+  "CUSTOM",
+] as const
+export type ComplianceDocumentType = (typeof COMPLIANCE_DOCUMENT_TYPES)[number]
+
+export const COMPLIANCE_VERIFICATION_STATUSES = [
+  "PENDING",
+  "VERIFIED",
+  "REJECTED",
+  "EXPIRED",
+] as const
+export type ComplianceVerificationStatus = (typeof COMPLIANCE_VERIFICATION_STATUSES)[number]
+
+export const RISK_LEVELS = ["LOW", "MEDIUM", "HIGH"] as const
+export type RiskLevel = (typeof RISK_LEVELS)[number]
 
 export type ComplianceDocumentInput = {
   name: string
-  type: Prisma.ComplianceDocumentType
+  type: ComplianceDocumentType
   fileUrl?: string | null
-  verificationStatus?: Prisma.ComplianceVerificationStatus
+  verificationStatus?: ComplianceVerificationStatus
   verificationNotes?: string | null
   expiresAt?: Date | string | null
   riskScore?: number | null
@@ -16,18 +36,18 @@ export type ComplianceRiskProfile = {
   financialRiskScore: number
   deliveryRiskScore: number
   overallRiskScore: number
-  riskLevel: Prisma.RiskLevel
+  riskLevel: RiskLevel
   riskEvaluatedAt: Date
 }
 
-export function determineRiskLevel(score: number): Prisma.RiskLevel {
+export function determineRiskLevel(score: number): RiskLevel {
   if (score >= 70) return "HIGH"
   if (score >= 40) return "MEDIUM"
   return "LOW"
 }
 
 export function calculateDocumentRisk(document: {
-  verificationStatus: Prisma.ComplianceVerificationStatus
+  verificationStatus: ComplianceVerificationStatus
   expiresAt: Date | null
 }): number {
   let score = 20
@@ -60,7 +80,7 @@ export function calculateDocumentRisk(document: {
 }
 
 export function calculateRiskProfile(documents: Array<{
-  verificationStatus: Prisma.ComplianceVerificationStatus
+  verificationStatus: ComplianceVerificationStatus
   expiresAt: Date | null
   riskScore?: number | null
 }>): ComplianceRiskProfile {
