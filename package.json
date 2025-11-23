@@ -5,7 +5,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "TS_NODE_COMPILER_OPTIONS=\"{\\\"module\\\":\\\"commonjs\\\",\\\"allowImportingTsExtensions\\\":true}\" node --require ts-node/register --test tests/**/*.test.ts"
   },
   "prisma": {
     "seed": "tsx --require dotenv/config scripts/seed.ts"
