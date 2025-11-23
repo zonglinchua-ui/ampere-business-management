@@ -13,6 +13,9 @@ const updateInvoiceSchema = z.object({
   status: z.enum(["DRAFT", "SENT", "PAID", "OVERDUE", "CANCELLED"]).optional(),
   issueDate: z.string().optional(),
   dueDate: z.string().optional(),
+  brandingPresetId: z.string().optional().nullable(),
+  reminderCadence: z.enum(["GENTLE", "FIRM", "CUSTOM"]).optional().nullable(),
+  reminderOffsets: z.array(z.number().int().nonnegative()).optional().nullable(),
 })
 
 export async function GET(
@@ -48,6 +51,7 @@ export async function GET(
             description: true,
           },
         },
+        BrandingPreset: true,
         User: {
           select: {
             id: true,
@@ -100,6 +104,7 @@ export async function GET(
               lastName: true,
             },
           },
+          BrandingPreset: true,
         },
       })
 
@@ -167,6 +172,7 @@ export async function PUT(
       ...validatedData,
       issueDate: validatedData.issueDate ? new Date(validatedData.issueDate) : undefined,
       dueDate: validatedData.dueDate ? new Date(validatedData.dueDate) : undefined,
+      brandingPresetId: validatedData.brandingPresetId || null,
     }
 
     if (validatedData.amount !== undefined || validatedData.taxAmount !== undefined) {
@@ -192,6 +198,7 @@ export async function PUT(
             name: true,
           },
         },
+        BrandingPreset: true,
       },
     })
 
