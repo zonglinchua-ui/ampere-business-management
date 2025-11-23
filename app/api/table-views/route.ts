@@ -80,37 +80,50 @@ export async function POST(
     const payload = parsed.data;
 
     if (payload.id) {
-      const existing = await deps.client.tableView.findUnique({
-        where: { id: payload.id },
-      });
+      const VIEW_NOT_FOUND_ERROR = 'VIEW_NOT_FOUND';
 
-      if (!existing || existing.userId !== session.user.id) {
-        return NextResponse.json({ error: 'View not found' }, { status: 404 });
+      try {
+        const view = await deps.client.$transaction(async (tx) => {
+          const existing = await tx.tableView.findUnique({
+            where: { id: payload.id },
+          });
+
+          if (!existing || existing.userId !== session.user.id) {
+            throw new Error(VIEW_NOT_FOUND_ERROR);
+          }
+
+          const updated = await tx.tableView.update({
+            where: { id: payload.id },
+            data: {
+              name: payload.name,
+              tableId: payload.tableId,
+              columnVisibility: payload.columnVisibility,
+              isDefault: payload.isDefault ?? existing.isDefault,
+            },
+          });
+
+          if (payload.isDefault) {
+            await tx.tableView.updateMany({
+              where: {
+                userId: session.user.id,
+                tableId: updated.tableId,
+                NOT: { id: updated.id },
+              },
+              data: { isDefault: false },
+            });
+          }
+
+          return updated;
+        });
+
+        return NextResponse.json({ view }, { status: 200 });
+      } catch (error) {
+        if (error instanceof Error && error.message === VIEW_NOT_FOUND_ERROR) {
+          return NextResponse.json({ error: 'View not found' }, { status: 404 });
+        }
+
+        throw error;
       }
-
-      const update = deps.client.tableView.update({
-        where: { id: payload.id },
-        data: {
-          name: payload.name,
-          tableId: payload.tableId,
-          columnVisibility: payload.columnVisibility,
-          isDefault: payload.isDefault ?? existing.isDefault,
-        },
-      });
-
-      const view = payload.isDefault
-        ? (
-            await deps.client.$transaction([
-              deps.client.tableView.updateMany({
-                where: { userId: session.user.id, tableId: payload.tableId },
-                data: { isDefault: false },
-              }),
-              update,
-            ])
-          )[1]
-        : await update;
-
-      return NextResponse.json({ view }, { status: 200 });
     }
 
     const create = deps.client.tableView.create({
