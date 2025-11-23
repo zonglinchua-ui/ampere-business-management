@@ -1,0 +1,16 @@
+{
+  "name": "react-pdf",
+  "version": "0.0.0-local",
+  "description": "Local PDF rendering utilities backed by pdfjs-dist.",
+  "type": "module",
+  "main": "./index.js",
+  "module": "./index.js",
+  "sideEffects": false,
+  "dependencies": {
+    "pdfjs-dist": "5.4.296"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  }
+}
