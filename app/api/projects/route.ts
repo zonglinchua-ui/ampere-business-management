@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/db"
+import { generateProjectNumber } from "@/lib/project-number"
 import { z } from "zod"
 import { 
   createPaginatedResponse, 
@@ -11,34 +12,6 @@ import {
 } from "@/lib/api-response"
 import { createAuditLog } from "@/lib/api-audit-context"
 import { createProjectFolders } from "@/lib/project-folder-service"
-
-// Function to generate project number
-async function generateProjectNumber(projectType: "REGULAR" | "MAINTENANCE") {
-  const prefix = projectType === "MAINTENANCE" ? "MNT" : "PRJ"
-  const currentYear = new Date().getFullYear()
-  
-  // Get the last project number for this type and year
-  const lastProject = await prisma.project.findFirst({
-    where: {
-      projectType,
-      projectNumber: {
-        startsWith: `${prefix}-${currentYear}-`
-      }
-    },
-    orderBy: {
-      projectNumber: "desc"
-    }
-  })
-  
-  let nextNumber = 1
-  if (lastProject) {
-    const parts = lastProject.projectNumber.split("-")
-    const lastNumber = parseInt(parts[2], 10)
-    nextNumber = lastNumber + 1
-  }
-  
-  return `${prefix}-${currentYear}-${nextNumber.toString().padStart(3, "0")}`
-}
 
 const createProjectSchema = z.object({
   name: z.string().min(1, "Project name is required"),

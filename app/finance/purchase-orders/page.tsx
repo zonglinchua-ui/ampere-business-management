@@ -126,7 +126,8 @@ export default function PurchaseOrdersPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [filterStatus, setFilterStatus] = useState("all")
   const [filterType, setFilterType] = useState<"all" | "OUTGOING" | "INCOMING">("all")
-  const [filterVendor, setFilterVendor] = useState("all")
+  const [filterParty, setFilterParty] = useState("all")
+  const [filterProject, setFilterProject] = useState("all")
   const [sortField, setSortField] = useState<keyof PurchaseOrder>("createdAt")
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc")
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([])
@@ -194,6 +195,36 @@ export default function PurchaseOrdersPage() {
     )
   }
 
+  const partyOptions = Array.from(
+    new Map(
+      purchaseOrders.flatMap((po) => {
+        const options: [string, string][] = []
+
+        if (po.type === 'OUTGOING') {
+          const id = po.supplier?.id || po.vendor?.id
+          const name = po.supplier?.companyName || po.vendor?.companyName
+          if (id && name) {
+            options.push([`vendor:${id}`, name])
+          }
+        }
+
+        if (po.type === 'INCOMING' && po.customer?.id && po.customer.name) {
+          options.push([`customer:${po.customer.id}`, po.customer.name])
+        }
+
+        return options
+      })
+    )
+  ).map(([value, label]) => ({ value, label }))
+
+  const projectOptions = Array.from(
+    new Map(
+      purchaseOrders
+        .filter((po) => po.project?.id && po.project?.name)
+        .map((po) => [`${po.project?.id}`, po.project?.name] as [string, string])
+    )
+  ).map(([value, label]) => ({ value, label }))
+
   // Filter and sort purchase orders
   const filteredPOs = purchaseOrders.filter(po => {
     const vendorName = po.supplier?.companyName || po.vendor?.companyName || ''
@@ -204,12 +235,22 @@ export default function PurchaseOrdersPage() {
                          partyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          po.project?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          po.notes?.toLowerCase().includes(searchTerm.toLowerCase())
-    
+
     const matchesStatus = filterStatus === "all" || po.status === filterStatus
     const matchesType = filterType === "all" || po.type === filterType
-    const matchesVendor = filterVendor === "all" || (po.supplier?.id === filterVendor || po.vendor?.id === filterVendor)
-    
-    return matchesSearch && matchesStatus && matchesType && matchesVendor
+    const matchesParty = filterParty === "all" || (() => {
+      const [type, id] = filterParty.split(":")
+      if (type === 'vendor' || type === 'supplier') {
+        return po.supplier?.id === id || po.vendor?.id === id
+      }
+      if (type === 'customer') {
+        return po.customer?.id === id
+      }
+      return false
+    })()
+    const matchesProject = filterProject === "all" || po.project?.id === filterProject
+
+    return matchesSearch && matchesStatus && matchesType && matchesParty && matchesProject
   })
 
   const sortedPOs = [...filteredPOs].sort((a, b) => {
@@ -273,8 +314,8 @@ export default function PurchaseOrdersPage() {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Purchase Orders</h1>
-            <p className="text-gray-600">Manage and track purchase orders</p>
+            <h1 className="text-2xl font-bold text-gray-900">Centralised Purchase Orders</h1>
+            <p className="text-gray-600">Cross-project registry with finance-friendly sorting and search</p>
           </div>
           <div className="flex items-center space-x-3">
             <Link href="/finance">
@@ -352,8 +393,8 @@ export default function PurchaseOrdersPage() {
         {/* Filters */}
         <Card className="mb-6">
           <CardContent className="p-4">
-            <div className="flex items-center space-x-4">
-              <div className="flex-1">
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex-1 min-w-[260px]">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                   <Input
@@ -364,7 +405,7 @@ export default function PurchaseOrdersPage() {
                   />
                 </div>
               </div>
-              
+
               <Select value={filterType} onValueChange={(value) => setFilterType(value as "all" | "OUTGOING" | "INCOMING")}>
                 <SelectTrigger className="w-48">
                   <SelectValue placeholder="Filter by type" />
@@ -393,13 +434,31 @@ export default function PurchaseOrdersPage() {
                 </SelectContent>
               </Select>
 
-              <Select value={filterVendor} onValueChange={setFilterVendor}>
+              <Select value={filterParty} onValueChange={setFilterParty}>
                 <SelectTrigger className="w-48">
                   <SelectValue placeholder="Filter by party" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Parties</SelectItem>
-                  {/* Dynamic vendor/customer options will be populated when data exists */}
+                  {partyOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={filterProject} onValueChange={setFilterProject}>
+                <SelectTrigger className="w-52">
+                  <SelectValue placeholder="Filter by project" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Projects</SelectItem>
+                  {projectOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -624,12 +683,12 @@ export default function PurchaseOrdersPage() {
                 <ShoppingCart className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No purchase orders found</h3>
                 <p className="text-gray-500 mb-4">
-                  {searchTerm || filterStatus !== "all" || filterVendor !== "all"
+                  {searchTerm || filterStatus !== "all" || filterParty !== "all" || filterProject !== "all"
                     ? "Try adjusting your search or filter criteria."
                     : "Get started by creating your first purchase order."
                   }
                 </p>
-                {canCreatePO && (!searchTerm && filterStatus === "all" && filterVendor === "all") && (
+                {canCreatePO && (!searchTerm && filterStatus === "all" && filterParty === "all" && filterProject === "all") && (
                   <Button onClick={() => router.push('/finance/purchase-orders/create')}>
                     <Plus className="h-4 w-4 mr-2" />
                     Create Purchase Order
