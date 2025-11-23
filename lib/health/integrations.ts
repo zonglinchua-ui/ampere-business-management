@@ -100,14 +100,24 @@ async function getXeroHealth(
       }
     }
 
+    const status: HealthLevel = !tokenHealth.isConnected
+      ? 'warning'
+      : tokenHealth.needsRefresh
+        ? 'warning'
+        : 'healthy'
+
+    const details = !tokenHealth.isConnected
+      ? tokenHealth.needsReconnect
+        ? 'Xero connection needs to be re-authorized'
+        : 'Xero connection requires attention'
+      : tokenHealth.needsRefresh
+        ? 'Xero connection is active but token will expire soon'
+        : 'Xero connection is active'
+
     return {
-      status: tokenHealth.isConnected ? 'healthy' : 'warning',
+      status,
       lastChecked: new Date().toISOString(),
-      details: tokenHealth.isConnected
-        ? 'Xero connection is active'
-        : tokenHealth.needsReconnect
-          ? 'Xero connection needs to be re-authorized'
-          : 'Xero connection requires attention',
+      details,
       expiresInMinutes: tokenHealth.tokenExpiresIn,
       tenantName: integration.tenantName || integration.tenantId || undefined
     }
