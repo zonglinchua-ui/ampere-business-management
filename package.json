@@ -6,6 +6,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "test": "TS_NODE_COMPILER_OPTIONS=\"{\\\"module\\\":\\\"commonjs\\\",\\\"allowImportingTsExtensions\\\":true}\" node --require ts-node/register --test tests/**/*.test.ts"
     "test": "tsx --test '**/*.test.{ts,tsx}'"
     "test": "tsx tests/run-tests.ts",
     "test:tsx": "tsx --test \"tests/**/*.{test,ts,tsx}\""
