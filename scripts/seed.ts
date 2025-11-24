@@ -233,7 +233,51 @@ async function main() {
     })
   }
 
-  console.log('🧾 Seeded cost codes and assemblies')
+  const costMappingFormulas = [
+    {
+      id: "cost-formula-wall-area",
+      notes: "Template: wall area = length * height",
+      formulaExpression: "wall_area = length * height",
+      formulaInputs: [
+        { name: "length", source: "measurement", unit: "METER" },
+        { name: "height", source: "element", path: "height", unit: "METER" },
+      ],
+      formulaOutputUnit: "SQUARE_METER",
+    },
+    {
+      id: "cost-formula-volume",
+      notes: "Template: volume = area * thickness",
+      formulaExpression: "volume = area * thickness",
+      formulaInputs: [
+        { name: "area", source: "measurement", unit: "SQUARE_METER" },
+        { name: "thickness", source: "element", path: "thickness", unit: "METER" },
+      ],
+      formulaOutputUnit: "METER",
+    },
+  ]
+
+  for (const template of costMappingFormulas) {
+    await prisma.costMapping.upsert({
+      where: { id: template.id },
+      update: {
+        notes: template.notes,
+        formulaExpression: template.formulaExpression,
+        formulaInputs: template.formulaInputs as Prisma.JsonArray,
+        formulaOutputUnit: template.formulaOutputUnit as Prisma.MeasurementUnit,
+        derivedUnit: template.formulaOutputUnit as Prisma.MeasurementUnit,
+      },
+      create: {
+        id: template.id,
+        notes: template.notes,
+        formulaExpression: template.formulaExpression,
+        formulaInputs: template.formulaInputs as Prisma.JsonArray,
+        formulaOutputUnit: template.formulaOutputUnit as Prisma.MeasurementUnit,
+        derivedUnit: template.formulaOutputUnit as Prisma.MeasurementUnit,
+      },
+    })
+  }
+
+  console.log('🧾 Seeded cost codes, assemblies, and cost mapping formulas')
 
   console.log('🎉 Database seeding completed successfully!')
   console.log('\n📋 Test Accounts Created:')

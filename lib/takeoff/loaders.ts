@@ -2,6 +2,14 @@ import { unstable_noStore as noStore } from "next/cache";
 
 export type TakeoffTool = "select" | "measure" | "markup";
 
+export interface DerivedQuantity {
+  mappingId: string;
+  label: string;
+  value?: number;
+  unit?: string;
+  error?: string;
+}
+
 export interface TakeoffSheetMetadata {
   id: string;
   name: string;
@@ -18,6 +26,7 @@ export interface TakeoffMeasurement {
   unit?: string;
   annotation?: string;
   geometry?: Record<string, unknown>;
+  derived?: DerivedQuantity[];
 }
 
 const getBaseUrl = () => {

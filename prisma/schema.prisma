@@ -1592,6 +1592,12 @@ model CostMapping {
   measurementId     String?
   costCodeId        String?
   costAssemblyId    String?
+  formulaExpression String?
+  formulaInputs     Json?
+  formulaOutputUnit MeasurementUnit?
+  derivedValue      Decimal? @db.Decimal(18, 4)
+  derivedUnit       MeasurementUnit?
+  formulaError      String?
   notes             String?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
