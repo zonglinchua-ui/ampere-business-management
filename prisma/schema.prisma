@@ -1302,6 +1302,8 @@ model Comment {
   invoiceId       String?
   purchaseOrderId String?
   projectId       String?
+  planSheetId     String?
+  measurementId   String?
   content         String
   createdById     String
   createdAt       DateTime          @default(now())
@@ -1310,11 +1312,15 @@ model Comment {
   Invoice         CustomerInvoice?  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
   PurchaseOrder   PurchaseOrder?    @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
   Project         Project?          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  PlanSheet       PlanSheet?        @relation(fields: [planSheetId], references: [id], onDelete: Cascade)
+  Measurement     Measurement?      @relation(fields: [measurementId], references: [id], onDelete: Cascade)
   CommentMention  CommentMention[]
 
   @@index([entityType, invoiceId])
   @@index([entityType, purchaseOrderId])
   @@index([entityType, projectId])
+  @@index([entityType, planSheetId])
+  @@index([entityType, measurementId])
 }
 
 model CommentMention {
@@ -2189,6 +2195,8 @@ enum CommentEntityType {
   INVOICE
   PURCHASE_ORDER
   PROJECT_BUDGET
+  TAKEOFF_SHEET
+  TAKEOFF_MEASUREMENT
 }
 
 enum PaymentMethod {

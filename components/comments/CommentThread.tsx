@@ -12,7 +12,12 @@ import { mentionTokenRegex } from '@/lib/comments'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
 
-export type CommentEntity = 'INVOICE' | 'PURCHASE_ORDER' | 'PROJECT_BUDGET'
+export type CommentEntity =
+  | 'INVOICE'
+  | 'PURCHASE_ORDER'
+  | 'PROJECT_BUDGET'
+  | 'TAKEOFF_SHEET'
+  | 'TAKEOFF_MEASUREMENT'
 
 export type CommentUser = {
   id: string
@@ -40,6 +45,8 @@ const endpointMap: Record<CommentEntity, string> = {
   INVOICE: '/api/invoices',
   PURCHASE_ORDER: '/api/pos',
   PROJECT_BUDGET: '/api/budgets',
+  TAKEOFF_SHEET: '/api/takeoff/sheets',
+  TAKEOFF_MEASUREMENT: '/api/takeoff/measurements',
 }
 
 interface CommentThreadProps {

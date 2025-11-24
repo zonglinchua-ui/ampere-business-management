@@ -10,11 +10,11 @@ import {
   commentDeleteSchema,
   extractMentions,
   ensureMentionMarkup,
+  CommentEntityTypeEnum,
   getCommentEntityKey,
   mentionSchema,
   mentionTokenRegex
 } from "../lib/comments"
-import { CommentEntityType } from "@prisma/client"
 
 const tests: Array<{ name: string; run: () => void }> = []
 
@@ -346,18 +346,28 @@ test("canModifyComment handles empty string userId", () => {
 
 // Test: getCommentEntityKey
 test("getCommentEntityKey returns correct key for INVOICE", () => {
-  const key = getCommentEntityKey(CommentEntityType.INVOICE)
+  const key = getCommentEntityKey(CommentEntityTypeEnum.INVOICE)
   assert.strictEqual(key, "invoiceId")
 })
 
 test("getCommentEntityKey returns correct key for PURCHASE_ORDER", () => {
-  const key = getCommentEntityKey(CommentEntityType.PURCHASE_ORDER)
+  const key = getCommentEntityKey(CommentEntityTypeEnum.PURCHASE_ORDER)
   assert.strictEqual(key, "purchaseOrderId")
 })
 
 test("getCommentEntityKey returns correct key for PROJECT_BUDGET", () => {
-  const key = getCommentEntityKey(CommentEntityType.PROJECT_BUDGET)
+  const key = getCommentEntityKey(CommentEntityTypeEnum.PROJECT_BUDGET)
   assert.strictEqual(key, "projectId")
+})
+
+test("getCommentEntityKey returns correct key for TAKEOFF_SHEET", () => {
+  const key = getCommentEntityKey("TAKEOFF_SHEET" as any)
+  assert.strictEqual(key, "planSheetId")
+})
+
+test("getCommentEntityKey returns correct key for TAKEOFF_MEASUREMENT", () => {
+  const key = getCommentEntityKey("TAKEOFF_MEASUREMENT" as any)
+  assert.strictEqual(key, "measurementId")
 })
 
 test("getCommentEntityKey returns default for unknown entity type", () => {
@@ -405,6 +415,29 @@ test("CommentThread renders with PROJECT_BUDGET entity type", () => {
     />
   )
   assert.ok(markup.includes("Comments"))
+})
+
+test("CommentThread renders with TAKEOFF entities", () => {
+  const sheetMarkup = renderToString(
+    <CommentThread
+      entityId="sheet-123"
+      entityType="TAKEOFF_SHEET"
+      initialComments={[]}
+      fetchOnMount={false}
+    />
+  )
+
+  const measurementMarkup = renderToString(
+    <CommentThread
+      entityId="measurement-123"
+      entityType="TAKEOFF_MEASUREMENT"
+      initialComments={[]}
+      fetchOnMount={false}
+    />
+  )
+
+  assert.ok(sheetMarkup.includes("Comments"))
+  assert.ok(measurementMarkup.includes("Comments"))
 })
 
 test("CommentThread displays empty state when no comments", () => {
