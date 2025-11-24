@@ -3,6 +3,7 @@
 import {
   createContext,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -11,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { CommentThread } from "@/components/comments/CommentThread";
 import { cn } from "@/lib/utils";
 import {
   TakeoffMeasurement,
@@ -178,6 +180,7 @@ export function TakeoffWorkspace({
             <WorkspaceToolbar />
             <CanvasArea sheet={activeSheet} isLoading={isLoading} />
             <MeasurementPanel
+              sheetId={activeSheetId}
               measurements={sheetMeasurements}
               isLoading={isLoading}
             />
@@ -315,12 +318,29 @@ function CanvasArea({
 }
 
 function MeasurementPanel({
+  sheetId,
   measurements,
   isLoading,
 }: {
+  sheetId: string;
   measurements: TakeoffMeasurement[];
   isLoading: boolean;
 }) {
+  const [selectedMeasurementId, setSelectedMeasurementId] = useState<string | null>(
+    measurements[0]?.id ?? null
+  );
+
+  useEffect(() => {
+    setSelectedMeasurementId((current) => {
+      if (current && measurements.find((measurement) => measurement.id === current)) {
+        return current;
+      }
+      return measurements[0]?.id ?? null;
+    });
+  }, [measurements]);
+
+  const selectedMeasurement = measurements.find((m) => m.id === selectedMeasurementId);
+
   return (
     <div className="rounded-lg border bg-white p-4 shadow-sm">
       <div className="flex items-center justify-between">
@@ -339,26 +359,54 @@ function MeasurementPanel({
           Syncing measurements...
         </div>
       ) : measurements.length ? (
-        <div className="grid gap-3 md:grid-cols-2">
-          {measurements.map((measurement) => (
-            <div
-              key={measurement.id}
-              className="rounded-md border p-3 transition hover:border-primary/50"
-            >
-              <p className="font-medium text-sm">{measurement.label}</p>
-              <p className="text-xs text-muted-foreground">
-                {measurement.value
-                  ? `${measurement.value} ${measurement.unit ?? ""}`
-                  : "No value recorded"}
-              </p>
-              {measurement.annotation ? (
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {measurement.annotation}
+        <>
+          <div className="grid gap-3 md:grid-cols-2">
+            {measurements.map((measurement) => (
+              <button
+                type="button"
+                onClick={() => setSelectedMeasurementId(measurement.id)}
+                key={measurement.id}
+                className={cn(
+                  "w-full rounded-md border p-3 text-left transition",
+                  selectedMeasurementId === measurement.id
+                    ? "border-primary bg-primary/5"
+                    : "hover:border-primary/50"
+                )}
+              >
+                <p className="font-medium text-sm">{measurement.label}</p>
+                <p className="text-xs text-muted-foreground">
+                  {measurement.value
+                    ? `${measurement.value} ${measurement.unit ?? ""}`
+                    : "No value recorded"}
                 </p>
-              ) : null}
-            </div>
-          ))}
-        </div>
+                {measurement.annotation ? (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {measurement.annotation}
+                  </p>
+                ) : null}
+              </button>
+            ))}
+          </div>
+          <Separator className="my-4" />
+          <div className="grid gap-4 lg:grid-cols-2">
+            <CommentThread
+              entityId={sheetId}
+              entityType="TAKEOFF_SHEET"
+              fetchOnMount={Boolean(sheetId)}
+            />
+            {selectedMeasurement ? (
+              <CommentThread
+                entityId={selectedMeasurement.id}
+                entityType="TAKEOFF_MEASUREMENT"
+                fetchOnMount
+              />
+            ) : (
+              <div className="flex h-full items-center justify-center rounded-md border border-dashed p-4 text-sm text-muted-foreground">
+                Select a measurement to view its discussion thread.
+              </div>
+            )}
+          </div>
+        </>
       ) : (
         <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
           Measurements will appear here after you add them on the sheet.
