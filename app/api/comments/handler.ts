@@ -8,22 +8,34 @@ import {
   commentInputSchema,
   commentUpdateSchema,
   ensureMentionMarkup,
+  CommentEntityTypeEnum,
+  ExtendedCommentEntityType,
   getCommentEntityKey,
 } from "@/lib/comments"
 import { CommentEntityType } from "@prisma/client"
 
 type EntityChecker = (id: string) => Promise<unknown>
 
-const entityCheckers: Record<CommentEntityType, EntityChecker> = {
-  [CommentEntityType.INVOICE]: (id: string) =>
+const entityCheckers: Record<
+  ExtendedCommentEntityType,
+  EntityChecker
+> = {
+  [CommentEntityTypeEnum.INVOICE]: (id: string) =>
     prisma.customerInvoice.findUnique({ where: { id }, select: { id: true } }),
-  [CommentEntityType.PURCHASE_ORDER]: (id: string) =>
+  [CommentEntityTypeEnum.PURCHASE_ORDER]: (id: string) =>
     prisma.purchaseOrder.findUnique({ where: { id }, select: { id: true } }),
-  [CommentEntityType.PROJECT_BUDGET]: (id: string) =>
+  [CommentEntityTypeEnum.PROJECT_BUDGET]: (id: string) =>
     prisma.project.findUnique({ where: { id }, select: { id: true } }),
+  "TAKEOFF_SHEET": (id: string) =>
+    prisma.planSheet.findUnique({ where: { id }, select: { id: true } }),
+  "TAKEOFF_MEASUREMENT": (id: string) =>
+    prisma.measurement.findUnique({ where: { id }, select: { id: true } }),
 }
 
-async function ensureEntityExists(entityType: CommentEntityType, entityId: string) {
+async function ensureEntityExists(
+  entityType: ExtendedCommentEntityType,
+  entityId: string
+) {
   const checker = entityCheckers[entityType]
   return checker?.(entityId)
 }
@@ -48,9 +60,30 @@ function mapCommentResponse(comment: any) {
   }
 }
 
+function matchesEntityScope(
+  entityType: ExtendedCommentEntityType,
+  existingComment: any,
+  entityId: string
+) {
+  switch (entityType) {
+    case CommentEntityTypeEnum.INVOICE:
+      return existingComment.invoiceId === entityId
+    case CommentEntityTypeEnum.PURCHASE_ORDER:
+      return existingComment.purchaseOrderId === entityId
+    case CommentEntityTypeEnum.PROJECT_BUDGET:
+      return existingComment.projectId === entityId
+    case CommentEntityTypeEnum.TAKEOFF_SHEET:
+      return existingComment.planSheetId === entityId
+    case CommentEntityTypeEnum.TAKEOFF_MEASUREMENT:
+      return existingComment.measurementId === entityId
+    default:
+      return false
+  }
+}
+
 export async function handleCommentRequest(
   req: NextRequest,
-  entityType: CommentEntityType,
+  entityType: ExtendedCommentEntityType,
   entityId: string
 ) {
   const session = await getServerSession(authOptions)
@@ -70,7 +103,7 @@ export async function handleCommentRequest(
 
   if (req.method === "GET") {
     const comments = await prisma.comment.findMany({
-      where: { entityType, [entityKey]: entityId },
+      where: { entityType: entityType as CommentEntityType, [entityKey]: entityId },
       include: {
         createdBy: true,
         CommentMention: {
@@ -103,7 +136,7 @@ export async function handleCommentRequest(
     const newComment = await prisma.comment.create({
       data: {
         content: normalizedContent,
-        entityType,
+        entityType: entityType as CommentEntityType,
         [entityKey]: entityId,
         createdById: userId,
         CommentMention: mentionRecords.length
@@ -130,11 +163,9 @@ export async function handleCommentRequest(
       include: { createdBy: true },
     })
 
-    const matchesEntity =
-      existingComment &&
-      ((entityType === CommentEntityType.INVOICE && existingComment.invoiceId === entityId) ||
-        (entityType === CommentEntityType.PURCHASE_ORDER && existingComment.purchaseOrderId === entityId) ||
-        (entityType === CommentEntityType.PROJECT_BUDGET && existingComment.projectId === entityId))
+    const matchesEntity = existingComment
+      ? matchesEntityScope(entityType, existingComment, entityId)
+      : false
 
     if (!existingComment || existingComment.entityType !== entityType || !matchesEntity) {
       return NextResponse.json({ error: "Comment not found" }, { status: 404 })
@@ -181,11 +212,9 @@ export async function handleCommentRequest(
     const { commentId } = commentDeleteSchema.parse(body)
 
     const existingComment = await prisma.comment.findUnique({ where: { id: commentId } })
-    const matchesEntity =
-      existingComment &&
-      ((entityType === CommentEntityType.INVOICE && existingComment.invoiceId === entityId) ||
-        (entityType === CommentEntityType.PURCHASE_ORDER && existingComment.purchaseOrderId === entityId) ||
-        (entityType === CommentEntityType.PROJECT_BUDGET && existingComment.projectId === entityId))
+    const matchesEntity = existingComment
+      ? matchesEntityScope(entityType, existingComment, entityId)
+      : false
 
     if (!existingComment || existingComment.entityType !== entityType || !matchesEntity) {
       return NextResponse.json({ error: "Comment not found" }, { status: 404 })

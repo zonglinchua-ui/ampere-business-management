@@ -1,6 +1,20 @@
 import { CommentEntityType } from "@prisma/client"
 import { z } from "zod"
 
+export type ExtendedCommentEntityType =
+  | CommentEntityType
+  | "TAKEOFF_SHEET"
+  | "TAKEOFF_MEASUREMENT"
+
+export const CommentEntityTypeEnum = {
+  INVOICE: CommentEntityType?.INVOICE ?? "INVOICE",
+  PURCHASE_ORDER: CommentEntityType?.PURCHASE_ORDER ?? "PURCHASE_ORDER",
+  PROJECT_BUDGET: CommentEntityType?.PROJECT_BUDGET ?? "PROJECT_BUDGET",
+  TAKEOFF_SHEET: (CommentEntityType as any)?.TAKEOFF_SHEET ?? "TAKEOFF_SHEET",
+  TAKEOFF_MEASUREMENT:
+    (CommentEntityType as any)?.TAKEOFF_MEASUREMENT ?? "TAKEOFF_MEASUREMENT",
+} as const
+
 export const mentionTokenRegex = /@\[([^\]]+)\]\(([^)]+)\)/g
 
 export const mentionSchema = z.object({
@@ -59,14 +73,18 @@ export function canModifyComment(currentUserId: string | undefined, role: string
   return currentUserId === ownerId
 }
 
-export function getCommentEntityKey(entityType: CommentEntityType) {
+export function getCommentEntityKey(entityType: ExtendedCommentEntityType) {
   switch (entityType) {
-    case CommentEntityType.INVOICE:
+    case CommentEntityTypeEnum.INVOICE:
       return "invoiceId"
-    case CommentEntityType.PURCHASE_ORDER:
+    case CommentEntityTypeEnum.PURCHASE_ORDER:
       return "purchaseOrderId"
-    case CommentEntityType.PROJECT_BUDGET:
+    case CommentEntityTypeEnum.PROJECT_BUDGET:
       return "projectId"
+    case CommentEntityTypeEnum.TAKEOFF_SHEET:
+      return "planSheetId"
+    case CommentEntityTypeEnum.TAKEOFF_MEASUREMENT:
+      return "measurementId"
     default:
       return "entityId"
   }
