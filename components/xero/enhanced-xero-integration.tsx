@@ -10,7 +10,7 @@ import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Progress } from '@/components/ui/progress'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -45,6 +45,13 @@ import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { eventBus, XERO_SYNC_COMPLETED, XERO_SYNC_STARTED, XERO_SYNC_ERROR } from '@/lib/events'
 import { useXeroConnectionStatus } from '@/hooks/use-xero-connection-status'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog'
 
 interface XeroStatus {
   connected: boolean
@@ -73,7 +80,13 @@ interface XeroSyncLog {
   syncType: string
   status: 'SUCCESS' | 'ERROR' | 'SKIPPED'
   xeroId?: string
+  message?: string
   errorMessage?: string
+  warnings?: string[]
+  errors?: string[]
+  recordsProcessed?: number
+  recordsSucceeded?: number
+  recordsFailed?: number
   createdAt: string
 }
 
@@ -115,6 +128,7 @@ export function EnhancedXeroIntegration() {
   const [syncing, setSyncing] = useState(false)
   const [authLoading, setAuthLoading] = useState(false)
   const [backgroundSyncStatus, setBackgroundSyncStatus] = useState<BackgroundSyncStatus | null>(null)
+  const [selectedLog, setSelectedLog] = useState<XeroSyncLog | null>(null)
   
   // Sync settings
   const [autoSync, setAutoSync] = useState(false)
@@ -995,9 +1009,11 @@ export function EnhancedXeroIntegration() {
                 {status.recentLogs && status.recentLogs.length > 0 ? (
                   <div className="space-y-3">
                     {status.recentLogs.map((log) => (
-                      <div 
-                        key={log.id} 
-                        className="flex items-center justify-between p-3 border rounded-lg"
+                      <button
+                        key={log.id}
+                        type="button"
+                        className="flex w-full items-center justify-between p-3 border rounded-lg text-left hover:bg-muted/40 transition"
+                        onClick={() => setSelectedLog(log)}
                       >
                         <div className="flex items-center space-x-3">
                           {log.status === 'SUCCESS' ? (
@@ -1012,7 +1028,7 @@ export function EnhancedXeroIntegration() {
                               {log.entity} {log.syncType}
                             </div>
                             <div className="text-xs text-muted-foreground">
-                              {log.errorMessage || 'Sync completed successfully'}
+                              {log.message || log.errorMessage || 'Sync completed successfully'}
                             </div>
                           </div>
                         </div>
@@ -1020,11 +1036,11 @@ export function EnhancedXeroIntegration() {
                           <div className="text-xs text-muted-foreground">
                             {format(new Date(log.createdAt), 'MMM dd, HH:mm')}
                           </div>
-                          <Badge 
-                            variant="outline" 
+                          <Badge
+                            variant="outline"
                             className={
-                              log.status === 'SUCCESS' 
-                                ? 'border-green-200 text-green-700' 
+                              log.status === 'SUCCESS'
+                                ? 'border-green-200 text-green-700'
                                 : log.status === 'ERROR'
                                 ? 'border-red-200 text-red-700'
                                 : 'border-yellow-200 text-yellow-700'
@@ -1033,7 +1049,7 @@ export function EnhancedXeroIntegration() {
                             {log.status}
                           </Badge>
                         </div>
-                      </div>
+                      </button>
                     ))}
                   </div>
                 ) : (
@@ -1045,6 +1061,106 @@ export function EnhancedXeroIntegration() {
                 )}
               </CardContent>
             </Card>
+
+            <Dialog
+              open={!!selectedLog}
+              onOpenChange={(open) => {
+                if (!open) {
+                  setSelectedLog(null)
+                }
+              }}
+            >
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>Sync details</DialogTitle>
+                  <DialogDescription>
+                    {selectedLog
+                      ? `${selectedLog.entity} ${selectedLog.syncType} • ${format(
+                          new Date(selectedLog.createdAt),
+                          'PPpp'
+                        )}`
+                      : ''}
+                  </DialogDescription>
+                </DialogHeader>
+
+                {selectedLog && (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3">
+                      <Badge
+                        variant="outline"
+                        className={
+                          selectedLog.status === 'SUCCESS'
+                            ? 'border-green-200 text-green-700'
+                            : selectedLog.status === 'ERROR'
+                            ? 'border-red-200 text-red-700'
+                            : 'border-yellow-200 text-yellow-700'
+                        }
+                      >
+                        {selectedLog.status}
+                      </Badge>
+                      <div className="text-sm text-muted-foreground">
+                        {selectedLog.message || selectedLog.errorMessage || 'Sync completed'}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-3 text-sm">
+                      <div className="rounded-md border p-3">
+                        <div className="text-xs text-muted-foreground">Processed</div>
+                        <div className="font-semibold">{selectedLog.recordsProcessed ?? '—'}</div>
+                      </div>
+                      <div className="rounded-md border p-3">
+                        <div className="text-xs text-muted-foreground">Succeeded</div>
+                        <div className="font-semibold">{selectedLog.recordsSucceeded ?? '—'}</div>
+                      </div>
+                      <div className="rounded-md border p-3">
+                        <div className="text-xs text-muted-foreground">Failed</div>
+                        <div className="font-semibold text-red-600">
+                          {selectedLog.recordsFailed ?? '—'}
+                        </div>
+                      </div>
+                    </div>
+
+                    {selectedLog.warnings && selectedLog.warnings.length > 0 && (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-sm font-medium text-amber-700">
+                          <AlertTriangle className="h-4 w-4" />
+                          Warnings ({selectedLog.warnings.length})
+                        </div>
+                        <div className="space-y-2">
+                          {selectedLog.warnings.map((warning, index) => (
+                            <div key={index} className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm">
+                              {warning}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {(selectedLog.errors && selectedLog.errors.length > 0) || selectedLog.errorMessage ? (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-sm font-medium text-red-700">
+                          <XCircle className="h-4 w-4" />
+                          Errors {selectedLog.errors && selectedLog.errors.length > 0 ? `(${selectedLog.errors.length})` : ''}
+                        </div>
+                        <div className="space-y-2">
+                          {selectedLog.errors && selectedLog.errors.length > 0 ? (
+                            selectedLog.errors.map((error, index) => (
+                              <div key={index} className="rounded-md border border-red-200 bg-red-50 p-3 text-sm">
+                                {error}
+                              </div>
+                            ))
+                          ) : (
+                            <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm">
+                              {selectedLog.errorMessage}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                )}
+              </DialogContent>
+            </Dialog>
           </TabsContent>
 
           <TabsContent value="settings" className="space-y-4">

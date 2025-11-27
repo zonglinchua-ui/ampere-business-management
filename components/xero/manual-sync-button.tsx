@@ -276,7 +276,12 @@ export function ManualSyncButton({
                     {syncResult.success ? "Success" : "Completed with Issues"}
                   </Badge>
                 </div>
-                
+
+                <div className="text-xs text-muted-foreground">
+                  Errors and warnings will be listed below once the sync finishes so
+                  you can review each item individually.
+                </div>
+
                 {syncResult.totalProcessed !== undefined && (
                   <div className="text-sm text-muted-foreground">
                     Processed: {syncResult.totalProcessed} items
