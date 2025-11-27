@@ -167,11 +167,9 @@ export async function GET(req: NextRequest) {
     const where = {
       isActive: true,
       isDeleted: false, // Exclude soft-deleted customers
-      // Only include contacts that are marked as customers (not general contacts)
-      OR: [
-        { isCustomer: true },
-        { isCustomer: null }, // Treat null as true for backward compatibility
-      ],
+      // Only include contacts explicitly marked as customers
+      // Allowing null previously pulled in general contacts whose flags were never set.
+      isCustomer: true,
       ...(search && {
         AND: [
           {
@@ -328,6 +326,9 @@ export async function POST(req: NextRequest) {
         id: `customer_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         ...validatedData,
         customerNumber,
+        // Explicitly flag newly created contacts as customers
+        isCustomer: validatedData.isCustomer ?? true,
+        isSupplier: validatedData.isSupplier ?? false,
         createdById: session.user.id,
         updatedAt: new Date(),
       },
