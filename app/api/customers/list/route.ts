@@ -28,13 +28,9 @@ export async function GET(req: NextRequest) {
       AND: [
         { isActive: true },
         { isDeleted: false }, // Exclude soft-deleted customers
-        // ✅ Fetch contacts where isCustomer is true OR null (for backwards compatibility)
-        {
-          OR: [
-            { isCustomer: true },
-            { isCustomer: null }, // Include legacy customers without explicit flag
-          ],
-        },
+        // ✅ Only include contacts explicitly marked as customers
+        // Using null here caused general contacts (which defaulted to null) to appear as customers.
+        { isCustomer: true },
       ],
     }
 
