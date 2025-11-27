@@ -1021,6 +1021,8 @@ export function EnhancedXeroIntegration() {
                           }
                         }}
                         aria-label={`View details for ${log.entity} ${log.syncType}`}
+                        className="flex w-full items-center justify-between p-3 border rounded-lg text-left hover:bg-muted/40 transition"
+                        onClick={() => setSelectedLog(log)}
                       >
                         <div className="flex items-center space-x-3">
                           {log.status === 'SUCCESS' ? (
