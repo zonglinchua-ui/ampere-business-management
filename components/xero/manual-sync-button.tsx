@@ -133,12 +133,14 @@ export function ManualSyncButton({
         success: result.success,
         message: result.message || "Sync completed",
         syncedCount: result.syncedCount || 0,
-        totalProcessed: result.details?.contacts?.total || 0 + 
-                       result.details?.invoices?.total || 0 + 
-                       result.details?.payments?.total || 0,
-        totalErrors: result.details?.contacts?.failed || 0 + 
-                    result.details?.invoices?.failed || 0 + 
-                    result.details?.payments?.failed || 0,
+        totalProcessed:
+          (result.details?.contacts?.total || 0) +
+          (result.details?.invoices?.total || 0) +
+          (result.details?.payments?.total || 0),
+        totalErrors:
+          (result.details?.contacts?.failed || 0) +
+          (result.details?.invoices?.failed || 0) +
+          (result.details?.payments?.failed || 0),
         details: result.details,
         errors: result.errors || [],
         warnings: result.warnings || []
@@ -299,9 +301,28 @@ export function ManualSyncButton({
                 )}
 
                 {syncResult.errors && syncResult.errors.length > 0 && (
-                  <div className="text-xs text-red-600">
-                    Errors: {syncResult.errors.slice(0, 3).join(', ')}
-                    {syncResult.errors.length > 3 && '...'}
+                  <div className="text-xs text-red-700 space-y-1">
+                    <div className="font-semibold text-red-800">
+                      Errors ({syncResult.errors.length})
+                    </div>
+                    <ul className="list-disc space-y-1 pl-4 text-red-700">
+                      {syncResult.errors.map((error, index) => (
+                        <li key={`sync-error-${index}`}>{error}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {syncResult.warnings && syncResult.warnings.length > 0 && (
+                  <div className="text-xs text-amber-700 space-y-1">
+                    <div className="font-semibold text-amber-800">
+                      Warnings ({syncResult.warnings.length})
+                    </div>
+                    <ul className="list-disc space-y-1 pl-4 text-amber-700">
+                      {syncResult.warnings.map((warning, index) => (
+                        <li key={`sync-warning-${index}`}>{warning}</li>
+                      ))}
+                    </ul>
                   </div>
                 )}
               </div>

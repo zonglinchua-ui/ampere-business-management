@@ -67,12 +67,21 @@ export class EnhancedXeroOAuthService {
    */
   private parseScopes(): string[] {
     const defaultScopes = ['accounting.transactions', 'accounting.contacts', 'accounting.settings', 'offline_access']
-    
+
     if (!process.env.XERO_SCOPES) {
       return defaultScopes
     }
 
-    return process.env.XERO_SCOPES.split(' ').filter(scope => scope.trim().length > 0)
+    const scopes = process.env.XERO_SCOPES
+      .split(' ')
+      .filter(scope => scope.trim().length > 0)
+
+    // Ensure offline_access is always included so refresh tokens remain valid
+    if (!scopes.includes('offline_access')) {
+      scopes.push('offline_access')
+    }
+
+    return Array.from(new Set(scopes))
   }
 
   /**
