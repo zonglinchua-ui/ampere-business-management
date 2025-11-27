@@ -5,6 +5,10 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { testNASConnection } from '@/lib/nas-storage'
 
+// Ensure this route always runs on the server so we don't get a stale,
+// production-only "test endpoints disabled" response.
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
