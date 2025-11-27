@@ -1012,6 +1012,15 @@ export function EnhancedXeroIntegration() {
                       <button
                         key={log.id}
                         type="button"
+                        className="flex w-full items-center justify-between p-3 border rounded-lg text-left hover:bg-muted/60 transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                        onClick={() => setSelectedLog(log)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault()
+                            setSelectedLog(log)
+                          }
+                        }}
+                        aria-label={`View details for ${log.entity} ${log.syncType}`}
                         className="flex w-full items-center justify-between p-3 border rounded-lg text-left hover:bg-muted/40 transition"
                         onClick={() => setSelectedLog(log)}
                       >
@@ -1024,8 +1033,22 @@ export function EnhancedXeroIntegration() {
                             <Clock className="h-4 w-4 text-yellow-600" />
                           )}
                           <div>
-                            <div className="text-sm font-medium">
-                              {log.entity} {log.syncType}
+                            <div className="text-sm font-medium flex items-center gap-2">
+                              <span>{log.entity} {log.syncType}</span>
+                              {(log.warnings?.length || log.errors?.length) ? (
+                                <div className="flex items-center gap-1 text-xs">
+                                  {log.warnings?.length ? (
+                                    <Badge variant="secondary" className="bg-amber-100 text-amber-800">
+                                      {log.warnings.length} warning{log.warnings.length > 1 ? 's' : ''}
+                                    </Badge>
+                                  ) : null}
+                                  {log.errors?.length ? (
+                                    <Badge variant="secondary" className="bg-red-100 text-red-800">
+                                      {log.errors.length} error{log.errors.length > 1 ? 's' : ''}
+                                    </Badge>
+                                  ) : null}
+                                </div>
+                              ) : null}
                             </div>
                             <div className="text-xs text-muted-foreground">
                               {log.message || log.errorMessage || 'Sync completed successfully'}
