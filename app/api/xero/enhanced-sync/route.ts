@@ -88,6 +88,7 @@ export async function GET(request: NextRequest) {
         recordsFailed: true,
         message: true,
         errorMessage: true,
+        details: true,
         createdAt: true
       }
     })
@@ -108,16 +109,46 @@ export async function GET(request: NextRequest) {
         invoices: { total: 0, synced: 0, percentage: 0 },
         payments: { total: 0, synced: 0, percentage: 0 }
       },
-      recentLogs: recentLogs.map((log: any) => ({
-        id: log.id,
-        entity: log.entity,
-        entityId: '',
-        syncType: log.direction,
-        status: log.status as 'SUCCESS' | 'ERROR' | 'SKIPPED',
-        xeroId: '',
-        errorMessage: log.errorMessage || undefined,
-        createdAt: log.createdAt.toISOString()
-      }))
+      recentLogs: recentLogs.map((log: any) => {
+        let warnings: string[] = []
+        let errors: string[] = []
+
+        if (log.details) {
+          try {
+            const parsedDetails = JSON.parse(log.details)
+            const resultDetails = parsedDetails?.result || parsedDetails || {}
+
+            if (Array.isArray(resultDetails?.warnings)) {
+              warnings = resultDetails.warnings.map((warning: any) => String(warning))
+            }
+
+            if (Array.isArray(resultDetails?.errors)) {
+              errors = resultDetails.errors.map((error: any) => String(error))
+            } else if (resultDetails?.errors) {
+              errors = [String(resultDetails.errors)]
+            }
+          } catch (parseError) {
+            console.warn('⚠️ Failed to parse log details for warnings/errors', parseError)
+          }
+        }
+
+        return {
+          id: log.id,
+          entity: log.entity,
+          entityId: '',
+          syncType: log.direction,
+          status: log.status as 'SUCCESS' | 'ERROR' | 'SKIPPED',
+          xeroId: '',
+          message: log.message,
+          recordsProcessed: log.recordsProcessed,
+          recordsSucceeded: log.recordsSucceeded,
+          recordsFailed: log.recordsFailed,
+          warnings,
+          errors,
+          errorMessage: log.errorMessage || undefined,
+          createdAt: log.createdAt.toISOString()
+        }
+      })
     })
 
   } catch (error: any) {

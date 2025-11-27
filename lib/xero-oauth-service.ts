@@ -37,7 +37,11 @@ export class XeroOAuthService {
     const clientId = process.env.XERO_CLIENT_ID || 'not-configured'
     const clientSecret = process.env.XERO_CLIENT_SECRET || 'not-configured'
     const redirectUri = process.env.XERO_REDIRECT_URI || 'http://localhost:3000/api/xero/callback'
-    const scopes = (process.env.XERO_SCOPES || 'offline_access').split(' ')
+    const scopes = this.ensureOfflineAccessScope(
+      (process.env.XERO_SCOPES || 'offline_access')
+        .split(' ')
+        .filter(scope => scope.trim().length > 0)
+    )
     
     this.xeroClient = new XeroClient({
       clientId,
@@ -46,6 +50,20 @@ export class XeroOAuthService {
       scopes,
     })
     this.userId = userId
+  }
+
+  /**
+   * Guarantee that offline_access is always requested so that refresh tokens
+   * remain valid and we don't force users through the Xero consent flow.
+   */
+  private ensureOfflineAccessScope(scopes: string[]): string[] {
+    const uniqueScopes = Array.from(new Set(scopes))
+
+    if (!uniqueScopes.includes('offline_access')) {
+      uniqueScopes.push('offline_access')
+    }
+
+    return uniqueScopes
   }
 
   /**
